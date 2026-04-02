@@ -1,13 +1,20 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/contexts/AuthContext'
 
 export function UnifiedLoginScreen() {
   const navigate = useNavigate()
+  const { login } = useAuth()
   const [isAdminActive, setIsAdminActive] = useState(true)
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    const formData = new FormData(e.target as HTMLFormElement)
+    const email = formData.get('email') as string
+    const password = formData.get('password') as string
+    
+    await login(email, password)
     navigate('/dashboard')
   }
 
