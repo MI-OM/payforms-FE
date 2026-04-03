@@ -47,7 +47,8 @@ export interface CreateContactRequest {
 }
 
 export interface UpdateContactRequest {
-  name?: string
+  first_name?: string
+  last_name?: string
   email?: string
   phone?: string
   is_active?: boolean

@@ -199,7 +199,8 @@ export function EditContactView() {
     setSaving(true)
     try {
       await contactService.updateContact(id, {
-        name: form.name,
+        first_name: form.first_name,
+        last_name: form.last_name,
         email: form.email,
         phone: form.phone || undefined,
         is_active: form.is_active,
@@ -228,13 +229,23 @@ export function EditContactView() {
           <h1 className="text-2xl font-extrabold tracking-tight mb-6">Edit Contact</h1>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Name</label>
-              <Input 
-                value={form.name} 
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                required 
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">First Name</label>
+                <Input 
+                  value={form.first_name} 
+                  onChange={(e) => setForm({ ...form, first_name: e.target.value })}
+                  required 
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Last Name</label>
+                <Input 
+                  value={form.last_name} 
+                  onChange={(e) => setForm({ ...form, last_name: e.target.value })}
+                  required 
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
