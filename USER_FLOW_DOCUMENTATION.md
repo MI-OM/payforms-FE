@@ -231,11 +231,12 @@
 
 ## What's Left
 
-### Priority 1: Fix Remaining Mock Data
-- [ ] `ImportValidationReview.tsx` - Use validation endpoints (`contactService.validateImport`)
+### Priority 1: Fix Remaining Mock Data ✅ COMPLETED
+- [x] `ImportValidationReview.tsx` - Connected to validation/commit endpoints
+- [x] `FormBuilderAssignAudience.tsx` - Connected to groupService and contactService
+- [x] `GroupsManagement.tsx` / `GroupScreens.tsx` - Already connected
+- [x] `ReportsAnalytics.tsx` - Already connected
 - [ ] `ImportContacts.tsx` - Complete CSV mapping and actual import flow
-- [ ] `GroupEditor.tsx` / `GroupsManagement.tsx` - Connect to `groupService`
-- [ ] `ReportsAnalytics.tsx` - Connect to `reportService`
 
 ### Priority 2: Missing UI Components
 - [ ] Student/Contact statement view page
