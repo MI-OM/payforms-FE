@@ -1,5 +1,5 @@
 import React from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Outlet } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
@@ -34,9 +34,9 @@ function MaterialIcon({ name, className = '', filled = false }: { name: string; 
 
 export function DashboardLayout() {
   const location = useLocation()
-  const { user } = useAuth()
+  const navigate = useNavigate()
+  const { user, logout } = useAuth()
   const isAdmin = user?.role === 'admin'
-  const isStaff = user?.role === 'staff' || user?.role === 'admin'
 
   const navItems = [
     { icon: 'dashboard', label: 'Dashboard', path: '/dashboard', adminOnly: false },
@@ -50,6 +50,11 @@ export function DashboardLayout() {
 
   const isActive = (path: string) => {
     return location.pathname === path
+  }
+
+  const handleLogout = async () => {
+    await logout()
+    navigate('/login')
   }
 
   return (
@@ -106,13 +111,13 @@ export function DashboardLayout() {
             <MaterialIcon name="help" className="text-lg" />
             <span className="text-sm font-medium tracking-tight font-headline">Support</span>
           </Link>
-          <Link
-            to="/logout"
-            className="flex items-center gap-3 px-3 py-2 text-slate-500 hover:text-slate-900 transition-colors"
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-3 py-2 text-slate-500 hover:text-slate-900 transition-colors"
           >
             <MaterialIcon name="logout" className="text-lg" />
             <span className="text-sm font-medium tracking-tight font-headline">Sign Out</span>
-          </Link>
+          </button>
         </div>
       </aside>
 

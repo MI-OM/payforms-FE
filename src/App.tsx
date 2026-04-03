@@ -1,4 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { ToastProvider } from '@/contexts/ToastContext'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { PayformsLandingPage } from '@/pages/LandingPages'
 import { UnifiedLoginScreen } from '@/pages/UnifiedLoginScreen'
 import { OrganizationSignUp } from '@/pages/OrganizationSignUp'
@@ -35,8 +37,16 @@ import { AllImportActivities } from '@/pages/AllImportActivities'
 import { InviteStaff } from '@/pages/InviteStaff'
 import { InviteStaffSuccessState } from '@/pages/InviteStaff'
 import { InviteStaffErrorState } from '@/pages/InviteStaff'
+import { AcceptInvite, PasswordResetRequest, PasswordResetConfirm } from '@/pages/AuthPages'
+import { ContactLoginPage, ContactSetPassword, ContactResetPasswordRequest, ContactResetPasswordConfirm, ContactDashboard } from '@/pages/ContactAuthPages'
 import { ReportsAnalytics } from '@/pages/ReportsAnalytics'
 import { OrganizationSettings } from '@/pages/OrganizationSettings'
+import { FormFieldsManagement, FormSettings, FormDeleteConfirmation } from '@/pages/FormScreens'
+import { GroupTreeView, GroupContactsManagement } from '@/pages/GroupScreens'
+import { ContactExport, ContactDetailsView, AssignGroupsToContact, ImportValidationReview, ContactsList } from '@/pages/ContactScreens'
+import { TransactionHistory, TransactionExport } from '@/pages/TransactionScreens'
+import { WebhookManagement, WebhookLogs, WidgetConfiguration } from '@/pages/WebhookAndWidgetScreens'
+import { ScheduledNotifications, NotificationHistory, AuditLogs, PaymentAuditTrail, ReportsExport } from '@/pages/NotificationAuditReportScreens'
 import { FormCreationSuccessModal } from '@/pages/SuccessErrorModals'
 import { FormCreationErrorModal } from '@/pages/SuccessErrorModals'
 import { UserSignUpSuccessModal } from '@/pages/SuccessErrorModals'
@@ -87,6 +97,8 @@ function FormBuilderAssignAudienceWrapper() {
 
 function App() {
   return (
+    <ToastProvider>
+    <ErrorBoundary>
     <AuthProvider>
     <BrowserRouter>
       <Routes>
@@ -118,7 +130,17 @@ function App() {
         {/* Auth Success/Error */}
         <Route path="/invite/success" element={<InviteStaffSuccessState />} />
         <Route path="/invite/error" element={<InviteStaffErrorState />} />
+        <Route path="/invite/accept/:token" element={<AcceptInvite />} />
+        <Route path="/password-reset" element={<PasswordResetRequest />} />
+        <Route path="/password-reset/confirm/:token" element={<PasswordResetConfirm />} />
         <Route path="/move/success" element={<MoveContactSuccessFailureStates />} />
+        
+        {/* Contact Auth Routes */}
+        <Route path="/contact/login" element={<ContactLoginPage />} />
+        <Route path="/contact/set-password" element={<ContactSetPassword />} />
+        <Route path="/contact/reset-password" element={<ContactResetPasswordRequest />} />
+        <Route path="/contact/reset-password/:token" element={<ContactResetPasswordConfirm />} />
+        <Route path="/contact/dashboard" element={<ContactDashboard />} />
         
         {/* Payment Flows */}
         <Route path="/payment/success" element={<PaymentSuccessState />} />
@@ -142,39 +164,58 @@ function App() {
           <Route path="/forms/builder/refined" element={<FormBuilderRefinedFlow />} />
           <Route path="/forms/builder/publish" element={<FormBuilderPublishStep />} />
           <Route path="/forms/builder/audience" element={<FormBuilderAssignAudienceWrapper />} />
+          <Route path="/forms/:id/fields" element={<FormFieldsManagement />} />
+          <Route path="/forms/:id/settings" element={<FormSettings />} />
+          <Route path="/forms/:id/delete" element={<FormDeleteConfirmation />} />
+          <Route path="/forms/:id/widget" element={<WidgetConfiguration />} />
           
           {/* Contacts */}
-          <Route path="/contacts" element={<ContactProfileManagement />} />
+          <Route path="/contacts" element={<ContactsList />} />
+          <Route path="/contacts/export" element={<ContactExport />} />
           <Route path="/contacts/new" element={<AddNewContactForm />} />
           <Route path="/contacts/:id" element={<ContactProfileManagement />} />
+          <Route path="/contacts/:id/details" element={<ContactDetailsView />} />
           <Route path="/contacts/:id/edit" element={<EditContactView />} />
           <Route path="/contacts/:id/statement" element={<FullStatementTemplateContact />} />
           <Route path="/contacts/:id/transactions" element={<FullTransactionHistoryContact />} />
           <Route path="/contacts/:id/move" element={<MoveContactToGroupView />} />
+          <Route path="/contacts/:id/groups" element={<AssignGroupsToContact />} />
           <Route path="/contacts/:id/delete" element={<DeleteContactConfirmationModal />} />
           
           {/* Groups */}
-          <Route path="/groups" element={<ContactsGroupsManagement />} />
+          <Route path="/groups" element={<GroupTreeView />} />
+          <Route path="/groups/tree" element={<GroupTreeView />} />
+          <Route path="/groups/new" element={<GroupEditorView />} />
           <Route path="/groups/:id" element={<GroupEditorView />} />
           <Route path="/groups/:id/subgroups" element={<SubgroupManagementView />} />
+          <Route path="/groups/:id/contacts" element={<GroupContactsManagement />} />
           
           {/* Transactions */}
           <Route path="/transactions" element={<AllTransactionsLedger />} />
+          <Route path="/transactions/export" element={<TransactionExport />} />
           <Route path="/transactions/:id" element={<IndividualTransactionDetail />} />
+          <Route path="/transactions/:id/history" element={<TransactionHistory />} />
           
           {/* Activity */}
-          <Route path="/activity" element={<AllActivityLogs />} />
+          <Route path="/activity" element={<AuditLogs />} />
           <Route path="/activity/:id" element={<ActivityDetailsActions />} />
+          <Route path="/activity/payment/:paymentId" element={<PaymentAuditTrail />} />
           
           {/* Reports */}
           <Route path="/reports" element={<ReportsAnalytics />} />
+          <Route path="/reports/export" element={<ReportsExport />} />
           
           {/* Import */}
           <Route path="/import" element={<ImportContacts />} />
+          <Route path="/import/validate" element={<ImportValidationReview />} />
           <Route path="/import/activities" element={<AllImportActivities />} />
           
           {/* Settings */}
           <Route path="/settings" element={<OrganizationSettings />} />
+          <Route path="/settings/webhooks" element={<WebhookManagement />} />
+          <Route path="/settings/webhooks/:id/logs" element={<WebhookLogs />} />
+          <Route path="/settings/notifications/scheduled" element={<ScheduledNotifications />} />
+          <Route path="/settings/notifications/history" element={<NotificationHistory />} />
           <Route path="/profile" element={<AdminProfileManagement />} />
           
           {/* Team */}
@@ -186,6 +227,8 @@ function App() {
       </Routes>
     </BrowserRouter>
     </AuthProvider>
+    </ErrorBoundary>
+    </ToastProvider>
   )
 }
 

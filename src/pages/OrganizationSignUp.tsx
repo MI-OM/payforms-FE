@@ -1,15 +1,56 @@
 import { Link, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
 import { Building, Mail, Globe, ArrowRight, Building2, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { authService } from '@/services/authService'
+import { ApiError } from '@/lib/apiClient'
+import { validatePassword, getPasswordStrengthDisplay, isPasswordMatch } from '@/lib/passwordStrength'
 
 export function OrganizationSignUp() {
   const navigate = useNavigate()
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [formData, setFormData] = useState({
+    organization_name: '',
+    first_name: '',
+    last_name: '',
+    email: '',
+    password: '',
+    confirm_password: '',
+    website: '',
+  })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const passwordValidation = validatePassword(formData.password)
+  const strengthDisplay = getPasswordStrengthDisplay(formData.password)
+  const passwordsMatch = isPasswordMatch(formData.password, formData.confirm_password)
+  const isPasswordValid = passwordValidation.isValid && passwordsMatch
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    navigate('/email/verify-prompt')
+    setError('')
+    setIsLoading(true)
+
+    try {
+      await authService.register({
+        organization_name: formData.organization_name,
+        email: formData.email,
+        password: formData.password,
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        website: formData.website || undefined,
+      })
+      navigate('/email/verify-prompt')
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message || 'Registration failed. Please try again.')
+      } else {
+        setError('An unexpected error occurred')
+      }
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -32,18 +73,40 @@ export function OrganizationSignUp() {
               <Label htmlFor="orgName">Organization Name</Label>
               <div className="relative">
                 <Building className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-on-surface-variant" />
-                <Input id="orgName" className="pl-10" placeholder="Acme Corporation" required />
+                <Input 
+                  id="orgName" 
+                  className="pl-10" 
+                  placeholder="Acme Corporation" 
+                  required 
+                  value={formData.organization_name}
+                  onChange={(e) => setFormData({ ...formData, organization_name: e.target.value })}
+                  disabled={isLoading}
+                />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="firstName">First Name</Label>
-                <Input id="firstName" placeholder="John" required />
+                <Input 
+                  id="firstName" 
+                  placeholder="John" 
+                  required 
+                  value={formData.first_name}
+                  onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                  disabled={isLoading}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="lastName">Last Name</Label>
-                <Input id="lastName" placeholder="Doe" required />
+                <Input 
+                  id="lastName" 
+                  placeholder="Doe" 
+                  required 
+                  value={formData.last_name}
+                  onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                  disabled={isLoading}
+                />
               </div>
             </div>
 
@@ -51,27 +114,112 @@ export function OrganizationSignUp() {
               <Label htmlFor="email">Work Email</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-on-surface-variant" />
-                <Input id="email" type="email" className="pl-10" placeholder="john@acme.com" required />
+                <Input 
+                  id="email" 
+                  type="email" 
+                  className="pl-10" 
+                  placeholder="john@acme.com" 
+                  required 
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  disabled={isLoading}
+                />
               </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" placeholder="Create a strong password" required minLength={8} />
-              <p className="text-xs text-on-surface-variant">Must be at least 8 characters</p>
+              <Input 
+                id="password" 
+                type="password" 
+                placeholder="Create a strong password" 
+                required 
+                minLength={8}
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                disabled={isLoading}
+              />
+              {formData.password && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full transition-all duration-300 ${strengthDisplay.color}`}
+                        style={{ width: `${strengthDisplay.percentage}%` }}
+                      />
+                    </div>
+                    <span className={`text-xs font-medium ${
+                      strengthDisplay.label === 'Very Weak' || strengthDisplay.label === 'Weak' ? 'text-red-600' :
+                      strengthDisplay.label === 'Fair' ? 'text-yellow-600' : 'text-green-600'
+                    }`}>
+                      {strengthDisplay.label}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                    {passwordValidation.requirements.map((req) => (
+                      <div key={req.id} className={`flex items-center gap-1.5 text-xs ${
+                        req.met ? 'text-green-600' : 'text-gray-500'
+                      }`}>
+                        {req.met ? (
+                          <Check className="w-3 h-3" />
+                        ) : (
+                          <div className="w-3 h-3 rounded-full border border-gray-300" />
+                        )}
+                        <span>{req.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Input 
+                id="confirmPassword" 
+                type="password" 
+                placeholder="Confirm your password" 
+                required 
+                minLength={8}
+                value={formData.confirm_password}
+                onChange={(e) => setFormData({ ...formData, confirm_password: e.target.value })}
+                disabled={isLoading}
+              />
+              {formData.confirm_password && !passwordsMatch && (
+                <p className="text-xs text-red-600">Passwords do not match</p>
+              )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="website">Website (Optional)</Label>
               <div className="relative">
                 <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-on-surface-variant" />
-                <Input id="website" className="pl-10" placeholder="https://acme.com" />
+                <Input 
+                  id="website" 
+                  className="pl-10" 
+                  placeholder="https://acme.com" 
+                  value={formData.website}
+                  onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                  disabled={isLoading}
+                />
               </div>
             </div>
 
-            <Button type="submit" className="w-full flex items-center justify-center gap-2">
-              Create Organization
-              <ArrowRight className="h-4 w-4" />
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-100 rounded-lg">
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
+
+            <Button type="submit" className="w-full flex items-center justify-center gap-2" disabled={isLoading || !isPasswordValid}>
+              {isLoading ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <>
+                  Create Organization
+                  <ArrowRight className="h-4 w-4" />
+                </>
+              )}
             </Button>
           </form>
 
