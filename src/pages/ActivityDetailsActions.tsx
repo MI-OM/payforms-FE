@@ -70,7 +70,7 @@ export function ActivityDetailsActions() {
             </div>
             <div>
               <div className="text-lg font-bold tracking-tighter text-slate-950 dark:text-white">Payforms Admin</div>
-              <div className="text-[10px] uppercase tracking-widest text-slate-400">The Architectural Ledger</div>
+              <div className="text-[10px] uppercase tracking-widest text-slate-400">Payforms</div>
             </div>
           </div>
         </div>
@@ -127,7 +127,7 @@ export function ActivityDetailsActions() {
           <div className="flex justify-between items-end mb-12">
             <div>
               <h1 className="text-4xl font-extrabold tracking-tighter text-on-surface mb-2">Activity Logs</h1>
-              <p className="text-on-surface-variant max-w-lg">Historical audit of all administrative actions performed within the Architectural Ledger.</p>
+              <p className="text-on-surface-variant max-w-lg">Historical audit of all administrative actions performed within the Payforms.</p>
             </div>
             <div className="flex gap-4">
               <Button variant="secondary">Export CSV</Button>

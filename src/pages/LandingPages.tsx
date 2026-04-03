@@ -255,7 +255,7 @@ export function PayformsLandingPage() {
       <nav className="fixed top-0 w-full z-50 bg-slate-50/80 backdrop-blur-md border-b border-slate-200/50">
         <div className="flex justify-between items-center h-16 px-6 md:px-12 max-w-7xl mx-auto w-full">
           <div className="text-xl font-bold tracking-tighter text-slate-900 font-headline">
-            The Ledger
+            Payforms
           </div>
           
           {/* Desktop Navigation */}
@@ -412,7 +412,7 @@ export function PayformsLandingPage() {
         <section className="py-24 bg-slate-200">
           <div className="max-w-7xl mx-auto px-6 md:px-12">
             <AnimatedSection className="text-center mb-20">
-              <h2 className="font-headline font-bold text-4xl text-slate-900 mb-4">The Ledger Advantage</h2>
+              <h2 className="font-headline font-bold text-4xl text-slate-900 mb-4">Payforms Advantage</h2>
               <p className="text-slate-600 max-w-2xl mx-auto text-lg">Precision-engineered tools to eliminate administrative overhead and maximize financial transparency.</p>
             </AnimatedSection>
 
@@ -610,7 +610,7 @@ export function PayformsLandingPage() {
                 Ready to evolve your institutional finances?
               </h2>
               <p className="text-white/70 text-lg md:text-xl mb-12 max-w-2xl mx-auto">
-                Join the ranks of leading universities managing billions with The Ledger.
+                Join the ranks of leading universities managing billions with Payforms.
               </p>
               <div className="flex flex-col sm:flex-row justify-center gap-4">
                 <Link to="/signup">
@@ -632,7 +632,7 @@ export function PayformsLandingPage() {
       <footer className="bg-slate-50 w-full border-t border-slate-200/50">
         <div className="py-12 px-6 md:px-12 max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex flex-col gap-2">
-            <div className="font-headline font-extrabold text-xl text-slate-900">The Ledger</div>
+            <div className="font-headline font-extrabold text-xl text-slate-900">Payforms</div>
             <div className="font-sans text-xs uppercase tracking-widest text-slate-400">
               © {new Date().getFullYear()} Payforms Inc. Built with Precision.
             </div>
@@ -668,7 +668,7 @@ export function ForgeProtocol() {
           <div className="prose max-w-none">
             <h2>Overview</h2>
             <p>
-              The Forge Protocol is the underlying payment flow architecture that powers The Ledger. 
+              The Forge Protocol is the underlying payment flow architecture that powers Payforms. 
               It ensures secure, reliable, and scalable payment processing for all transactions.
             </p>
 
@@ -687,7 +687,7 @@ export function ForgeProtocol() {
               <li>Payment details encrypted and tokenized</li>
               <li>Transaction submitted to payment gateway</li>
               <li>Gateway processes with card network</li>
-              <li>Authorization returned to The Ledger</li>
+              <li>Authorization returned to Payforms</li>
               <li>Receipt generated and sent to customer</li>
             </ol>
 

@@ -81,7 +81,7 @@ export function DashboardLayout() {
           </div>
           <div>
             <h1 className="text-lg font-bold tracking-tighter text-slate-900 leading-tight font-headline truncate max-w-[160px]">
-              {user?.organization_name || 'The Ledger'}
+              {user?.organization_name || 'Payforms'}
             </h1>
             <p className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">
               {isAdmin ? 'Institutional Admin' : 'Staff Portal'}

@@ -153,7 +153,7 @@ export function OrganizationSignUp() {
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center shadow-lg shadow-blue-500/30 group-hover:shadow-blue-500/50 transition-shadow">
                 <Building2 className="h-6 w-6 text-white" />
               </div>
-              <span className="text-2xl font-bold text-slate-900 font-headline tracking-tight">The Ledger</span>
+              <span className="text-2xl font-bold text-slate-900 font-headline tracking-tight">Payforms</span>
             </Link>
           </AnimatedSection>
 

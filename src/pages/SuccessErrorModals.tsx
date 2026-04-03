@@ -73,7 +73,7 @@ export function UserSignUpSuccessModal() {
         <div className="w-full lg:w-1/2 p-12 lg:p-20">
           <div className="mb-12">
             <h1 className="font-headline font-extrabold text-4xl tracking-tighter text-slate-900 mb-2">Payforms</h1>
-            <p className="text-slate-500 font-label uppercase tracking-widest text-xs">Architectural Ledger</p>
+            <p className="text-slate-500 font-label uppercase tracking-widest text-xs">Payforms</p>
           </div>
           <div className="space-y-8">
             <h2 className="font-headline font-bold text-3xl tracking-tight">Create Organization</h2>
@@ -158,7 +158,7 @@ export function UserSignUpErrorModal() {
         <div className="w-full lg:w-1/2 p-12 lg:p-20">
           <div className="mb-12">
             <h1 className="font-headline font-extrabold text-4xl tracking-tighter text-slate-900 mb-2">Payforms</h1>
-            <p className="text-slate-500 font-label uppercase tracking-widest text-xs">Architectural Ledger</p>
+            <p className="text-slate-500 font-label uppercase tracking-widest text-xs">Payforms</p>
           </div>
           <div className="space-y-8">
             <h2 className="font-headline font-bold text-3xl tracking-tight">Create Organization</h2>

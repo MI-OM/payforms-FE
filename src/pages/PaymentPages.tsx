@@ -192,7 +192,7 @@ export function PublicPaymentPage() {
             <MaterialIcon name="account_balance" className="text-white text-3xl" filled />
           </div>
           <div>
-            <h1 className="font-['Manrope'] font-extrabold text-2xl tracking-tight text-[#000]">The Ledger</h1>
+            <h1 className="font-['Manrope'] font-extrabold text-2xl tracking-tight text-[#000]">Payforms</h1>
             <p className="text-[#45464d] font-['Inter'] text-xs uppercase tracking-[0.1em]">Student Payment Portal</p>
           </div>
         </div>
@@ -405,7 +405,7 @@ export function PublicPaymentPage() {
       
       <footer className="w-full py-12 border-t border-[#c6c6cd]/10">
         <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
-          <p className="text-xs text-[#45464d] font-medium">© 2024 The Ledger. All rights reserved.</p>
+          <p className="text-xs text-[#45464d] font-medium">© 2024 Payforms. All rights reserved.</p>
           <div className="flex gap-8">
             <a className="text-xs font-bold text-[#45464d] hover:text-[#000] transition-colors uppercase tracking-widest" href="#">Privacy Policy</a>
             <a className="text-xs font-bold text-[#45464d] hover:text-[#000] transition-colors uppercase tracking-widest" href="#">Terms of Service</a>
@@ -445,7 +445,7 @@ export function ConfirmPaymentCheckout() {
       <header className="w-full top-0 sticky z-50 bg-[#f7f9fb]">
         <nav className="flex justify-between items-center px-6 py-4 max-w-7xl mx-auto">
           <div className="flex items-center gap-4">
-            <span className="text-xl font-extrabold tracking-tight text-[#191c1e] font-['Manrope']">The Ledger</span>
+            <span className="text-xl font-extrabold tracking-tight text-[#191c1e] font-['Manrope']">Payforms</span>
             <div className="hidden sm:flex items-center gap-1 bg-[#002113] px-3 py-1 rounded-full">
               <MaterialIcon name="lock" className="text-[#009668] text-[14px]" filled />
               <span className="text-[10px] font-bold uppercase tracking-widest text-[#009668] font-['Inter']">Secure Checkout</span>
@@ -533,7 +533,7 @@ export function ConfirmPaymentCheckout() {
       
       <footer className="w-full py-8 bg-transparent">
         <div className="flex flex-col md:flex-row justify-center items-center gap-6 opacity-60">
-          <span className="font-['Inter'] text-xs uppercase tracking-widest text-[#45464d]">© 2024 The Ledger Secure Payment Protocol</span>
+          <span className="font-['Inter'] text-xs uppercase tracking-widest text-[#45464d]">© 2024 Payforms Secure Payment Protocol</span>
           <div className="flex gap-6">
             <a className="font-['Inter'] text-xs uppercase tracking-widest text-[#45464d] hover:text-[#191c1e] underline transition-colors" href="#">Privacy</a>
             <a className="font-['Inter'] text-xs uppercase tracking-widest text-[#45464d] hover:text-[#191c1e] underline transition-colors" href="#">Terms</a>
@@ -566,7 +566,7 @@ export function PaymentSuccessState() {
     <div className="min-h-screen bg-[#f7f9fb] text-[#191c1e] overflow-hidden">
       <nav className="w-full top-0 sticky bg-[#f7f9fb] flex justify-between items-center px-6 py-4 max-w-7xl mx-auto z-50">
         <div className="flex items-center gap-2">
-          <span className="text-xl font-extrabold tracking-tight text-[#191c1e] font-['Manrope']">The Ledger</span>
+          <span className="text-xl font-extrabold tracking-tight text-[#191c1e] font-['Manrope']">Payforms</span>
         </div>
         <div className="flex items-center gap-6">
           <div className="hidden md:flex gap-8 text-sm font-semibold text-[#45464d]">
@@ -646,7 +646,7 @@ export function PaymentSuccessState() {
       </div>
       
       <footer className="w-full py-8 bg-transparent flex flex-col md:flex-row justify-center items-center gap-6 opacity-60">
-        <p className="font-['Inter'] text-xs uppercase tracking-widest text-[#45464d]">© 2024 The Ledger Secure Payment Protocol</p>
+        <p className="font-['Inter'] text-xs uppercase tracking-widest text-[#45464d]">© 2024 Payforms Secure Payment Protocol</p>
         <div className="flex gap-6">
           <a className="font-['Inter'] text-xs uppercase tracking-widest text-[#45464d] hover:text-[#191c1e] underline transition-colors" href="#">Privacy</a>
           <a className="font-['Inter'] text-xs uppercase tracking-widest text-[#45464d] hover:text-[#191c1e] underline transition-colors" href="#">Terms</a>
@@ -664,7 +664,7 @@ export function PaymentFailureState() {
     <div className="min-h-screen bg-[#f7f9fb] text-[#191c1e] font-['Inter']">
       <header className="w-full top-0 sticky bg-[#f7f9fb] z-10">
         <nav className="flex justify-between items-center px-6 py-4 max-w-7xl mx-auto">
-          <div className="text-xl font-extrabold tracking-tight text-[#191c1e] font-['Manrope']">The Ledger</div>
+          <div className="text-xl font-extrabold tracking-tight text-[#191c1e] font-['Manrope']">Payforms</div>
           <div className="flex items-center gap-4 text-[#45464d]">
             <MaterialIcon name="lock" />
             <span className="font-['Manrope'] font-bold text-lg text-[#191c1e]">Secure Checkout</span>
@@ -751,7 +751,7 @@ export function PaymentFailureState() {
       
       <footer className="w-full py-8 mt-auto">
         <div className="flex flex-col md:flex-row justify-center items-center gap-6 opacity-60">
-          <span className="font-['Inter'] text-xs uppercase tracking-widest text-[#45464d]">© 2024 The Ledger Secure Payment Protocol</span>
+          <span className="font-['Inter'] text-xs uppercase tracking-widest text-[#45464d]">© 2024 Payforms Secure Payment Protocol</span>
           <div className="flex gap-6">
             <a className="font-['Inter'] text-xs uppercase tracking-widest text-[#45464d] hover:text-[#191c1e] underline transition-colors" href="#">Privacy</a>
             <a className="font-['Inter'] text-xs uppercase tracking-widest text-[#45464d] hover:text-[#191c1e] underline transition-colors" href="#">Terms</a>
@@ -781,7 +781,7 @@ export function OfficialPaymentReceipt() {
       <header className="bg-[#f7f9fb] docked full-width top-0 sticky z-50 no-print">
         <div className="flex justify-between items-center w-full px-8 py-4 max-w-5xl mx-auto">
           <div className="font-['Manrope'] tracking-tight">
-            <span className="text-xl font-bold tracking-tighter text-[#191c1e]">The Ledger</span>
+            <span className="text-xl font-bold tracking-tighter text-[#191c1e]">Payforms</span>
           </div>
           <div className="flex items-center gap-6">
             <button

@@ -129,7 +129,7 @@ function EmptyState({ onShowLive }: { onShowLive: () => void }) {
       <header className="mb-12">
         <div className="flex flex-col gap-2">
           <span className="text-xs font-bold uppercase tracking-widest text-[#188ace]">Overview</span>
-          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter text-[#191c1e]">Welcome, Architect.</h1>
+          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter text-[#191c1e]">Welcome to Payforms.</h1>
           <p className="text-lg text-[#45464d] max-w-2xl leading-relaxed">Your architectural ledger is ready to capture transactions. Start by deploying your first precision-engineered payment form.</p>
         </div>
       </header>

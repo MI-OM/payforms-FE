@@ -21,7 +21,7 @@ export function EmailVerifiedSuccess() {
       {/* Header */}
       <header className="bg-slate-50 w-full top-0 flex justify-between items-center px-12 py-6 max-w-full">
         <div className="text-lg font-bold tracking-tighter text-slate-900 font-headline uppercase">
-          Architectural Ledger
+          Payforms
         </div>
         <div className="flex items-center gap-8 font-sans text-sm tracking-tight">
           <span className="text-slate-400 font-label uppercase tracking-widest text-[10px]">Institutional Grade Identity</span>
@@ -91,7 +91,7 @@ export function EmailVerifiedSuccess() {
       {/* Footer */}
       <footer className="bg-transparent flex flex-col items-center gap-4 py-12 w-full">
         <div className="font-sans text-xs uppercase tracking-widest text-slate-500 text-center px-4">
-          © 2024 Architectural Ledger. All rights reserved. Precise Monolith Institutional Grade.
+          © 2024 Payforms. All rights reserved. Precise Monolith Institutional Grade.
         </div>
         <div className="flex gap-8">
           <a className="font-sans text-xs uppercase tracking-widest text-slate-500 hover:text-slate-700 transition-opacity" href="#">Privacy Policy</a>
@@ -306,7 +306,7 @@ export function EmailVerificationExpired() {
       {/* Header - Suppressed navigation */}
       <header className="bg-slate-50 w-full top-0 flex justify-between items-center px-12 py-6 max-w-full">
         <div className="text-lg font-bold tracking-tighter text-slate-900 font-headline">
-          Architectural Ledger
+          Payforms
         </div>
       </header>
 
@@ -368,7 +368,7 @@ export function EmailVerificationExpired() {
           <a className="font-sans text-xs uppercase tracking-widest text-slate-400 hover:text-slate-700 transition-opacity" href="#">Compliance</a>
         </div>
         <p className="font-sans text-xs uppercase tracking-widest text-slate-500">
-          © 2024 Architectural Ledger. All rights reserved. Precise Monolith Institutional Grade.
+          © 2024 Payforms. All rights reserved. Precise Monolith Institutional Grade.
         </p>
       </footer>
     </div>
@@ -388,7 +388,7 @@ export function EmailVerificationAlreadyUsed() {
       {/* Header */}
       <header className="w-full flex justify-between items-center px-12 py-8">
         <div className="text-lg font-bold tracking-tighter text-slate-900 font-headline">
-          Architectural Ledger
+          Payforms
         </div>
       </header>
 
@@ -448,7 +448,7 @@ export function EmailVerificationAlreadyUsed() {
           <a className="font-sans text-xs uppercase tracking-widest text-slate-400 hover:text-slate-700 transition-opacity" href="#">Compliance</a>
         </div>
         <p className="font-sans text-xs uppercase tracking-widest text-slate-400">
-          © 2024 Architectural Ledger. All rights reserved. Precise Monolith Institutional Grade.
+          © 2024 Payforms. All rights reserved. Precise Monolith Institutional Grade.
         </p>
       </footer>
     </div>

@@ -36,7 +36,7 @@ export function Sidebar({ className, activeItem = "Dashboard" }: SidebarProps) {
           </div>
           <div>
             <div className="text-lg font-bold tracking-tighter text-slate-950 dark:text-white">Payforms Admin</div>
-            <div className="text-[10px] uppercase tracking-widest text-slate-400">The Architectural Ledger</div>
+            <div className="text-[10px] uppercase tracking-widest text-slate-400">Payforms</div>
           </div>
         </div>
       </div>

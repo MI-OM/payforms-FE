@@ -102,7 +102,7 @@ export function UnifiedLoginScreen() {
             </svg>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
-            The Ledger
+            Payforms
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
             Sign in to your account
@@ -297,7 +297,7 @@ export function UnifiedLoginScreen() {
 
       <footer className="mt-auto py-6 text-center">
         <p className="text-xs text-slate-400">
-          © {new Date().getFullYear()} The Ledger. All rights reserved.
+          © {new Date().getFullYear()} Payforms. All rights reserved.
         </p>
       </footer>
     </div>

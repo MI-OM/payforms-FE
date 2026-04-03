@@ -59,7 +59,7 @@ export function VerifyOrganizationEmail() {
       <div className="min-h-screen bg-slate-100 flex flex-col font-sans antialiased">
         <header className="w-full top-0 bg-slate-50 flex justify-between items-center h-16 px-8">
           <div className="font-headline text-lg font-bold tracking-tight text-slate-900">
-            The Ledger
+            Payforms
           </div>
         </header>
 
@@ -95,7 +95,7 @@ export function VerifyOrganizationEmail() {
       <div className="min-h-screen bg-slate-100 flex flex-col font-sans antialiased">
         <header className="w-full top-0 bg-slate-50 flex justify-between items-center h-16 px-8">
           <div className="font-headline text-lg font-bold tracking-tight text-slate-900">
-            The Ledger
+            Payforms
           </div>
         </header>
 
@@ -142,7 +142,7 @@ export function VerifyOrganizationEmail() {
       <div className="min-h-screen bg-slate-100 flex flex-col font-sans antialiased">
         <header className="w-full top-0 bg-slate-50 flex justify-between items-center h-16 px-8">
           <div className="font-headline text-lg font-bold tracking-tight text-slate-900">
-            The Ledger
+            Payforms
           </div>
         </header>
 
@@ -177,7 +177,7 @@ export function VerifyOrganizationEmail() {
     <div className="min-h-screen bg-slate-100 flex flex-col font-sans antialiased">
       <header className="w-full top-0 bg-slate-50 flex justify-between items-center h-16 px-8">
         <div className="font-headline text-lg font-bold tracking-tight text-slate-900">
-          The Ledger
+          Payforms
         </div>
       </header>
 
