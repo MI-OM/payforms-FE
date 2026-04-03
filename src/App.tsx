@@ -5,6 +5,7 @@ import { PayformsLandingPage } from '@/pages/LandingPages'
 import { UnifiedLoginScreen } from '@/pages/UnifiedLoginScreen'
 import { OrganizationSignUp } from '@/pages/OrganizationSignUp'
 import { EmailVerifiedSuccess, EmailVerifiedSuccessView, EmailVerificationErrorView, EmailVerificationExpired, EmailVerificationAlreadyUsed, VerifyYourEmailPrompt } from '@/pages/EmailVerification'
+import { VerifyOrganizationEmail } from '@/pages/VerifyOrganizationEmail'
 import { AdminDashboardContent } from '@/pages/AdminDashboard'
 import { AdminProfileManagement } from '@/pages/AdminProfileManagement'
 import { AllActivityLogs } from '@/pages/AllActivityLogs'
@@ -116,6 +117,7 @@ function App() {
         <Route path="/email/verification/expired" element={<EmailVerificationExpired />} />
         <Route path="/email/verification/already-used" element={<EmailVerificationAlreadyUsed />} />
         <Route path="/email/verify-prompt" element={<VerifyYourEmailPrompt />} />
+        <Route path="/verify-organization-email" element={<VerifyOrganizationEmail />} />
         
         {/* Modals (accessible from dashboard) */}
         <Route path="/modal/form-success" element={<FormCreationSuccessModal />} />
