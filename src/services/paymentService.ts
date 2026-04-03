@@ -44,6 +44,7 @@ export interface UpdatePaymentStatusRequest {
 export interface PaginationParams {
   page?: number
   limit?: number
+  [key: string]: string | number | boolean | undefined
 }
 
 export interface PaginatedResponse<T> {
@@ -61,12 +62,6 @@ export interface TransactionFilters {
   contact_id?: string
   start_date?: string
   end_date?: string
-  [key: string]: string | number | boolean | undefined
-}
-
-export interface PaginationParams {
-  page?: number
-  limit?: number
   [key: string]: string | number | boolean | undefined
 }
 
@@ -116,8 +111,8 @@ export const paymentService = {
         if (value !== undefined) searchParams.append(key, String(value))
       })
     }
-    const queryString = searchParams.toString()
-    const url = `${apiUrl}/transactions${queryString ? `?${queryString}` : ''}&format=csv`
+    searchParams.append('format', 'csv')
+    const url = `${apiUrl}/transactions?${searchParams.toString()}`
     
     const response = await fetch(url, {
       headers: {

@@ -16,26 +16,17 @@ export interface RegisterRequest {
   organization_name: string
   email: string
   password: string
-  first_name?: string
-  last_name?: string
-  title?: string
-  designation?: string
-  website?: string
 }
 
 export interface InviteRequest {
+  first_name: string
+  last_name: string
   email: string
-  role?: 'admin' | 'manager' | 'staff' | 'viewer'
-  title?: string
-  designation?: string
-  message?: string
 }
 
 export interface AcceptInviteRequest {
   token: string
   password: string
-  title?: string
-  designation?: string
 }
 
 export interface PasswordResetRequest {
@@ -50,9 +41,19 @@ export interface PasswordResetConfirmRequest {
 export interface User {
   id: string
   email: string
-  name: string
-  role: 'admin' | 'staff' | 'contact'
-  organizationId: string
+  first_name: string
+  middle_name?: string
+  last_name: string
+  role: 'ADMIN' | 'STAFF' | 'CONTACT'
+  organization_id: string
+  title?: string
+  designation?: string
+}
+
+export interface ProfileUpdateRequest {
+  first_name?: string
+  middle_name?: string
+  last_name?: string
   title?: string
   designation?: string
 }
@@ -108,6 +109,14 @@ export const authService = {
 
   getMe: async (): Promise<User> => {
     return apiClient.get('/auth/me')
+  },
+
+  getProfile: async (): Promise<User> => {
+    return apiClient.get('/auth/profile')
+  },
+
+  updateProfile: async (data: ProfileUpdateRequest): Promise<User> => {
+    return apiClient.patch('/auth/profile', data)
   },
 
   refreshToken: async (refreshToken: string): Promise<LoginResponse> => {

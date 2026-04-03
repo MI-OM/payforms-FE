@@ -4,7 +4,7 @@ import { checkOwnership, getUserOrganizationId, type ResourceOwnership } from '@
 
 export interface SecurityConfig {
   requireAuth?: boolean
-  requireRole?: 'admin' | 'staff' | 'contact'
+  requireRole?: 'ADMIN' | 'STAFF' | 'CONTACT'
   validateOwnership?: boolean
   ownershipField?: 'organization_id' | 'org_id' | 'owner_id'
 }
@@ -49,7 +49,7 @@ export function createSecureApiClient(config: SecurityConfig = DEFAULT_CONFIG) {
   }
 }
 
-let currentUser: { id: string; role: string; organizationId: string } | null = null
+let currentUser: { id: string; role: string; organization_id: string } | null = null
 
 export function setCurrentUser(user: typeof currentUser) {
   currentUser = user

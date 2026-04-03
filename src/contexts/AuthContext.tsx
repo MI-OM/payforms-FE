@@ -3,7 +3,7 @@ import { authService, type User } from '@/services/authService'
 import { clearTokens, getAccessToken, isLockedOut, getLockoutRemainingMs, recordFailedAttempt, getRemainingAttempts } from '@/lib/auth'
 import { ApiError } from '@/lib/apiClient'
 
-type UserRole = 'admin' | 'staff' | 'contact' | null
+type UserRole = 'ADMIN' | 'STAFF' | 'CONTACT' | null
 
 interface AuthContextType {
   user: User | null
@@ -281,10 +281,10 @@ export function useRequireAuth(allowedRoles: UserRole[]) {
 
 export function useIsAdmin() {
   const { user } = useAuth()
-  return user?.role === 'admin'
+  return user?.role === 'ADMIN'
 }
 
 export function useIsStaff() {
   const { user } = useAuth()
-  return user?.role === 'staff' || user?.role === 'admin'
+  return user?.role === 'STAFF' || user?.role === 'ADMIN'
 }

@@ -4,8 +4,10 @@ export interface Organization {
   id: string
   name: string
   email?: string
-  website?: string
+  subdomain?: string
+  custom_domain?: string
   logo_url?: string
+  email_verified?: boolean
   require_contact_login?: boolean
   notify_submission_confirmation?: boolean
   notify_payment_confirmation?: boolean
@@ -13,10 +15,27 @@ export interface Organization {
 }
 
 export interface OrganizationSettings {
-  timezone: string
-  currency: string
-  language: string
-  date_format: string
+  name: string
+  email: string
+  email_verified: boolean
+  logo_url?: string
+  subdomain?: string
+  custom_domain?: string
+  require_contact_login: boolean
+  notify_submission_confirmation: boolean
+  notify_payment_confirmation: boolean
+  notify_payment_failure: boolean
+}
+
+export interface OrganizationUpdateRequest {
+  name?: string
+  email?: string
+  subdomain?: string
+  custom_domain?: string
+  require_contact_login?: boolean
+  notify_submission_confirmation?: boolean
+  notify_payment_confirmation?: boolean
+  notify_payment_failure?: boolean
 }
 
 export interface PaystackKeys {
@@ -29,7 +48,7 @@ export const organizationService = {
     return apiClient.get('/organization')
   },
 
-  updateOrganization: async (data: Partial<Organization>): Promise<Organization> => {
+  updateOrganization: async (data: OrganizationUpdateRequest): Promise<Organization> => {
     return apiClient.patch('/organization', data)
   },
 

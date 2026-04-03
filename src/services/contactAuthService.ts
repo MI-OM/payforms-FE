@@ -1,9 +1,12 @@
 import { apiClient } from '@/lib/apiClient'
-import { setTokens, clearTokens } from '@/lib/auth'
+import { contactAuth } from '@/lib/contactAuth'
 
 export interface ContactLoginRequest {
   email: string
   password: string
+  organization_id?: string
+  organization_subdomain?: string
+  organization_domain?: string
 }
 
 export interface ContactLoginResponse {
@@ -13,12 +16,15 @@ export interface ContactLoginResponse {
 }
 
 export interface ContactSetPasswordRequest {
-  email: string
+  token: string
   password: string
 }
 
-export interface ContactResetPasswordRequest {
+export interface ContactResetRequest {
   email: string
+  organization_id?: string
+  organization_subdomain?: string
+  organization_domain?: string
 }
 
 export interface ContactResetConfirmRequest {
@@ -28,17 +34,61 @@ export interface ContactResetConfirmRequest {
 
 export interface Contact {
   id: string
+  first_name: string
+  middle_name?: string
+  last_name: string
   email: string
-  name: string
   phone?: string
-  require_login: boolean
+  gender?: string
+  student_id?: string
   is_active: boolean
+  require_login: boolean
 }
+
+const createContactApiClient = () => {
+  return {
+    post: async <T>(endpoint: string, data: unknown): Promise<T> => {
+      const token = contactAuth.getAccessToken()
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+      const response = await fetch(`${import.meta.env.VITE_API_URL}${endpoint}`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(data),
+      })
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || `Request failed: ${response.status}`)
+      }
+      return response.json()
+    },
+    get: async <T>(endpoint: string): Promise<T> => {
+      const token = contactAuth.getAccessToken()
+      const headers: Record<string, string> = {}
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+      const response = await fetch(`${import.meta.env.VITE_API_URL}${endpoint}`, {
+        method: 'GET',
+        headers,
+      })
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || `Request failed: ${response.status}`)
+      }
+      return response.json()
+    },
+  }
+}
+
+const contactApi = createContactApiClient()
 
 export const contactAuthService = {
   login: async (data: ContactLoginRequest): Promise<ContactLoginResponse> => {
-    const response = await apiClient.post<ContactLoginResponse>('/contact-auth/login', data)
-    setTokens(response.access_token, response.refresh_token)
+    const response = await contactApi.post<ContactLoginResponse>('/contact-auth/login', data)
+    contactAuth.setTokens(response.access_token, response.refresh_token)
     return response
   },
 
@@ -46,7 +96,7 @@ export const contactAuthService = {
     return apiClient.post('/contact-auth/set-password', data)
   },
 
-  requestPasswordReset: async (data: ContactResetPasswordRequest): Promise<{ message: string }> => {
+  requestPasswordReset: async (data: ContactResetRequest): Promise<{ message: string }> => {
     return apiClient.post('/contact-auth/password-reset/request', data)
   },
 
@@ -56,13 +106,41 @@ export const contactAuthService = {
 
   logout: async (): Promise<void> => {
     try {
-      await apiClient.post('/auth/logout')
+      await contactApi.post('/auth/logout', {})
     } finally {
-      clearTokens()
+      contactAuth.clearTokens()
     }
   },
 
   getMe: async (): Promise<Contact> => {
-    return apiClient.get('/contact-auth/me')
+    return contactApi.get<Contact>('/contact-auth/me')
+  },
+
+  getReceipt: async (paymentId: string): Promise<Blob> => {
+    const token = contactAuth.getAccessToken()
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/contact-auth/payments/${paymentId}/receipt`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    })
+    if (!response.ok) {
+      throw new Error('Failed to fetch receipt')
+    }
+    return response.blob()
+  },
+
+  getReceiptByReference: async (reference: string): Promise<Blob> => {
+    const token = contactAuth.getAccessToken()
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/contact-auth/payments/reference/${reference}/receipt`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    })
+    if (!response.ok) {
+      throw new Error('Failed to fetch receipt')
+    }
+    return response.blob()
   },
 }

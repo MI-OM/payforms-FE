@@ -81,7 +81,7 @@ export function ContactProfileManagement() {
     )
   }
 
-  const fullName = [contact.first_name, contact.last_name].filter(Boolean).join(' ') || contact.name
+  const fullName = [contact.first_name, contact.last_name].filter(Boolean).join(' ')
 
   return (
     <div className="min-h-screen bg-surface ml-64 p-8">

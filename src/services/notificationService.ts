@@ -38,13 +38,24 @@ export const notificationService = {
     return apiClient.post('/notifications/reminder', data)
   },
 
+  sendGroupReminder: async (data: { group_ids: string[]; message?: string }): Promise<{ message: string }> => {
+    return apiClient.post('/notifications/reminder/groups', data)
+  },
+
   sendScheduledNotification: async (data: {
     subject: string
     body: string
     recipients: string[]
-    scheduled_for?: string
   }): Promise<ScheduledNotification> => {
     return apiClient.post('/notifications/schedule', data)
+  },
+
+  sendScheduledNotificationToGroups: async (data: {
+    group_ids: string[]
+    subject: string
+    body: string
+  }): Promise<{ message: string }> => {
+    return apiClient.post('/notifications/schedule/groups', data)
   },
 
   getScheduledNotifications: async (params?: PaginationParams): Promise<PaginatedResponse<ScheduledNotification>> => {

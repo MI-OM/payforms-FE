@@ -133,9 +133,21 @@ async function request<T>(
     }
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      const message = errorData.message || 'Request failed'
-      throw new ApiError(response.status, sanitizeErrorMessage(message), errorData)
+      let message = 'Request failed'
+      
+      const contentType = response.headers.get('content-type')
+      if (contentType?.includes('application/json')) {
+        try {
+          const errorData = await response.json()
+          message = errorData.message || errorData.error || errorData.detail || `Server error (${response.status})`
+        } catch {
+          message = `Server error (${response.status})`
+        }
+      } else {
+        message = `Server error (${response.status})`
+      }
+      
+      throw new ApiError(response.status, sanitizeErrorMessage(message), { status: response.status })
     }
 
     if (response.status === 204) {
@@ -147,7 +159,10 @@ async function request<T>(
     if (error instanceof ApiError) {
       throw error
     }
-    throw new ApiError(0, sanitizeErrorMessage('Network error. Please check your connection.'), error)
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new ApiError(0, 'Cannot connect to server. Please check your internet connection.', error)
+    }
+    throw new ApiError(0, sanitizeErrorMessage('An unexpected error occurred'), error)
   }
 }
 

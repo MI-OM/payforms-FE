@@ -16,6 +16,21 @@ export interface AnalyticsData {
   top_forms: { form_id: string; form_title: string; count: number; amount: number }[]
 }
 
+export interface FormPerformance {
+  form_id: string
+  title: string
+  submissions: number
+  payments: number
+  paid: number
+  pending: number
+  failed: number
+  partial: number
+  amount_paid: number
+  amount_pending: number
+  completion_rate: number
+  collection_rate: number
+}
+
 export interface ReportFilters {
   start_date?: string
   end_date?: string
@@ -31,9 +46,13 @@ export const reportService = {
     return apiClient.get('/reports/analytics', { params })
   },
 
+  getFormsPerformance: async (params?: ReportFilters): Promise<FormPerformance[]> => {
+    return apiClient.get('/reports/forms/performance', { params })
+  },
+
   exportReport: async (params: {
-    type: 'summary' | 'analytics'
-    format: 'csv' | 'pdf'
+    type?: 'summary' | 'analytics'
+    format?: 'csv' | 'pdf'
     start_date?: string
     end_date?: string
   }): Promise<Blob> => {

@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { ToastProvider } from '@/contexts/ToastContext'
+import { Toaster } from '@/components/ui/toaster'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { PayformsLandingPage } from '@/pages/LandingPages'
 import { UnifiedLoginScreen } from '@/pages/UnifiedLoginScreen'
@@ -63,7 +63,7 @@ import { DashboardLayout } from '@/components/layouts/DashboardLayout'
 import { AuthProvider, useAuth, useRequireAuth } from '@/contexts/AuthContext'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
-  const status = useRequireAuth(['admin', 'staff'])
+  const status = useRequireAuth(['ADMIN', 'STAFF'])
   
   if (status === 'loading') {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>
@@ -77,7 +77,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 }
 
 function AdminLayout() {
-  const status = useRequireAuth(['admin', 'staff'])
+  const status = useRequireAuth(['ADMIN', 'STAFF'])
   
   if (status === 'loading') {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>
@@ -97,7 +97,7 @@ function FormBuilderAssignAudienceWrapper() {
 
 function App() {
   return (
-    <ToastProvider>
+    <>
     <ErrorBoundary>
     <AuthProvider>
     <BrowserRouter>
@@ -228,7 +228,8 @@ function App() {
     </BrowserRouter>
     </AuthProvider>
     </ErrorBoundary>
-    </ToastProvider>
+    <Toaster />
+    </>
   )
 }
 

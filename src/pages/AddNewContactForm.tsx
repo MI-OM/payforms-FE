@@ -25,7 +25,8 @@ export function AddNewContactForm() {
     setLoading(true)
     try {
       await contactService.createContact({
-        name: `${form.firstName} ${form.lastName}`,
+        first_name: form.firstName,
+        last_name: form.lastName,
         email: form.email,
         phone: form.phone || undefined,
       })

@@ -36,7 +36,7 @@ export function DashboardLayout() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, logout } = useAuth()
-  const isAdmin = user?.role === 'admin'
+  const isAdmin = user?.role === 'ADMIN'
 
   const navItems = [
     { icon: 'dashboard', label: 'Dashboard', path: '/dashboard', adminOnly: false },
@@ -153,14 +153,14 @@ export function DashboardLayout() {
             </button>
             <div className="flex items-center gap-3 ml-2">
               <div className="text-right hidden xl:block">
-                <p className="text-xs font-bold text-slate-900">{user?.name || 'User'}</p>
+                <p className="text-xs font-bold text-slate-900">{user?.first_name ? `${user.first_name} ${user.last_name}` : 'User'}</p>
                 <p className="text-[10px] text-slate-500 uppercase tracking-tighter">
-                  {user?.role === 'admin' ? 'Admin' : 'Staff'}
+                  {user?.role === 'ADMIN' ? 'Admin' : 'Staff'}
                 </p>
               </div>
               <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center">
                 <span className="text-sm font-bold text-slate-600">
-                  {user?.name?.charAt(0).toUpperCase() || 'U'}
+                  {user?.first_name?.charAt(0).toUpperCase() || 'U'}
                 </span>
               </div>
             </div>

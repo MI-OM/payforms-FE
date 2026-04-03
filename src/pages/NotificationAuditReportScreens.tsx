@@ -48,7 +48,6 @@ export function ScheduledNotifications() {
         subject: newNotification.subject,
         body: newNotification.body,
         recipients: [],
-        scheduled_for: scheduledFor,
       })
       setIsCreating(false)
       setNewNotification({ subject: '', body: '', scheduledDate: '', scheduledTime: '', recipientType: 'all', groups: [] })

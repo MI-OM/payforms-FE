@@ -12,12 +12,12 @@ import { AuthorizationError, ForbiddenError } from '@/lib/apiClient'
 export function useAuthorization() {
   const { user } = useAuth()
 
-  const isAdmin = useMemo(() => user?.role === 'admin', [user])
-  const isStaff = useMemo(() => user?.role === 'admin' || user?.role === 'staff', [user])
-  const isContact = useMemo(() => user?.role === 'contact', [user])
+  const isAdmin = useMemo(() => user?.role === 'ADMIN', [user])
+  const isStaff = useMemo(() => user?.role === 'ADMIN' || user?.role === 'STAFF', [user])
+  const isContact = useMemo(() => user?.role === 'CONTACT', [user])
 
   const getOrganizationId = useCallback((): string | null => {
-    return user?.organizationId || null
+    return user?.organization_id || null
   }, [user])
 
   const checkResourceOwnership = useCallback((
@@ -38,13 +38,13 @@ export function useAuthorization() {
   }, [user])
 
   const requireRole = useCallback((
-    requiredRole: 'admin' | 'staff' | 'contact'
+    requiredRole: 'ADMIN' | 'STAFF' | 'CONTACT'
   ): void => {
     if (!user) {
       throw new AuthorizationError('Authentication required')
     }
 
-    const roleHierarchy = { admin: 3, staff: 2, contact: 1 }
+    const roleHierarchy: Record<string, number> = { ADMIN: 3, STAFF: 2, CONTACT: 1 }
     const userLevel = roleHierarchy[user.role] || 0
     const requiredLevel = roleHierarchy[requiredRole]
 
@@ -77,7 +77,7 @@ export function useAuthorization() {
     resourceOrganizationId: string | null | undefined
   ): boolean => {
     if (!user || !resourceOrganizationId) return false
-    return user.organizationId === resourceOrganizationId
+    return user.organization_id === resourceOrganizationId
   }, [user])
 
   const requireOrganizationAccess = useCallback((

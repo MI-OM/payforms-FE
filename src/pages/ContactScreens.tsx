@@ -5,8 +5,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { contactService, type Contact } from '@/services/contactService'
 
-function getInitials(name: string): string {
-  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+function getInitials(firstName: string, lastName: string): string {
+  return [firstName, lastName].map(n => n?.[0] || '').join('').toUpperCase().slice(0, 2)
+}
+
+function getFullName(contact: { first_name?: string; last_name?: string }): string {
+  return [contact.first_name, contact.last_name].filter(Boolean).join(' ')
 }
 
 export function ContactsList() {
@@ -110,9 +114,9 @@ export function ContactsList() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                            <span className="text-blue-600 font-bold text-sm">{getInitials(contact.name)}</span>
+                            <span className="text-blue-600 font-bold text-sm">{getInitials(contact.first_name || '', contact.last_name || '')}</span>
                           </div>
-                          <span className="font-medium text-gray-900">{contact.name}</span>
+                          <span className="font-medium text-gray-900">{getFullName(contact)}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-500">{contact.email}</td>

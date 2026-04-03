@@ -162,7 +162,8 @@ export function EditContactView() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
-    name: '',
+    first_name: '',
+    last_name: '',
     email: '',
     phone: '',
     is_active: true,
@@ -174,7 +175,8 @@ export function EditContactView() {
     try {
       const contact = await contactService.getContact(id)
       setForm({
-        name: contact.name,
+        first_name: contact.first_name,
+        last_name: contact.last_name,
         email: contact.email,
         phone: contact.phone || '',
         is_active: contact.is_active,

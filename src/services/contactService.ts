@@ -3,31 +3,47 @@ import { getAccessToken } from '@/lib/auth'
 
 export interface Contact {
   id: string
-  name: string
-  email: string
-  phone?: string
-  external_id?: string
-  is_active: boolean
-  require_login: boolean
-  created_at: string
-  groups?: Group[]
-}
-
-export interface ContactDetails extends Contact {
   first_name: string
   middle_name?: string
   last_name: string
+  email: string
+  phone?: string
   gender?: string
   student_id?: string
+  external_id?: string
   guardian_name?: string
+  guardian_email?: string
+  guardian_phone?: string
+  is_active: boolean
+  require_login: boolean
+  created_at: string
+}
+
+export interface ContactDetails extends Contact {
+  groups: Group[]
   group_hierarchy: string[]
 }
 
-export interface CreateContactRequest {
+export interface Group {
+  id: string
   name: string
+  parent_group_id?: string
+}
+
+export interface CreateContactRequest {
+  first_name?: string
+  middle_name?: string
+  last_name?: string
   email: string
   phone?: string
+  gender?: string
+  student_id?: string
   external_id?: string
+  guardian_name?: string
+  guardian_email?: string
+  guardian_phone?: string
+  require_login?: boolean
+  must_reset_password?: boolean
 }
 
 export interface UpdateContactRequest {
@@ -47,6 +63,7 @@ export interface ImportContactRow {
   group_paths?: string[]
   require_login?: boolean
   is_active?: boolean
+  must_reset_password?: boolean
 }
 
 export interface ImportValidationResult {
@@ -56,10 +73,10 @@ export interface ImportValidationResult {
   rows: ImportContactRow[]
 }
 
-export interface Group {
+export interface Import {
   id: string
-  name: string
-  parent_group_id?: string
+  status: string
+  created_at: string
 }
 
 export interface PaginationParams {
@@ -114,7 +131,7 @@ export const contactService = {
     return apiClient.post(`/contacts/imports/${importId}/commit`)
   },
 
-  getImports: async (params?: PaginationParams): Promise<PaginatedResponse<{ id: string; status: string; created_at: string }>> => {
+  getImports: async (params?: PaginationParams): Promise<PaginatedResponse<Import>> => {
     return apiClient.get('/contacts/imports', { params })
   },
 

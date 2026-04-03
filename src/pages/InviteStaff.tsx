@@ -12,9 +12,9 @@ export function InviteStaff() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [formData, setFormData] = useState({
+    first_name: '',
+    last_name: '',
     email: '',
-    role: 'staff' as 'admin' | 'manager' | 'staff' | 'viewer',
-    message: '',
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -24,9 +24,9 @@ export function InviteStaff() {
 
     try {
       await authService.invite({
+        first_name: formData.first_name,
+        last_name: formData.last_name,
         email: formData.email,
-        role: formData.role,
-        message: formData.message || undefined,
       })
       navigate('/invite/success')
     } catch (err) {
@@ -52,6 +52,30 @@ export function InviteStaff() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="firstName">First Name</Label>
+              <Input 
+                id="firstName" 
+                placeholder="John" 
+                required
+                value={formData.first_name}
+                onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                disabled={isLoading}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Last Name</Label>
+              <Input 
+                id="lastName" 
+                placeholder="Doe" 
+                required
+                value={formData.last_name}
+                onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                disabled={isLoading}
+              />
+            </div>
+          </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email Address</Label>
             <Input 
@@ -61,32 +85,6 @@ export function InviteStaff() {
               required
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              disabled={isLoading}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="role">Role</Label>
-            <select 
-              id="role" 
-              className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-lg text-sm"
-              value={formData.role}
-              onChange={(e) => setFormData({ ...formData, role: e.target.value as 'admin' | 'manager' | 'staff' | 'viewer' })}
-              disabled={isLoading}
-            >
-              <option value="admin">Admin</option>
-              <option value="manager">Manager</option>
-              <option value="staff">Staff</option>
-              <option value="viewer">Viewer</option>
-            </select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="message">Personal Message (Optional)</Label>
-            <textarea 
-              id="message" 
-              className="w-full h-24 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm resize-none"
-              placeholder="Add a personal note..."
-              value={formData.message}
-              onChange={(e) => setFormData({ ...formData, message: e.target.value })}
               disabled={isLoading}
             />
           </div>

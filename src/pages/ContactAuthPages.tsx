@@ -162,7 +162,6 @@ export function ContactSetPassword() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [formData, setFormData] = useState({
-    email: '',
     password: '',
     confirmPassword: '',
   })
@@ -184,8 +183,9 @@ export function ContactSetPassword() {
     setIsLoading(true)
 
     try {
+      const token = new URLSearchParams(window.location.search).get('token') || ''
       await contactAuthService.setPassword({
-        email: formData.email,
+        token,
         password: formData.password,
       })
       setSuccess(true)
@@ -245,20 +245,6 @@ export function ContactSetPassword() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2">
-              <label className="font-label text-xs uppercase tracking-wider font-bold text-slate-800 opacity-80" htmlFor="email">
-                Email Address
-              </label>
-              <input
-                className="w-full px-4 py-3.5 bg-slate-100 border border-slate-200/50 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-body text-slate-900"
-                id="email"
-                type="email"
-                required
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              />
-            </div>
-
             <div className="space-y-2">
               <label className="font-label text-xs uppercase tracking-wider font-bold text-slate-800 opacity-80" htmlFor="password">
                 Password

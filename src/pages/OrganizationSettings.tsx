@@ -40,12 +40,9 @@ function GeneralSettings() {
   const [loading, setLoading] = useState(true)
   const [formData, setFormData] = useState({
     name: '',
-    website: '',
     email: '',
-  })
-  const [settings, setSettings] = useState({
-    timezone: 'America/New_York',
-    currency: 'USD',
+    subdomain: '',
+    custom_domain: '',
   })
   const [isSaving, setIsSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -53,18 +50,12 @@ function GeneralSettings() {
   const fetchOrg = useCallback(async () => {
     setLoading(true)
     try {
-      const [org, orgSettings] = await Promise.all([
-        organizationService.getOrganization(),
-        organizationService.getSettings(),
-      ])
+      const org = await organizationService.getOrganization()
       setFormData({
         name: org.name,
-        website: org.website || '',
         email: org.email || '',
-      })
-      setSettings({
-        timezone: orgSettings.timezone,
-        currency: orgSettings.currency,
+        subdomain: org.subdomain || '',
+        custom_domain: org.custom_domain || '',
       })
     } catch (err) {
       console.error('Failed to load organization', err)
@@ -80,10 +71,7 @@ function GeneralSettings() {
   const handleSave = async () => {
     setIsSaving(true)
     try {
-      await Promise.all([
-        organizationService.updateOrganization(formData),
-        organizationService.updateSettings(settings),
-      ])
+      await organizationService.updateOrganization(formData)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } catch (err) {
@@ -116,14 +104,6 @@ function GeneralSettings() {
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-gray-700">Website</Label>
-            <Input 
-              value={formData.website}
-              onChange={(e) => setFormData({...formData, website: e.target.value})}
-              placeholder="https://example.com"
-            />
-          </div>
-          <div className="space-y-2">
             <Label className="text-gray-700">Contact Email</Label>
             <Input 
               type="email"
@@ -132,48 +112,23 @@ function GeneralSettings() {
               placeholder="admin@example.com"
             />
           </div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl p-6 shadow-sm">
-        <h3 className="font-bold mb-4 text-gray-900">Preferences</h3>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-gray-900">Timezone</p>
-              <p className="text-sm text-gray-500">Eastern Time (ET)</p>
-            </div>
-            <select 
-              className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm"
-              value={settings.timezone}
-              onChange={(e) => setSettings({...settings, timezone: e.target.value})}
-            >
-              <option value="America/New_York">Eastern Time (ET)</option>
-              <option value="America/Chicago">Central Time (CT)</option>
-              <option value="America/Denver">Mountain Time (MT)</option>
-              <option value="America/Los_Angeles">Pacific Time (PT)</option>
-              <option value="Europe/London">GMT</option>
-              <option value="Europe/Paris">CET</option>
-              <option value="Africa/Lagos">WAT</option>
-            </select>
+          <div className="space-y-2">
+            <Label className="text-gray-700">Subdomain</Label>
+            <Input 
+              value={formData.subdomain}
+              onChange={(e) => setFormData({...formData, subdomain: e.target.value})}
+              placeholder="school"
+            />
+            <p className="text-xs text-gray-500">Your portal will be at: {formData.subdomain || 'subdomain'}.payforms.app</p>
           </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-gray-900">Currency</p>
-              <p className="text-sm text-gray-500">United States Dollar (USD)</p>
-            </div>
-            <select 
-              className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm"
-              value={settings.currency}
-              onChange={(e) => setSettings({...settings, currency: e.target.value})}
-            >
-              <option value="USD">USD ($)</option>
-              <option value="EUR">EUR (€)</option>
-              <option value="GBP">GBP (£)</option>
-              <option value="NGN">NGN (₦)</option>
-              <option value="KES">KES (KSh)</option>
-              <option value="ZAR">ZAR (R)</option>
-            </select>
+          <div className="space-y-2">
+            <Label className="text-gray-700">Custom Domain</Label>
+            <Input 
+              value={formData.custom_domain}
+              onChange={(e) => setFormData({...formData, custom_domain: e.target.value})}
+              placeholder="pay.myuni.com"
+            />
+            <p className="text-xs text-gray-500">Point your domain CNAME to payforms.app</p>
           </div>
         </div>
       </div>
