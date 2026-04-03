@@ -1,20 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { ChevronRight, ChevronDown, Users, Search, Check, X, Folder, FolderOpen } from 'lucide-react'
-
-interface Group {
-  id: string
-  name: string
-  children?: Group[]
-  contactCount?: number
-}
-
-interface Contact {
-  id: string
-  name: string
-  email: string
-}
+import { ChevronRight, ChevronDown, Users, Search, Check, X, Folder, FolderOpen, Loader } from 'lucide-react'
+import { groupService, type GroupTreeNode } from '@/services/groupService'
+import { contactService, type Contact } from '@/services/contactService'
 
 interface SelectedTarget {
   type: 'group' | 'contact'
@@ -22,53 +11,9 @@ interface SelectedTarget {
   name: string
 }
 
-const mockGroups: Group[] = [
-  {
-    id: 'year1',
-    name: 'Year 1',
-    contactCount: 150,
-    children: [
-      { id: 'year1-eng', name: 'Engineering', contactCount: 85 },
-      { id: 'year1-sci', name: 'Science', contactCount: 65 },
-    ],
-  },
-  {
-    id: 'year2',
-    name: 'Year 2',
-    contactCount: 120,
-    children: [
-      { id: 'year2-eng', name: 'Engineering', contactCount: 70 },
-      { id: 'year2-sci', name: 'Science', contactCount: 50 },
-    ],
-  },
-  {
-    id: 'year3',
-    name: 'Year 3',
-    contactCount: 95,
-    children: [
-      { id: 'year3-eng', name: 'Engineering', contactCount: 55 },
-      { id: 'year3-sci', name: 'Science', contactCount: 40 },
-    ],
-  },
-  {
-    id: 'postgrad',
-    name: 'Postgraduate',
-    contactCount: 45,
-    children: [
-      { id: 'postgrad-msc', name: 'MSc Program', contactCount: 25 },
-      { id: 'postgrad-phd', name: 'PhD Program', contactCount: 20 },
-    ],
-  },
-]
-
-const mockContacts: Contact[] = [
-  { id: 'c1', name: 'Alexander Sterling', email: 'a.sterling@school.edu' },
-  { id: 'c2', name: 'Maria Chen', email: 'm.chen@school.edu' },
-  { id: 'c3', name: 'James Wilson', email: 'j.wilson@school.edu' },
-  { id: 'c4', name: 'Sarah Johnson', email: 's.johnson@school.edu' },
-  { id: 'c5', name: 'David Brown', email: 'd.brown@school.edu' },
-  { id: 'c6', name: 'Emma Davis', email: 'e.davis@school.edu' },
-]
+interface Group extends GroupTreeNode {
+  contactCount?: number
+}
 
 interface GroupTreeItemProps {
   group: Group
@@ -187,6 +132,7 @@ interface ContactSelectItemProps {
 }
 
 function ContactSelectItem({ contact, isSelected, onToggle }: ContactSelectItemProps) {
+  const fullName = `${contact.first_name || ''} ${contact.last_name || ''}`.trim()
   return (
     <div
       onClick={onToggle}
@@ -208,7 +154,7 @@ function ContactSelectItem({ contact, isSelected, onToggle }: ContactSelectItemP
 
       <div className="flex-1 min-w-0">
         <p className={cn('text-sm font-medium truncate', isSelected && 'text-[#188ace]')}>
-          {contact.name}
+          {fullName}
         </p>
         <p className="text-xs text-slate-400 truncate">{contact.email}</p>
       </div>
@@ -222,11 +168,35 @@ interface FormBuilderAssignAudienceProps {
 }
 
 export function FormBuilderAssignAudience({ onBack, onNext }: FormBuilderAssignAudienceProps) {
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['year1']))
+  const [groups, setGroups] = useState<GroupTreeNode[]>([])
+  const [contacts, setContacts] = useState<Contact[]>([])
+  const [loading, setLoading] = useState(true)
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
   const [selectedGroupIds, setSelectedGroupIds] = useState<Set<string>>(new Set())
   const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set())
   const [contactSearch, setContactSearch] = useState('')
   const [activeTab, setActiveTab] = useState<'groups' | 'contacts'>('groups')
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [groupsData, contactsData] = await Promise.all([
+          groupService.getGroupTree(),
+          contactService.getContacts({ limit: 100 })
+        ])
+        setGroups(groupsData)
+        setContacts(contactsData.data)
+        if (groupsData.length > 0) {
+          setExpandedGroups(new Set([groupsData[0].id]))
+        }
+      } catch (err) {
+        console.error('Failed to fetch data:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [])
 
   const toggleGroup = (id: string) => {
     setExpandedGroups((prev) => {
@@ -277,7 +247,7 @@ export function FormBuilderAssignAudience({ onBack, onNext }: FormBuilderAssignA
     })
   }
 
-  const selectedGroups = mockGroups.flatMap((g) => {
+  const selectedGroups = groups.flatMap((g) => {
     const selected: SelectedTarget[] = []
     if (selectedGroupIds.has(g.id)) {
       selected.push({ type: 'group', id: g.id, name: g.name })
@@ -290,20 +260,22 @@ export function FormBuilderAssignAudience({ onBack, onNext }: FormBuilderAssignA
     return selected
   })
 
-  const selectedContacts = mockContacts
+  const selectedContacts = contacts
     .filter((c) => selectedContactIds.has(c.id))
-    .map((c) => ({ type: 'contact' as const, id: c.id, name: c.name }))
+    .map((c) => ({ type: 'contact' as const, id: c.id, name: `${c.first_name || ''} ${c.last_name || ''}`.trim() }))
 
   const allSelectedTargets = [...selectedGroups, ...selectedContacts]
 
-  const filteredContacts = mockContacts.filter(
-    (c) =>
-      c.name.toLowerCase().includes(contactSearch.toLowerCase()) ||
-      c.email.toLowerCase().includes(contactSearch.toLowerCase())
+  const filteredContacts = contacts.filter(
+    (c) => {
+      const name = `${c.first_name || ''} ${c.last_name || ''}`.trim()
+      return name.toLowerCase().includes(contactSearch.toLowerCase()) ||
+        c.email.toLowerCase().includes(contactSearch.toLowerCase())
+    }
   )
 
   const totalContacts = selectedGroupIds.size > 0
-    ? mockGroups.reduce((sum, g) => {
+    ? groups.reduce((sum, g) => {
         if (selectedGroupIds.has(g.id)) {
           return sum + (g.children?.reduce((s, c) => s + (c.contactCount || 0), 0) || g.contactCount || 0)
         }
@@ -395,7 +367,7 @@ export function FormBuilderAssignAudience({ onBack, onNext }: FormBuilderAssignA
                   </span>
                 </div>
                 <div className="space-y-1">
-                  {mockGroups.map((group) => (
+                  {groups.map((group) => (
                     <GroupTreeItem
                       key={group.id}
                       group={group}

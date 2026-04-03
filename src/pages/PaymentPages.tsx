@@ -5,18 +5,6 @@ import { Button } from '@/components/ui/button'
 import { publicFormService, type PublicForm, type FormSubmissionData } from '@/services/formService'
 import { Loader2 } from 'lucide-react'
 
-const mockFormData = {
-  id: '1',
-  title: 'LASU-2026-Tuition',
-  description: 'Tuition Fee - Fall 2024',
-  amount: 2450,
-  minPayment: 500,
-  dueDate: 'Jan 15, 2025',
-  lateFees: 0,
-  organization: 'Saint Jude Academy',
-  studentRef: 'AL-9932-88',
-}
-
 function MaterialIcon({ name, className = '', filled = false }: { name: string; className?: string; filled?: boolean }) {
   const iconStyle = filled ? { fontVariationSettings: "'FILL' 1" } : undefined
   const icons: Record<string, string> = {

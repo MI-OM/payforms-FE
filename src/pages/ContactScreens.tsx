@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { ArrowLeft, Download, Search, Filter, Check, X, ChevronRight, Users, Folder, Plus, Loader, Loader2, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { contactService, type Contact, type Group } from '@/services/contactService'
+import { contactService, type Contact, type Group, type ImportValidationResult } from '@/services/contactService'
 import { groupService } from '@/services/groupService'
 
 function getInitials(firstName: string, lastName: string): string {
@@ -659,24 +659,81 @@ interface ImportValidationRow {
 
 export function ImportValidationReview() {
   const navigate = useNavigate()
-  const [rows, setRows] = useState<ImportValidationRow[]>([
-    { id: '1', name: 'John Adeyemi', email: 'john@email.com', phone: '+2341234567', status: 'valid' },
-    { id: '2', name: 'Sarah Johnson', email: 'sarah@email.com', phone: '+2342345678', status: 'duplicate' },
-    { id: '3', name: 'Michael Chen', email: 'invalid-email', phone: '+2343456789', status: 'error', error: 'Invalid email format' },
-    { id: '4', name: 'Emma Williams', email: 'emma@email.com', phone: '+2344567890', status: 'valid' },
-    { id: '5', name: 'David Okonkwo', email: 'david@email.com', phone: '', status: 'valid' },
-  ])
+  const [validationData, setValidationData] = useState<ImportValidationResult | null>(null)
+  const [loading, setLoading] = useState(true)
   const [isCommitting, setIsCommitting] = useState(false)
 
-  const validCount = rows.filter(r => r.status === 'valid').length
-  const duplicateCount = rows.filter(r => r.status === 'duplicate').length
-  const errorCount = rows.filter(r => r.status === 'error').length
+  useEffect(() => {
+    const fetchValidation = async () => {
+      const stored = localStorage.getItem('pending_import_validation')
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored)
+          setValidationData(parsed)
+        } catch {
+          setValidationData(null)
+        }
+      }
+      setLoading(false)
+    }
+    fetchValidation()
+  }, [])
+
+  const rows: ImportValidationRow[] = validationData?.rows?.map((row, index) => {
+    const isDuplicate = validationData.duplicates > 0 && index >= validationData.valid
+    const hasError = !isDuplicate && validationData.errors > 0 && index >= validationData.valid + validationData.duplicates
+    return {
+      id: String(index + 1),
+      name: `${row.first_name || ''} ${row.last_name || row.name || ''}`.trim() || 'Unknown',
+      email: row.email,
+      phone: row.phone || '-',
+      status: isDuplicate ? 'duplicate' : hasError ? 'error' : 'valid',
+      error: hasError ? 'Validation failed' : undefined
+    }
+  }) || []
+
+  const validCount = validationData?.valid || 0
+  const duplicateCount = validationData?.duplicates || 0
+  const errorCount = validationData?.errors || 0
 
   const handleCommit = async () => {
+    const stored = localStorage.getItem('pending_import_id')
+    if (!stored) {
+      alert('No pending import found')
+      return
+    }
+    
     setIsCommitting(true)
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    setIsCommitting(false)
-    navigate('/import/activities')
+    try {
+      await contactService.commitImport(stored)
+      localStorage.removeItem('pending_import_validation')
+      localStorage.removeItem('pending_import_id')
+      navigate('/import/activities')
+    } catch (err) {
+      console.error('Failed to commit import:', err)
+      alert('Failed to commit import')
+    } finally {
+      setIsCommitting(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 ml-64 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    )
+  }
+
+  if (!validationData) {
+    return (
+      <div className="min-h-screen bg-gray-50 ml-64 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-500 mb-4">No validation data found</p>
+          <Button onClick={() => navigate('/import')}>Go to Import</Button>
+        </div>
+      </div>
+    )
   }
 
   return (
