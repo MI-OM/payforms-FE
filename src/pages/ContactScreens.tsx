@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { ArrowLeft, Download, Search, Filter, Check, X, ChevronRight, Users, Folder, Plus, Loader, Loader2 } from 'lucide-react'
+import { ArrowLeft, Download, Search, Filter, Check, X, ChevronRight, Users, Folder, Plus, Loader, Loader2, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { contactService, type Contact } from '@/services/contactService'
@@ -54,6 +54,12 @@ export function ContactsList() {
               <Button variant="secondary" className="flex items-center gap-2">
                 <Download className="h-4 w-4" />
                 Export
+              </Button>
+            </Link>
+            <Link to="/import">
+              <Button variant="secondary" className="flex items-center gap-2">
+                <Upload className="h-4 w-4" />
+                Bulk Import
               </Button>
             </Link>
             <Link to="/contacts/new">
@@ -191,8 +197,22 @@ export function ContactExport() {
 
   const handleExport = async () => {
     setIsExporting(true)
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    setIsExporting(false)
+    try {
+      const blob = await contactService.exportContacts({ group_id: filters.groupId || undefined })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `contacts-export-${new Date().toISOString().split('T')[0]}.csv`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (err) {
+      alert('Failed to export contacts')
+      console.error(err)
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   return (
@@ -309,51 +329,51 @@ interface GroupHierarchy {
   path: string
 }
 
-interface ContactDetailsData {
-  id: string
-  firstName: string
-  middleName: string
-  lastName: string
-  email: string
-  phone: string
-  gender: string
-  studentId: string
-  guardianName: string
-  requireLogin: boolean
-  isActive: boolean
-  groups: { id: string; name: string }[]
-  groupHierarchy: string[]
-  createdAt: string
-}
-
-const mockContactDetails: ContactDetailsData = {
-  id: 'contact-123',
-  firstName: 'John',
-  middleName: 'A.',
-  lastName: 'Doe',
-  email: 'john.doe@student.edu',
-  phone: '+234 812 345 6789',
-  gender: 'male',
-  studentId: 'S12345',
-  guardianName: 'Jane Doe',
-  requireLogin: false,
-  isActive: true,
-  groups: [
-    { id: 'eng-400', name: '400 Level' },
-    { id: 'eng', name: 'Engineering' },
-    { id: 'faculty', name: 'Faculty' },
-  ],
-  groupHierarchy: [
-    'Faculty > Engineering > 400 Level',
-    'Scholarship Recipients',
-  ],
-  createdAt: '2025-09-01T08:00:00Z',
-}
-
 export function ContactDetailsView() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const contact = mockContactDetails
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [contact, setContact] = useState<Awaited<ReturnType<typeof contactService.getContactDetails>>>()
+
+  useEffect(() => {
+    const fetchContact = async () => {
+      if (!id) return
+      setLoading(true)
+      setError(null)
+      try {
+        const data = await contactService.getContactDetails(id)
+        setContact(data)
+      } catch (err) {
+        setError('Failed to load contact')
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchContact()
+  }, [id])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 ml-64 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    )
+  }
+
+  if (error || !contact) {
+    return (
+      <div className="min-h-screen bg-gray-50 ml-64 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error || 'Contact not found'}</p>
+          <Button onClick={() => navigate('/contacts')}>Back to Contacts</Button>
+        </div>
+      </div>
+    )
+  }
+
+  const fullName = [contact.first_name, contact.middle_name, contact.last_name].filter(Boolean).join(' ')
 
   return (
     <div className="min-h-screen bg-gray-50 ml-64">
@@ -364,7 +384,7 @@ export function ContactDetailsView() {
           </button>
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-gray-900">
-              {contact.firstName} {contact.middleName} {contact.lastName}
+              {fullName}
             </h1>
             <p className="text-gray-500">{contact.email}</p>
           </div>
@@ -380,7 +400,7 @@ export function ContactDetailsView() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-gray-500">Full Name</p>
-                  <p className="font-medium">{contact.firstName} {contact.middleName} {contact.lastName}</p>
+                  <p className="font-medium">{fullName}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Email</p>
@@ -388,31 +408,37 @@ export function ContactDetailsView() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Phone</p>
-                  <p className="font-medium">{contact.phone}</p>
+                  <p className="font-medium">{contact.phone || 'N/A'}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500">Student ID</p>
-                  <p className="font-medium">{contact.studentId}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Gender</p>
-                  <p className="font-medium capitalize">{contact.gender}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Guardian</p>
-                  <p className="font-medium">{contact.guardianName}</p>
-                </div>
+                {contact.student_id && (
+                  <div>
+                    <p className="text-sm text-gray-500">Student ID</p>
+                    <p className="font-medium">{contact.student_id}</p>
+                  </div>
+                )}
+                {contact.gender && (
+                  <div>
+                    <p className="text-sm text-gray-500">Gender</p>
+                    <p className="font-medium capitalize">{contact.gender}</p>
+                  </div>
+                )}
+                {contact.guardian_name && (
+                  <div>
+                    <p className="text-sm text-gray-500">Guardian</p>
+                    <p className="font-medium">{contact.guardian_name}</p>
+                  </div>
+                )}
                 <div>
                   <p className="text-sm text-gray-500">Status</p>
                   <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                    contact.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                    contact.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
                   }`}>
-                    {contact.isActive ? 'Active' : 'Inactive'}
+                    {contact.is_active ? 'Active' : 'Inactive'}
                   </span>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Created</p>
-                  <p className="font-medium">{new Date(contact.createdAt).toLocaleDateString()}</p>
+                  <p className="font-medium">{new Date(contact.created_at).toLocaleDateString()}</p>
                 </div>
               </div>
             </div>
@@ -420,24 +446,28 @@ export function ContactDetailsView() {
             <div className="bg-white rounded-xl shadow-sm p-6">
               <h3 className="font-bold text-gray-900 mb-4">Group Hierarchy</h3>
               <div className="space-y-3">
-                {contact.groupHierarchy.map((path, index) => (
-                  <div key={index} className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                    <Folder className="h-5 w-5 text-blue-500" />
-                    <div className="flex items-center">
-                      {path.split(' > ').map((segment, i, arr) => (
-                        <span key={i} className="flex items-center">
-                          <span className={i === 0 ? 'font-medium' : 'text-gray-500'}>{segment}</span>
-                          {i < arr.length - 1 && (
-                            <ChevronRight className="h-4 w-4 text-gray-400 mx-1" />
-                          )}
-                        </span>
-                      ))}
+                {contact.group_hierarchy && contact.group_hierarchy.length > 0 ? (
+                  contact.group_hierarchy.map((path, index) => (
+                    <div key={index} className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                      <Folder className="h-5 w-5 text-blue-500" />
+                      <div className="flex items-center">
+                        {path.split(' > ').map((segment, i, arr) => (
+                          <span key={i} className="flex items-center">
+                            <span className={i === 0 ? 'font-medium' : 'text-gray-500'}>{segment}</span>
+                            {i < arr.length - 1 && (
+                              <ChevronRight className="h-4 w-4 text-gray-400 mx-1" />
+                            )}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-gray-500">No groups assigned</p>
+                )}
               </div>
               <div className="mt-4 flex gap-2 flex-wrap">
-                {contact.groups.map(group => (
+                {contact.groups && contact.groups.map(group => (
                   <span key={group.id} className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">
                     {group.name}
                   </span>
@@ -450,12 +480,12 @@ export function ContactDetailsView() {
             <div className="bg-white rounded-xl shadow-sm p-4">
               <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-blue-600 font-bold text-2xl">
-                  {contact.firstName[0]}{contact.lastName[0]}
+                  {(contact.first_name || '')[0]}{(contact.last_name || '')[0]}
                 </span>
               </div>
               <div className="text-center">
-                <p className="font-bold text-gray-900">{contact.firstName} {contact.lastName}</p>
-                <p className="text-sm text-gray-500">{contact.studentId}</p>
+                <p className="font-bold text-gray-900">{contact.first_name} {contact.last_name}</p>
+                <p className="text-sm text-gray-500">{contact.student_id || 'N/A'}</p>
               </div>
             </div>
 

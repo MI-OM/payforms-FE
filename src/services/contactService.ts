@@ -55,10 +55,18 @@ export interface UpdateContactRequest {
 }
 
 export interface ImportContactRow {
-  name: string
+  first_name?: string
+  middle_name?: string
+  last_name?: string
+  name?: string
   email: string
   phone?: string
+  gender?: string
+  student_id?: string
   external_id?: string
+  guardian_name?: string
+  guardian_email?: string
+  guardian_phone?: string
   group_ids?: string[]
   groups?: string[]
   group_paths?: string[]
@@ -130,6 +138,14 @@ export const contactService = {
 
   commitImport: async (importId: string): Promise<{ imported: number }> => {
     return apiClient.post(`/contacts/imports/${importId}/commit`)
+  },
+
+  importContactsCSV: async (csvData: string): Promise<{ import_id: string }> => {
+    return apiClient.post('/contacts/imports/csv/validate', { csv: csvData })
+  },
+
+  commitCSVImport: async (csvData: string): Promise<{ imported: number }> => {
+    return apiClient.post('/contacts/imports/csv/commit', { csv: csvData })
   },
 
   getImports: async (params?: PaginationParams): Promise<PaginatedResponse<Import>> => {

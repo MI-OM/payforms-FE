@@ -10,25 +10,37 @@ export function AddNewContactForm() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
-    firstName: '',
-    lastName: '',
+    first_name: '',
+    last_name: '',
     email: '',
     phone: '',
+    gender: '',
+    student_id: '',
+    guardian_name: '',
+    guardian_email: '',
+    guardian_phone: '',
+    require_login: true,
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.email || !form.firstName || !form.lastName) {
+    if (!form.email || !form.first_name || !form.last_name) {
       alert('Please fill in all required fields')
       return
     }
     setLoading(true)
     try {
       await contactService.createContact({
-        first_name: form.firstName,
-        last_name: form.lastName,
+        first_name: form.first_name,
+        last_name: form.last_name,
         email: form.email,
         phone: form.phone || undefined,
+        gender: form.gender || undefined,
+        student_id: form.student_id || undefined,
+        guardian_name: form.guardian_name || undefined,
+        guardian_email: form.guardian_email || undefined,
+        guardian_phone: form.guardian_phone || undefined,
+        require_login: form.require_login,
       })
       navigate('/contacts')
     } catch (err) {
@@ -53,22 +65,22 @@ export function AddNewContactForm() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="firstName">First Name *</Label>
+                <Label htmlFor="first_name">First Name *</Label>
                 <Input 
-                  id="firstName" 
+                  id="first_name" 
                   placeholder="John" 
-                  value={form.firstName}
-                  onChange={(e) => setForm({ ...form, firstName: e.target.value })}
+                  value={form.first_name}
+                  onChange={(e) => setForm({ ...form, first_name: e.target.value })}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name *</Label>
+                <Label htmlFor="last_name">Last Name *</Label>
                 <Input 
-                  id="lastName" 
+                  id="last_name" 
                   placeholder="Doe" 
-                  value={form.lastName}
-                  onChange={(e) => setForm({ ...form, lastName: e.target.value })}
+                  value={form.last_name}
+                  onChange={(e) => setForm({ ...form, last_name: e.target.value })}
                   required
                 />
               </div>
@@ -86,15 +98,76 @@ export function AddNewContactForm() {
               />
             </div>
 
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input 
+                  id="phone" 
+                  type="tel" 
+                  placeholder="+1 (555) 000-0000" 
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="gender">Gender</Label>
+                <select
+                  id="gender"
+                  className="w-full px-4 py-3 bg-surface-container-low border border-outline-variant rounded-lg"
+                  value={form.gender}
+                  onChange={(e) => setForm({ ...form, gender: e.target.value })}
+                >
+                  <option value="">Select...</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
+              <Label htmlFor="student_id">Student ID</Label>
               <Input 
-                id="phone" 
-                type="tel" 
-                placeholder="+1 (555) 000-0000" 
-                value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                id="student_id" 
+                placeholder="S12345" 
+                value={form.student_id}
+                onChange={(e) => setForm({ ...form, student_id: e.target.value })}
               />
+            </div>
+
+            <div className="border-t border-outline-variant/10 pt-4">
+              <h3 className="text-sm font-bold text-on-surface-variant mb-4">Guardian Information</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="guardian_name">Guardian Name</Label>
+                  <Input 
+                    id="guardian_name" 
+                    placeholder="Jane Doe" 
+                    value={form.guardian_name}
+                    onChange={(e) => setForm({ ...form, guardian_name: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="guardian_phone">Guardian Phone</Label>
+                  <Input 
+                    id="guardian_phone" 
+                    type="tel" 
+                    placeholder="+1 (555) 000-0000" 
+                    value={form.guardian_phone}
+                    onChange={(e) => setForm({ ...form, guardian_phone: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2 mt-4">
+                <Label htmlFor="guardian_email">Guardian Email</Label>
+                <Input 
+                  id="guardian_email" 
+                  type="email" 
+                  placeholder="guardian@example.com" 
+                  value={form.guardian_email}
+                  onChange={(e) => setForm({ ...form, guardian_email: e.target.value })}
+                />
+              </div>
             </div>
 
             <div className="pt-4 flex gap-3">
