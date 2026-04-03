@@ -238,10 +238,10 @@
 - [x] `ReportsAnalytics.tsx` - Already connected
 - [ ] `ImportContacts.tsx` - Complete CSV mapping and actual import flow
 
-### Priority 2: Missing UI Components
-- [ ] Student/Contact statement view page
-- [ ] Contact transaction history view
-- [ ] Form templates gallery page
+### Priority 2: Missing UI Components ✅ COMPLETED
+- [x] Student/Contact statement view page - Connected to contactService
+- [x] Contact transaction history view - Connected to contactService  
+- [x] Form templates gallery page - Added Use Template buttons
 - [ ] Welcome/onboarding flow for new organizations
 
 ### Priority 3: Edge Cases & Error Handling
