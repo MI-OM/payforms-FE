@@ -3,7 +3,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { ArrowLeft, Download, Search, Filter, Check, X, ChevronRight, Users, Folder, Plus, Loader, Loader2, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { contactService, type Contact } from '@/services/contactService'
+import { contactService, type Contact, type Group } from '@/services/contactService'
+import { groupService } from '@/services/groupService'
 
 function getInitials(firstName: string, lastName: string): string {
   return [firstName, lastName].map(n => n?.[0] || '').join('').toUpperCase().slice(0, 2)
@@ -520,17 +521,39 @@ interface GroupOption {
 export function AssignGroupsToContact() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const [groups, setGroups] = useState<GroupOption[]>([
-    { id: 'faculty', name: 'Faculty', selected: false },
-    { id: 'eng', name: 'Engineering', selected: false, parent: 'faculty' },
-    { id: 'eng-400', name: '400 Level', selected: true, parent: 'eng' },
-    { id: 'sci', name: 'Science', selected: false, parent: 'faculty' },
-    { id: 'arts', name: 'Arts', selected: false, parent: 'faculty' },
-    { id: 'alumni', name: 'Alumni', selected: false },
-    { id: 'scholarship', name: 'Scholarship Recipients', selected: true },
-    { id: 'staff', name: 'Staff', selected: false },
-  ])
+  const [groups, setGroups] = useState<GroupOption[]>([])
+  const [allGroups, setAllGroups] = useState<Group[]>([])
+  const [loading, setLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!id) return
+      setLoading(true)
+      try {
+        const [groupsResponse, contactData] = await Promise.all([
+          groupService.getGroups({ limit: 100 }),
+          contactService.getContactDetails(id).catch(() => null)
+        ])
+        
+        setAllGroups(groupsResponse.data)
+        
+        const contactGroupIds = contactData?.groups?.map(g => g.id) || []
+        
+        setGroups(groupsResponse.data.map(g => ({
+          id: g.id,
+          name: g.name,
+          selected: contactGroupIds.includes(g.id),
+          parent: g.parent_group_id
+        })))
+      } catch (err) {
+        console.error('Failed to fetch groups:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [id])
 
   const toggleGroup = (groupId: string) => {
     setGroups(groups.map(g => 
@@ -539,13 +562,29 @@ export function AssignGroupsToContact() {
   }
 
   const handleSave = async () => {
+    if (!id) return
     setIsSaving(true)
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    setIsSaving(false)
-    navigate(`/contacts/${id}`)
+    try {
+      const selectedIds = groups.filter(g => g.selected).map(g => g.id)
+      await contactService.assignGroups(id, selectedIds)
+      navigate(`/contacts/${id}`)
+    } catch (err) {
+      console.error('Failed to save groups:', err)
+      alert('Failed to save groups')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const selectedCount = groups.filter(g => g.selected).length
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 ml-64 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 ml-64">

@@ -1,4 +1,5 @@
 import { apiClient } from '@/lib/apiClient'
+import { contactAuth } from '@/lib/contactAuth'
 
 export interface FormField {
   id: string
@@ -117,5 +118,109 @@ export const formService = {
 
   removeFormTarget: async (formId: string, targetId: string): Promise<void> => {
     return apiClient.delete(`/forms/${formId}/targets/${targetId}`)
+  },
+
+  getFormGroups: async (formId: string): Promise<{ id: string; name: string }[]> => {
+    return apiClient.get(`/forms/${formId}/groups`)
+  },
+
+  addFormGroups: async (formId: string, groupIds: string[]): Promise<void> => {
+    return apiClient.post(`/forms/${formId}/groups`, { group_ids: groupIds })
+  },
+}
+
+export interface PublicForm {
+  id: string
+  title: string
+  slug: string
+  description?: string
+  note?: string
+  payment_type: 'FIXED' | 'VARIABLE'
+  amount?: number
+  allow_partial: boolean
+  fields: FormField[]
+  organization_name: string
+  require_contact_login?: boolean
+}
+
+export interface FormSubmissionData {
+  [key: string]: string | number | boolean | undefined
+}
+
+export interface FormSubmissionResult {
+  submission_id: string
+  payment?: {
+    reference: string
+    authorization_url: string
+  }
+  contact?: {
+    id: string
+    require_login: boolean
+  }
+}
+
+const createPublicApiClient = () => {
+  return {
+    get: async <T>(endpoint: string): Promise<T> => {
+      const token = contactAuth.getAccessToken()
+      const headers: Record<string, string> = {}
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+      const response = await fetch(`${import.meta.env.VITE_API_URL}${endpoint}`, {
+        method: 'GET',
+        headers,
+      })
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || `Request failed: ${response.status}`)
+      }
+      return response.json()
+    },
+    post: async <T>(endpoint: string, data: unknown): Promise<T> => {
+      const token = contactAuth.getAccessToken()
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+      const response = await fetch(`${import.meta.env.VITE_API_URL}${endpoint}`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(data),
+      })
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || `Request failed: ${response.status}`)
+      }
+      return response.json()
+    },
+  }
+}
+
+const publicApi = createPublicApiClient()
+
+export const publicFormService = {
+  getForm: async (slug: string): Promise<PublicForm> => {
+    return publicApi.get<PublicForm>(`/public/forms/${slug}`)
+  },
+
+  submitForm: async (
+    slug: string, 
+    data: FormSubmissionData,
+    options?: {
+      contact_email?: string
+      contact_name?: string
+      callback_url?: string
+    }
+  ): Promise<FormSubmissionResult> => {
+    return publicApi.post<FormSubmissionResult>(`/public/forms/${slug}/submit`, {
+      data,
+      contact_email: options?.contact_email,
+      contact_name: options?.contact_name,
+    })
+  },
+
+  verifyPayment: async (reference: string): Promise<{ status: string; reference: string }> => {
+    return publicApi.get(`/public/payments/callback?reference=${reference}`)
   },
 }

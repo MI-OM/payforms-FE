@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { publicFormService, type PublicForm, type FormSubmissionData } from '@/services/formService'
+import { Loader2 } from 'lucide-react'
 
 const mockFormData = {
   id: '1',
@@ -42,49 +44,140 @@ function MaterialIcon({ name, className = '', filled = false }: { name: string; 
 }
 
 export function PublicPaymentPage() {
-  const { formId } = useParams()
+  const { formId } = useParams<{ formId: string }>()
   const navigate = useNavigate()
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [form, setForm] = useState<PublicForm | null>(null)
   const [paymentType, setPaymentType] = useState<'full' | 'partial'>('partial')
-  const [partialAmount, setPartialAmount] = useState('1200.00')
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    studentId: '',
-  })
+  const [partialAmount, setPartialAmount] = useState('')
+  const [formFields, setFormFields] = useState<Record<string, string>>({})
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    const fetchForm = async () => {
+      if (!formId) {
+        setError('Form not found')
+        setLoading(false)
+        return
+      }
+      
+      try {
+        const formData = await publicFormService.getForm(formId)
+        setForm(formData)
+        
+        const initialFields: Record<string, string> = {}
+        formData.fields?.forEach(field => {
+          initialFields[field.id] = ''
+        })
+        setFormFields(initialFields)
+        
+        if (formData.payment_type === 'FIXED' && formData.amount) {
+          setPartialAmount(formData.amount.toString())
+        }
+      } catch (err) {
+        setError('Form not found or unavailable')
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    fetchForm()
+  }, [formId])
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
-    if (!formData.name.trim()) newErrors.name = 'Name is required'
-    if (!formData.email.trim()) newErrors.email = 'Email is required'
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'Invalid email format'
-    if (!formData.studentId.trim()) newErrors.studentId = 'Student ID is required'
     
-    const amount = parseFloat(partialAmount)
-    if (paymentType === 'partial' && (isNaN(amount) || amount < mockFormData.minPayment)) {
-      newErrors.amount = `Minimum payment required: $${mockFormData.minPayment}`
+    if (!form?.fields) {
+      return false
+    }
+    
+    for (const field of form.fields) {
+      if (field.required && !formFields[field.id]?.trim()) {
+        newErrors[field.id] = `${field.label} is required`
+      }
+      
+      if (field.type === 'EMAIL' && formFields[field.id]) {
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formFields[field.id])) {
+          newErrors[field.id] = 'Invalid email format'
+        }
+      }
+    }
+    
+    if (form?.allow_partial && paymentType === 'partial') {
+      const amount = parseFloat(partialAmount)
+      if (isNaN(amount) || amount <= 0) {
+        newErrors.amount = 'Please enter a valid amount'
+      }
     }
     
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
-  const handleProceedToPayment = () => {
-    if (validateForm()) {
-      navigate(`/pay/${formId}/checkout`, {
-        state: {
-          formData,
-          paymentType,
-          amount: paymentType === 'full' ? mockFormData.amount : parseFloat(partialAmount),
-          organization: mockFormData.organization,
-          studentRef: formData.studentId || mockFormData.studentRef,
-        }
+  const handleProceedToPayment = async () => {
+    if (!validateForm() || !form || !formId) return
+    
+    setSubmitting(true)
+    
+    try {
+      const submissionData: FormSubmissionData = {}
+      form.fields?.forEach(field => {
+        submissionData[field.label.toLowerCase().replace(/\s+/g, '_')] = formFields[field.id]
       })
+      
+      const emailField = form.fields?.find(f => f.type === 'EMAIL')
+      const nameField = form.fields?.find(f => f.type === 'TEXT' && f.label.toLowerCase().includes('name'))
+      
+      const result = await publicFormService.submitForm(formId, submissionData, {
+        contact_email: emailField ? formFields[emailField.id] : undefined,
+        contact_name: nameField ? formFields[nameField.id] : undefined,
+      })
+      
+      if (result.payment?.authorization_url) {
+        window.location.href = result.payment.authorization_url
+      } else {
+        navigate(`/payment/success`, {
+          state: {
+            submission_id: result.submission_id,
+            reference: result.payment?.reference,
+            organization: form.organization_name,
+          }
+        })
+      }
+    } catch (err) {
+      setErrors({ submit: 'Failed to submit form. Please try again.' })
+      console.error(err)
+    } finally {
+      setSubmitting(false)
     }
   }
 
-  const totalAmount = paymentType === 'full' ? mockFormData.amount : parseFloat(partialAmount) || 0
-  const remainingBalance = mockFormData.amount - totalAmount
+  const totalAmount = paymentType === 'full' 
+    ? (form?.amount || 0) 
+    : parseFloat(partialAmount) || 0
+  const remainingBalance = (form?.amount || 0) - totalAmount
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#f7f9fb] flex items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-[#000]" />
+      </div>
+    )
+  }
+
+  if (error || !form) {
+    return (
+      <div className="min-h-screen bg-[#f7f9fb] flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-[#191c1e] mb-2">Form Not Found</h1>
+          <p className="text-[#45464d]">{error || 'This form is unavailable.'}</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-[#f7f9fb] text-[#191c1e] font-['Inter']">
@@ -131,85 +224,89 @@ export function PublicPaymentPage() {
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-2">
-                  <label className="font-['Inter'] text-xs font-bold uppercase tracking-wider text-[#45464d]">Full Legal Name</label>
-                  <input
-                    type="text"
-                    placeholder="Johnathan Doe"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full bg-white border-none rounded-xl p-4 text-[#191c1e] focus:ring-2 focus:ring-[#188ace] transition-all outline-none shadow-sm ring-1 ring-[#c6c6cd]/15"
-                  />
-                  {errors.name && <p className="text-red-500 text-xs">{errors.name}</p>}
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="font-['Inter'] text-xs font-bold uppercase tracking-wider text-[#45464d]">Email Address</label>
-                  <input
-                    type="email"
-                    placeholder="j.dane@school.edu"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full bg-white border-none rounded-xl p-4 text-[#191c1e] focus:ring-2 focus:ring-[#188ace] transition-all outline-none shadow-sm ring-1 ring-[#c6c6cd]/15"
-                  />
-                  {errors.email && <p className="text-red-500 text-xs">{errors.email}</p>}
-                </div>
-                
-                <div className="space-y-2 md:col-span-2">
-                  <label className="font-['Inter'] text-xs font-bold uppercase tracking-wider text-[#45464d]">Student Identification Number</label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="AL-9932-88"
-                      value={formData.studentId}
-                      onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
-                      className="w-full bg-white border-none rounded-xl p-4 pl-12 text-[#191c1e] focus:ring-2 focus:ring-[#188ace] transition-all outline-none shadow-sm ring-1 ring-[#c6c6cd]/15"
-                    />
-                    <MaterialIcon name="badge" className="absolute left-4 top-1/2 -translate-y-1/2 text-[#45464d]" />
+                {form.fields?.map((field) => (
+                  <div 
+                    key={field.id} 
+                    className={`space-y-2 ${field.type === 'TEXTAREA' ? 'md:col-span-2' : ''}`}
+                  >
+                    <label className="font-['Inter'] text-xs font-bold uppercase tracking-wider text-[#45464d]">
+                      {field.label}
+                      {field.required && <span className="text-red-500 ml-1">*</span>}
+                    </label>
+                    
+                    {field.type === 'SELECT' && field.options ? (
+                      <select
+                        value={formFields[field.id] || ''}
+                        onChange={(e) => setFormFields({ ...formFields, [field.id]: e.target.value })}
+                        className="w-full bg-white border-none rounded-xl p-4 text-[#191c1e] focus:ring-2 focus:ring-[#188ace] transition-all outline-none shadow-sm ring-1 ring-[#c6c6cd]/15"
+                      >
+                        <option value="">Select {field.label}</option>
+                        {field.options.map((option) => (
+                          <option key={option} value={option}>{option}</option>
+                        ))}
+                      </select>
+                    ) : field.type === 'TEXTAREA' ? (
+                      <textarea
+                        placeholder={`Enter ${field.label.toLowerCase()}`}
+                        value={formFields[field.id] || ''}
+                        onChange={(e) => setFormFields({ ...formFields, [field.id]: e.target.value })}
+                        className="w-full bg-white border-none rounded-xl p-4 text-[#191c1e] focus:ring-2 focus:ring-[#188ace] transition-all outline-none shadow-sm ring-1 ring-[#c6c6cd]/15 min-h-[100px] resize-none"
+                      />
+                    ) : (
+                      <input
+                        type={field.type === 'EMAIL' ? 'email' : field.type === 'NUMBER' ? 'number' : 'text'}
+                        placeholder={`Enter ${field.label.toLowerCase()}`}
+                        value={formFields[field.id] || ''}
+                        onChange={(e) => setFormFields({ ...formFields, [field.id]: e.target.value })}
+                        className="w-full bg-white border-none rounded-xl p-4 text-[#191c1e] focus:ring-2 focus:ring-[#188ace] transition-all outline-none shadow-sm ring-1 ring-[#c6c6cd]/15"
+                      />
+                    )}
+                    {errors[field.id] && <p className="text-red-500 text-xs">{errors[field.id]}</p>}
                   </div>
-                  {errors.studentId && <p className="text-red-500 text-xs">{errors.studentId}</p>}
-                </div>
+                ))}
               </div>
               
               <hr className="border-[#c6c6cd]/20" />
               
-              <div className="space-y-6">
-                <h3 className="font-['Manrope'] text-2xl font-bold">Transaction Details</h3>
+                <div className="space-y-6">
+                <h3 className="font-['Manrope'] text-2xl font-bold">Payment Options</h3>
                 
-                <div className="space-y-4">
-                  <label className="font-['Inter'] text-xs font-bold uppercase tracking-wider text-[#45464d]">Select Payment Type</label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <button
-                      onClick={() => setPaymentType('full')}
-                      className={`flex flex-col items-start p-6 rounded-xl ring-1 transition-all text-left ${
-                        paymentType === 'full' 
-                          ? 'bg-white ring-2 ring-[#000] shadow-md' 
-                          : 'bg-white ring-[#c6c6cd]/15 hover:ring-[#188ace]/50'
-                      }`}
-                    >
-                      <MaterialIcon name="account_balance_wallet" className="text-[#188ace] mb-3" />
-                      <span className="font-bold text-[#191c1e]">Full Settlement</span>
-                      <span className="text-sm text-[#45464d]">Pay the total balance of ${mockFormData.amount.toLocaleString()}.00</span>
-                    </button>
-                    
-                    <button
-                      onClick={() => setPaymentType('partial')}
-                      className={`flex flex-col items-start p-6 rounded-xl transition-all text-left ${
-                        paymentType === 'partial' 
-                          ? 'bg-white ring-2 ring-[#000] shadow-md' 
-                          : 'bg-white ring-1 ring-[#c6c6cd]/15 hover:ring-[#188ace]/50'
-                      }`}
-                    >
-                      <MaterialIcon name="payments" className={paymentType === 'partial' ? 'text-[#000] mb-3' : 'text-[#188ace] mb-3'} />
-                      <span className="font-bold text-[#191c1e]">Partial Payment</span>
-                      <span className="text-sm text-[#45464d]">Specify an amount to pay today</span>
-                    </button>
+                {form.payment_type === 'FIXED' && form.allow_partial && (
+                  <div className="space-y-4">
+                    <label className="font-['Inter'] text-xs font-bold uppercase tracking-wider text-[#45464d]">Select Payment Type</label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <button
+                        onClick={() => setPaymentType('full')}
+                        className={`flex flex-col items-start p-6 rounded-xl ring-1 transition-all text-left ${
+                          paymentType === 'full' 
+                            ? 'bg-white ring-2 ring-[#000] shadow-md' 
+                            : 'bg-white ring-[#c6c6cd]/15 hover:ring-[#188ace]/50'
+                        }`}
+                      >
+                        <MaterialIcon name="account_balance_wallet" className="text-[#188ace] mb-3" />
+                        <span className="font-bold text-[#191c1e]">Full Settlement</span>
+                        <span className="text-sm text-[#45464d]">Pay the total balance of ${(form.amount || 0).toLocaleString()}</span>
+                      </button>
+                      
+                      <button
+                        onClick={() => setPaymentType('partial')}
+                        className={`flex flex-col items-start p-6 rounded-xl transition-all text-left ${
+                          paymentType === 'partial' 
+                            ? 'bg-white ring-2 ring-[#000] shadow-md' 
+                            : 'bg-white ring-1 ring-[#c6c6cd]/15 hover:ring-[#188ace]/50'
+                        }`}
+                      >
+                        <MaterialIcon name="payments" className={paymentType === 'partial' ? 'text-[#000] mb-3' : 'text-[#188ace] mb-3'} />
+                        <span className="font-bold text-[#191c1e]">Partial Payment</span>
+                        <span className="text-sm text-[#45464d]">Specify an amount to pay today</span>
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
                 
-                {paymentType === 'partial' && (
+                {form.payment_type === 'VARIABLE' && (
                   <div className="space-y-3 pt-4">
-                    <label className="font-['Inter'] text-xs font-bold uppercase tracking-wider text-[#45464d]">Amount to Pay Today (USD)</label>
+                    <label className="font-['Inter'] text-xs font-bold uppercase tracking-wider text-[#45464d]">Enter Amount to Pay</label>
                     <div className="relative">
                       <span className="absolute left-6 top-1/2 -translate-y-1/2 text-3xl font-['Manrope'] font-bold text-[#76777d]">$</span>
                       <input
@@ -220,8 +317,13 @@ export function PublicPaymentPage() {
                         className="w-full bg-transparent border-none border-b-2 border-[#c6c6cd]/20 rounded-none py-6 pl-14 text-5xl font-['Manrope'] font-extrabold focus:ring-0 focus:border-[#000] transition-all outline-none"
                       />
                     </div>
-                    <p className="text-xs text-[#45464d]">Min. payment required: ${mockFormData.minPayment}.00</p>
                     {errors.amount && <p className="text-red-500 text-xs">{errors.amount}</p>}
+                  </div>
+                )}
+                
+                {paymentType === 'partial' && form.payment_type === 'FIXED' && !form.allow_partial && (
+                  <div className="p-4 bg-yellow-50 rounded-xl text-yellow-800">
+                    <p className="text-sm">This form does not allow partial payments. Please pay the full amount.</p>
                   </div>
                 )}
               </div>
@@ -230,39 +332,58 @@ export function PublicPaymentPage() {
           
           <aside className="lg:col-span-5">
             <div className="sticky top-12 bg-white/70 backdrop-blur-[20px] rounded-2xl p-8 shadow-2xl shadow-[#191c1e]/5 border border-white/40">
-              <h3 className="font-['Manrope'] text-xl font-bold mb-8">Summary of Ledger</h3>
+              <h3 className="font-['Manrope'] text-xl font-bold mb-8">{form.title}</h3>
+              {form.description && (
+                <p className="text-sm text-[#45464d] mb-6">{form.description}</p>
+              )}
               <div className="space-y-6">
-                <div className="flex justify-between items-center text-[#45464d]">
-                  <span className="font-medium">Outstanding Balance</span>
-                  <span className="font-mono text-[#191c1e] font-semibold">${mockFormData.amount.toLocaleString()}.00</span>
-                </div>
-                <div className="flex justify-between items-center text-[#45464d]">
-                  <span className="font-medium">Late Fees Applied</span>
-                  <span className="font-mono text-[#191c1e] font-semibold">$0.00</span>
-                </div>
+                {form.payment_type === 'FIXED' && form.amount && (
+                  <div className="flex justify-between items-center text-[#45464d]">
+                    <span className="font-medium">Total Amount</span>
+                    <span className="font-mono text-[#191c1e] font-semibold">${form.amount.toLocaleString()}</span>
+                  </div>
+                )}
                 <div className="h-px bg-[#c6c6cd]/20 my-4"></div>
                 <div className="flex justify-between items-end">
                   <div className="space-y-1">
                     <span className="font-['Inter'] text-xs font-bold uppercase tracking-wider text-[#45464d]">Amount to Pay Now</span>
-                    <div className="text-4xl font-['Manrope'] font-extrabold text-[#000]">${totalAmount.toLocaleString()}.00</div>
+                    <div className="text-4xl font-['Manrope'] font-extrabold text-[#000]">${totalAmount.toLocaleString()}</div>
                   </div>
                   <div className="text-right">
                     <span className="font-['Inter'] text-xs font-bold uppercase tracking-wider text-[#009668] bg-[#4edea3] px-2 py-1 rounded">Pending</span>
                   </div>
                 </div>
-                <div className="bg-[#f2f4f6] p-4 rounded-xl flex justify-between items-center">
-                  <span className="text-sm font-medium text-[#45464d] italic">Remaining Balance</span>
-                  <span className="font-mono font-bold text-[#45464d]">${remainingBalance.toLocaleString()}.00</span>
-                </div>
+                {form.payment_type === 'FIXED' && form.allow_partial && (
+                  <div className="bg-[#f2f4f6] p-4 rounded-xl flex justify-between items-center">
+                    <span className="text-sm font-medium text-[#45464d] italic">Remaining Balance</span>
+                    <span className="font-mono font-bold text-[#45464d]">${remainingBalance.toLocaleString()}</span>
+                  </div>
+                )}
               </div>
+              
+              {errors.submit && (
+                <div className="mt-4 p-3 bg-red-50 rounded-lg text-red-600 text-sm">
+                  {errors.submit}
+                </div>
+              )}
               
               <div className="mt-10 space-y-4">
                 <button
                   onClick={handleProceedToPayment}
-                  className="w-full bg-[#000] text-white py-5 rounded-xl font-['Manrope'] font-bold text-lg flex items-center justify-center gap-3 hover:opacity-90 transition-all shadow-lg shadow-[#000]/20"
+                  disabled={submitting}
+                  className="w-full bg-[#000] text-white py-5 rounded-xl font-['Manrope'] font-bold text-lg flex items-center justify-center gap-3 hover:opacity-90 transition-all shadow-lg shadow-[#000]/20 disabled:opacity-50"
                 >
-                  <span>Proceed to Payment</span>
-                  <MaterialIcon name="arrow_forward" />
+                  {submitting ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      <span>Processing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Proceed to Payment</span>
+                      <MaterialIcon name="arrow_forward" />
+                    </>
+                  )}
                 </button>
                 <p className="text-center text-[10px] text-[#45464d] font-['Inter'] uppercase tracking-widest leading-loose">
                   Securely processed by <br />
@@ -297,30 +418,26 @@ export function PublicPaymentPage() {
 }
 
 export function ConfirmPaymentCheckout() {
-  const { state } = window.history.state as { state?: { formData?: { name?: string; email?: string }; paymentType?: string; amount?: number; organization?: string; studentRef?: string } } || {}
+  const { state } = window.history.state as { state?: { formData?: { name?: string; email?: string }; paymentType?: string; amount?: number; organization?: string; studentRef?: string; reference?: string } } || {}
   const navigate = useNavigate()
   const [isProcessing, setIsProcessing] = useState(false)
   
-  const formData = state?.formData || { name: 'Johnathan Doe', email: 'j.dane@school.edu' }
+  const formData = state?.formData || { name: '', email: '' }
   const paymentType = state?.paymentType || 'partial'
-  const amount = state?.amount || 1200
-  const organization = state?.organization || mockFormData.organization
-  const studentRef = state?.studentRef || mockFormData.studentRef
+  const amount = state?.amount || 0
+  const organization = state?.organization || ''
+  const reference = state?.reference || ''
   
-  const processingFee = 5.00
+  const processingFee = 0.00
   const totalAmount = amount + processingFee
 
   const handlePay = () => {
     setIsProcessing(true)
-    setTimeout(() => {
-      const success = Math.random() > 0.2
-      setIsProcessing(false)
-      if (success) {
-        navigate('/payment/success', { state: { formData, amount: totalAmount, organization, studentRef } })
-      } else {
-        navigate('/payment/failure')
-      }
-    }, 2000)
+    if (reference) {
+      window.location.href = `/payment/success?reference=${reference}`
+    } else {
+      navigate('/payment/success', { state: { formData, amount: totalAmount, organization } })
+    }
   }
 
   return (
@@ -355,10 +472,12 @@ export function ConfirmPaymentCheckout() {
             </div>
             
             <div className="space-y-6">
-              <div className="flex flex-col gap-1">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-[#45464d] font-['Inter']">Student Reference</span>
-                <span className="text-[#191c1e] font-semibold text-lg">{studentRef}</span>
-              </div>
+              {reference && (
+                <div className="flex flex-col gap-1">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#45464d] font-['Inter']">Reference</span>
+                  <span className="text-[#191c1e] font-semibold text-lg font-mono">{reference}</span>
+                </div>
+              )}
               
               <div className="h-px bg-[#e0e3e5] opacity-30"></div>
               
@@ -430,13 +549,17 @@ export function ConfirmPaymentCheckout() {
 }
 
 export function PaymentSuccessState() {
-  const { state } = window.history.state as { state?: { formData?: { name?: string; email?: string }; amount?: number; organization?: string; studentRef?: string } } || {}
+  const { state } = window.history.state as { state?: { formData?: { name?: string; email?: string }; amount?: number; organization?: string; studentRef?: string; reference?: string; submission_id?: string } } || {}
+  const searchParams = new URLSearchParams(window.location.search)
+  const referenceFromUrl = searchParams.get('reference')
+  
   const navigate = useNavigate()
   
-  const formData = state?.formData || { name: 'Johnathan Doe', email: 'j.dane@school.edu' }
-  const amount = state?.amount || 1300
-  const organization = state?.organization || mockFormData.title
-  const reference = `PAY-${Math.random().toString(36).substring(2, 10).toUpperCase()}`
+  const formData = state?.formData || { name: '', email: '' }
+  const amount = state?.amount || 0
+  const organization = state?.organization || ''
+  const reference = referenceFromUrl || state?.reference || `PAY-${Math.random().toString(36).substring(2, 10).toUpperCase()}`
+  const submissionId = state?.submission_id || ''
   const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 
   return (

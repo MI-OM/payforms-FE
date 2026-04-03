@@ -183,6 +183,28 @@ export const contactService = {
     return apiClient.get(`/contacts/${id}/transactions`, { params })
   },
 
+  exportContactTransactions: async (contactId: string): Promise<Blob> => {
+    const token = getAccessToken()
+    if (!token) {
+      throw new Error('Authentication required')
+    }
+    
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+    const url = `${apiUrl}/contacts/${contactId}/transactions?format=csv`
+    
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+    
+    if (!response.ok) {
+      throw new Error('Failed to export transactions')
+    }
+    
+    return response.blob()
+  },
+
   assignGroups: async (contactId: string, groupIds: string[]): Promise<void> => {
     return apiClient.post(`/contacts/${contactId}/groups`, { group_ids: groupIds })
   },

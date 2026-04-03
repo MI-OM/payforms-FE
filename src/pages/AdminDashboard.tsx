@@ -1,6 +1,9 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { cn } from '@/lib/utils'
+import { reportService, type ReportSummary, type FormPerformance } from '@/services/reportService'
+import { paymentService, type Transaction } from '@/services/paymentService'
+import { formService, type Form } from '@/services/formService'
 
 function MaterialIcon({ name, className = '', filled = false }: { name: string; className?: string; filled?: boolean }) {
   const iconStyle = filled ? { fontVariationSettings: "'FILL' 1" } : undefined
@@ -26,29 +29,95 @@ function MaterialIcon({ name, className = '', filled = false }: { name: string; 
   )
 }
 
-const transactions = [
-  { date: 'Oct 24, 2023', name: 'Julian Vance', form: 'Tuition 2026', amount: '$12,450.00', status: 'Success' },
-  { date: 'Oct 24, 2023', name: 'Elena Rodriguez', form: 'Annual Gala', amount: '$1,500.00', status: 'Pending' },
-  { date: 'Oct 23, 2023', name: 'Marcus Thorne', form: 'Alumni Fund', amount: '$5,000.00', status: 'Partial' },
-  { date: 'Oct 23, 2023', name: 'Sarah Jenkins', form: 'Tuition 2026', amount: '$12,450.00', status: 'Success' },
-]
-
-const topForms = [
-  { name: 'Tuition 2026', amount: '$84.2k', percent: 85 },
-  { name: 'Annual Gala', amount: '$31.5k', percent: 60 },
-  { name: 'Sports Equipment', amount: '$8.8k', percent: 35 },
-]
-
 export function AdminDashboardContent() {
   const [isEmpty, setIsEmpty] = useState(false)
+  const [summary, setSummary] = useState<ReportSummary | null>(null)
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [topForms, setTopForms] = useState<FormPerformance[]>([])
+  const [forms, setForms] = useState<Form[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        const [summaryData, txnData, performanceData, formsData] = await Promise.all([
+          reportService.getSummary().catch(() => null),
+          paymentService.getTransactions({ limit: 10 }).catch(() => ({ data: [] })),
+          reportService.getFormsPerformance().catch(() => []),
+          formService.getForms({ limit: 100 }).catch(() => ({ data: [] }))
+        ])
+        
+        setSummary(summaryData)
+        setTransactions(txnData.data || [])
+        setTopForms(Array.isArray(performanceData) ? performanceData : (performanceData?.data || []))
+        setForms(formsData.data || [])
+        
+        const hasData = summaryData || (txnData.data && txnData.data.length > 0) || (formsData.data && formsData.data.length > 0)
+        setIsEmpty(!hasData)
+      } catch (err) {
+        setError('Failed to load dashboard data')
+        setIsEmpty(true)
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    fetchDashboardData()
+  }, [])
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2
+    }).format(amount)
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    })
+  }
+
+  const getFormName = (formId: string) => {
+    const form = forms.find(f => f.id === formId)
+    return form?.title || 'Unknown Form'
+  }
 
   return (
     <>
-      {isEmpty ? (
-        <EmptyState onShowLive={() => setIsEmpty(false)} />
-      ) : (
-        <LiveDashboard onShowEmpty={() => setIsEmpty(true)} />
+      {loading && (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
+        </div>
       )}
+      
+      {!loading && error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+          {error}
+        </div>
+      )}
+      
+      {!loading && isEmpty ? (
+        <EmptyState onShowLive={() => setIsEmpty(false)} />
+      ) : !loading ? (
+        <LiveDashboard 
+          onShowEmpty={() => setIsEmpty(true)} 
+          summary={summary}
+          transactions={transactions}
+          topForms={topForms}
+          forms={forms}
+          formatCurrency={formatCurrency}
+          formatDate={formatDate}
+          getFormName={getFormName}
+        />
+      ) : null}
     </>
   )
 }
@@ -148,7 +217,18 @@ function EmptyState({ onShowLive }: { onShowLive: () => void }) {
   )
 }
 
-function LiveDashboard({ onShowEmpty }: { onShowEmpty: () => void }) {
+interface LiveDashboardProps {
+  onShowEmpty: () => void
+  summary: ReportSummary | null
+  transactions: Transaction[]
+  topForms: FormPerformance[]
+  forms: Form[]
+  formatCurrency: (amount: number) => string
+  formatDate: (date: string) => string
+  getFormName: (formId: string) => string
+}
+
+function LiveDashboard({ onShowEmpty, summary, transactions, topForms, forms, formatCurrency, formatDate, getFormName }: LiveDashboardProps) {
   return (
     <div className="max-w-[1600px] mx-auto">
       <div className="mb-6 p-4 bg-[#4edea3]/20 rounded-lg flex items-center justify-between">
@@ -163,28 +243,28 @@ function LiveDashboard({ onShowEmpty }: { onShowEmpty: () => void }) {
         <div className="bg-[#ffffff] p-6 rounded-xl border-l-4 border-black shadow-sm group hover:shadow-md transition-all">
           <div className="flex justify-between items-start mb-4">
             <span className="text-[10px] font-bold text-[#45464d] uppercase tracking-widest">Total Revenue</span>
-            <span className="text-[#009668] bg-[#4edea3]/20 px-2 py-0.5 rounded text-[10px] font-bold">+12%</span>
+            <span className="text-[#009668] bg-[#4edea3]/20 px-2 py-0.5 rounded text-[10px] font-bold">
+              {summary?.total_transactions || 0}
+            </span>
           </div>
-          <p className="text-3xl font-extrabold tracking-tighter text-[#191c1e]">$124,500.00</p>
-          <p className="text-[11px] text-[#45464d] mt-2 font-medium">vs. $111,160.00 last month</p>
+          <p className="text-3xl font-extrabold tracking-tighter text-[#191c1e]">{formatCurrency(summary?.total_revenue || 0)}</p>
+          <p className="text-[11px] text-[#45464d] mt-2 font-medium">Total collected</p>
         </div>
 
         <div className="bg-[#ffffff] p-6 rounded-xl shadow-sm hover:shadow-md transition-all">
           <div className="flex justify-between items-start mb-4">
-            <span className="text-[10px] font-bold text-[#45464d] uppercase tracking-widest">Submissions</span>
-            <span className="text-[#009668] bg-[#4edea3]/20 px-2 py-0.5 rounded text-[10px] font-bold">+5%</span>
+            <span className="text-[10px] font-bold text-[#45464d] uppercase tracking-widest">Total Transactions</span>
           </div>
-          <p className="text-3xl font-extrabold tracking-tighter text-[#191c1e]">4,820</p>
-          <p className="text-[11px] text-[#45464d] mt-2 font-medium">Daily avg: 161 completions</p>
+          <p className="text-3xl font-extrabold tracking-tighter text-[#191c1e]">{summary?.total_transactions || 0}</p>
+          <p className="text-[11px] text-[#45464d] mt-2 font-medium">Payment attempts</p>
         </div>
 
         <div className="bg-[#ffffff] p-6 rounded-xl shadow-sm hover:shadow-md transition-all">
           <div className="flex justify-between items-start mb-4">
             <span className="text-[10px] font-bold text-[#45464d] uppercase tracking-widest">Active Forms</span>
-            <span className="text-[#45464d] bg-[#e6e8ea] px-2 py-0.5 rounded text-[10px] font-bold">Stable</span>
           </div>
-          <p className="text-3xl font-extrabold tracking-tighter text-[#191c1e]">24</p>
-          <p className="text-[11px] text-[#45464d] mt-2 font-medium">3 Scheduled to expire</p>
+          <p className="text-3xl font-extrabold tracking-tighter text-[#191c1e]">{forms.filter(f => f.is_active).length || summary?.total_forms || 0}</p>
+          <p className="text-[11px] text-[#45464d] mt-2 font-medium">Total forms: {forms.length || summary?.total_forms || 0}</p>
         </div>
 
         <div className="bg-black text-white p-6 rounded-xl shadow-lg relative overflow-hidden">
@@ -194,9 +274,9 @@ function LiveDashboard({ onShowEmpty }: { onShowEmpty: () => void }) {
           <div className="flex justify-between items-start mb-4">
             <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Pending Collections</span>
           </div>
-          <p className="text-3xl font-extrabold tracking-tighter">$14,250.00</p>
+          <p className="text-3xl font-extrabold tracking-tighter">{formatCurrency(summary?.pending_payments || 0)}</p>
           <button className="mt-4 text-[10px] font-bold bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded transition-colors uppercase tracking-wider">
-            Review High Priority
+            Review Pending
           </button>
         </div>
       </div>
@@ -293,29 +373,40 @@ function LiveDashboard({ onShowEmpty }: { onShowEmpty: () => void }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#f2f4f6] text-xs">
-                {transactions.map((txn, i) => (
-                  <tr key={i} className="hover:bg-[#f7f9fb] transition-colors">
-                    <td className="px-6 py-4 font-medium text-[#191c1e]">{txn.date}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-slate-200"></div>
-                        {txn.name}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-[#45464d]">{txn.form}</td>
-                    <td className="px-6 py-4 font-bold text-[#191c1e]">{txn.amount}</td>
-                    <td className="px-6 py-4">
-                      <span className={cn(
-                        'px-2 py-1 rounded-full text-[10px] font-bold',
-                        txn.status === 'Success' ? 'bg-[#4edea3]/20 text-[#009668]' :
-                        txn.status === 'Pending' ? 'bg-[#e6e8ea] text-[#45464d]' :
-                        'bg-black text-white'
-                      )}>
-                        {txn.status}
-                      </span>
+                {transactions.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-8 text-center text-[#45464d]">
+                      No transactions yet
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  transactions.map((txn, i) => (
+                    <tr key={txn.id || i} className="hover:bg-[#f7f9fb] transition-colors">
+                      <td className="px-6 py-4 font-medium text-[#191c1e]">{formatDate(txn.created_at)}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px]">
+                            {txn.contact_id?.charAt(0) || '?'}
+                          </div>
+                          {txn.contact_id}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-[#45464d]">{getFormName(txn.form_id)}</td>
+                      <td className="px-6 py-4 font-bold text-[#191c1e]">{formatCurrency(txn.amount)}</td>
+                      <td className="px-6 py-4">
+                        <span className={cn(
+                          'px-2 py-1 rounded-full text-[10px] font-bold',
+                          txn.status === 'PAID' ? 'bg-[#4edea3]/20 text-[#009668]' :
+                          txn.status === 'PENDING' ? 'bg-[#e6e8ea] text-[#45464d]' :
+                          txn.status === 'PARTIAL' ? 'bg-[#188ace]/20 text-[#188ace]' :
+                          'bg-red-100 text-red-700'
+                        )}>
+                          {txn.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -325,24 +416,31 @@ function LiveDashboard({ onShowEmpty }: { onShowEmpty: () => void }) {
         <div className="bg-slate-900 text-white rounded-xl shadow-xl overflow-hidden flex flex-col">
           <div className="p-8 border-b border-white/10">
             <h2 className="text-xl font-bold tracking-tighter">Top Performing Forms</h2>
-            <p className="text-[10px] text-slate-400 uppercase mt-1">Based on Monthly Volume</p>
+            <p className="text-[10px] text-slate-400 uppercase mt-1">Based on Collection Rate</p>
           </div>
           <div className="flex-1">
             <div className="p-8 space-y-8">
-              {topForms.map((form, i) => (
-                <div key={i} className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <span className="text-2xl font-black text-slate-700 italic">0{i + 1}</span>
-                    <div>
-                      <p className="text-sm font-bold">{form.name}</p>
-                      <div className="w-32 h-1 bg-slate-800 rounded-full mt-2 overflow-hidden">
-                        <div className={cn('h-full', i === 0 ? 'bg-[#188ace]' : 'bg-slate-500')} style={{ width: `${form.percent}%` }}></div>
+              {!topForms || topForms.length === 0 ? (
+                <p className="text-slate-400 text-sm text-center">No form performance data</p>
+              ) : (
+                topForms.slice(0, 5).map((form, i) => (
+                  <div key={form.form_id || i} className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <span className="text-2xl font-black text-slate-700 italic">0{i + 1}</span>
+                      <div>
+                        <p className="text-sm font-bold">{form.title}</p>
+                        <div className="w-32 h-1 bg-slate-800 rounded-full mt-2 overflow-hidden">
+                          <div className={cn('h-full', i === 0 ? 'bg-[#188ace]' : 'bg-slate-500')} style={{ width: `${form.collection_rate || 0}%` }}></div>
+                        </div>
                       </div>
                     </div>
+                    <div className="text-right">
+                      <p className="text-lg font-extrabold tracking-tighter">{formatCurrency(form.amount_paid || 0)}</p>
+                      <p className="text-[10px] text-slate-400">{form.submissions} submissions</p>
+                    </div>
                   </div>
-                  <p className="text-lg font-extrabold tracking-tighter">{form.amount}</p>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
           <div className="bg-white/5 p-6 mt-auto">

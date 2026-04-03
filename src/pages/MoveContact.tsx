@@ -1,24 +1,63 @@
-import { useState } from 'react'
-import { Search, Filter, Download, Eye, Edit, Trash2, Check, FolderPlus } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Search, Filter, Download, Eye, Edit, Trash2, Check, FolderPlus, Loader } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-
-const contacts = [
-  { name: 'Sarah Higgins', email: 'sarah@studio-h.co', group: 'Clients', selected: false },
-  { name: 'Marcus Kray', email: 'mk@krayarch.com', group: 'Clients', selected: false },
-  { name: 'Jane Lofton', email: 'jane.l@outlook.com', group: 'Leads', selected: false },
-  { name: 'Robert Blackstone', email: 'rb@industrial.inc', group: 'Vendors', selected: false },
-]
+import { contactService, type Contact } from '@/services/contactService'
+import { groupService, type Group } from '@/services/groupService'
 
 export function MoveContactToGroupView() {
+  const navigate = useNavigate()
+  const [contacts, setContacts] = useState<Contact[]>([])
+  const [groups, setGroups] = useState<Group[]>([])
   const [selectedContacts, setSelectedContacts] = useState<string[]>([])
   const [selectedGroup, setSelectedGroup] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
 
-  const groups = ['Clients', 'Leads', 'Vendors', 'Partners']
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [contactsResponse, groupsResponse] = await Promise.all([
+          contactService.getContacts({ limit: 100 }),
+          groupService.getGroups({ limit: 100 })
+        ])
+        setContacts(contactsResponse.data)
+        setGroups(groupsResponse.data)
+      } catch (err) {
+        console.error('Failed to fetch data:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [])
 
-  const toggleContact = (name: string) => {
+  const toggleContact = (id: string) => {
     setSelectedContacts(prev => 
-      prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]
+      prev.includes(id) ? prev.filter(n => n !== id) : [...prev, id]
+    )
+  }
+
+  const handleMove = async () => {
+    if (selectedContacts.length === 0 || !selectedGroup) return
+    setIsSaving(true)
+    try {
+      await contactService.assignGroups(selectedGroup, selectedContacts)
+      navigate('/contacts')
+    } catch (err) {
+      console.error('Failed to move contacts:', err)
+      alert('Failed to move contacts')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-surface flex items-center justify-center">
+        <Loader className="h-8 w-8 animate-spin text-primary" />
+      </div>
     )
   }
 
@@ -36,59 +75,67 @@ export function MoveContactToGroupView() {
           {/* Select Contacts */}
           <div className="bg-surface-container-lowest rounded-xl p-6">
             <h3 className="font-bold mb-4">Select Contacts ({selectedContacts.length})</h3>
-            <div className="space-y-2">
-              {contacts.map((contact, index) => (
-                <div 
-                  key={index} 
-                  className={`p-3 rounded-lg cursor-pointer transition-colors flex items-center gap-3 ${
-                    selectedContacts.includes(contact.name) 
-                      ? 'bg-primary-fixed text-on-primary-fixed' 
-                      : 'bg-surface-container-low hover:bg-surface-container-high'
-                  }`}
-                  onClick={() => toggleContact(contact.name)}
-                >
-                  <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                    selectedContacts.includes(contact.name)
-                      ? 'bg-primary border-primary'
-                      : 'border-outline-variant'
-                  }`}>
-                    {selectedContacts.includes(contact.name) && <Check className="h-3 w-3 text-white" />}
+            {contacts.length === 0 ? (
+              <p className="text-on-surface-variant text-center py-8">No contacts available</p>
+            ) : (
+              <div className="space-y-2">
+                {contacts.map((contact) => (
+                  <div 
+                    key={contact.id} 
+                    className={`p-3 rounded-lg cursor-pointer transition-colors flex items-center gap-3 ${
+                      selectedContacts.includes(contact.id) 
+                        ? 'bg-primary-fixed text-on-primary-fixed' 
+                        : 'bg-surface-container-low hover:bg-surface-container-high'
+                    }`}
+                    onClick={() => toggleContact(contact.id)}
+                  >
+                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                      selectedContacts.includes(contact.id)
+                        ? 'bg-primary border-primary'
+                        : 'border-outline-variant'
+                    }`}>
+                      {selectedContacts.includes(contact.id) && <Check className="h-3 w-3 text-white" />}
+                    </div>
+                    <div>
+                      <p className="font-bold">{contact.first_name} {contact.last_name}</p>
+                      <p className="text-xs opacity-70">{contact.email}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-bold">{contact.name}</p>
-                    <p className="text-xs opacity-70">{contact.email}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Select Group */}
           <div className="bg-surface-container-lowest rounded-xl p-6">
             <h3 className="font-bold mb-4">Move to Group</h3>
-            <div className="space-y-2">
-              {groups.map((group, index) => (
-                <div 
-                  key={index}
-                  className={`p-4 rounded-lg cursor-pointer transition-colors flex items-center gap-3 ${
-                    selectedGroup === group
-                      ? 'bg-primary-fixed text-on-primary-fixed'
-                      : 'bg-surface-container-low hover:bg-surface-container-high'
-                  }`}
-                  onClick={() => setSelectedGroup(group)}
-                >
-                  <FolderPlus className="h-5 w-5" />
-                  <span className="font-bold">{group}</span>
-                </div>
-              ))}
-            </div>
+            {groups.length === 0 ? (
+              <p className="text-on-surface-variant text-center py-8">No groups available</p>
+            ) : (
+              <div className="space-y-2">
+                {groups.map((group) => (
+                  <div 
+                    key={group.id}
+                    className={`p-4 rounded-lg cursor-pointer transition-colors flex items-center gap-3 ${
+                      selectedGroup === group.id
+                        ? 'bg-primary-fixed text-on-primary-fixed'
+                        : 'bg-surface-container-low hover:bg-surface-container-high'
+                    }`}
+                    onClick={() => setSelectedGroup(group.id)}
+                  >
+                    <FolderPlus className="h-5 w-5" />
+                    <span className="font-bold">{group.name}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
         <div className="flex justify-end gap-3 mt-8">
-          <Button variant="secondary">Cancel</Button>
-          <Button disabled={selectedContacts.length === 0 || !selectedGroup}>
-            Move {selectedContacts.length} Contact{selectedContacts.length !== 1 ? 's' : ''}
+          <Button variant="secondary" onClick={() => navigate('/contacts')}>Cancel</Button>
+          <Button onClick={handleMove} disabled={selectedContacts.length === 0 || !selectedGroup || isSaving}>
+            {isSaving ? 'Moving...' : `Move ${selectedContacts.length} Contact${selectedContacts.length !== 1 ? 's' : ''}`}
           </Button>
         </div>
       </div>

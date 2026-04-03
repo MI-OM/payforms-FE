@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { contactAuthService } from '@/services/contactAuthService'
+import { contactService, type Transaction } from '@/services/contactService'
 import { ApiError } from '@/lib/apiClient'
 
 export function ContactLoginPage() {
@@ -579,6 +580,23 @@ export function ContactDashboard() {
     const data = localStorage.getItem('contact_data')
     return data ? JSON.parse(data) : null
   })
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      if (!contact?.id) return
+      try {
+        const data = await contactService.getContactTransactions(contact.id, { limit: 20 })
+        setTransactions(data.data)
+      } catch (err) {
+        console.error('Failed to fetch transactions:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchTransactions()
+  }, [contact])
 
   const handleLogout = () => {
     localStorage.removeItem('contact_data')
@@ -587,10 +605,13 @@ export function ContactDashboard() {
     navigate('/contact/login')
   }
 
-  const mockTransactions = [
-    { id: '1', form: 'Q1 Tuition', amount: 2500, status: 'PAID', date: '2026-03-15' },
-    { id: '2', form: 'Lab Fees', amount: 150, status: 'PENDING', date: '2026-04-01' },
-  ]
+  const totalPaid = transactions
+    .filter(t => t.status === 'PAID')
+    .reduce((sum, t) => sum + t.amount, 0)
+  
+  const totalPending = transactions
+    .filter(t => t.status === 'PENDING' || t.status === 'PARTIAL')
+    .reduce((sum, t) => sum + t.amount, 0)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -624,11 +645,11 @@ export function ContactDashboard() {
         <div className="grid grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-xl p-6 shadow-sm">
             <p className="text-sm text-gray-500 mb-1">Total Paid</p>
-            <p className="text-2xl font-bold text-green-600">$2,500.00</p>
+            <p className="text-2xl font-bold text-green-600">${totalPaid.toFixed(2)}</p>
           </div>
           <div className="bg-white rounded-xl p-6 shadow-sm">
             <p className="text-sm text-gray-500 mb-1">Pending</p>
-            <p className="text-2xl font-bold text-amber-600">$150.00</p>
+            <p className="text-2xl font-bold text-amber-600">${totalPending.toFixed(2)}</p>
           </div>
           <div className="bg-white rounded-xl p-6 shadow-sm">
             <p className="text-sm text-gray-500 mb-1">Status</p>
@@ -642,24 +663,30 @@ export function ContactDashboard() {
           <div className="p-6 border-b border-gray-100">
             <h3 className="font-bold text-gray-900">Payment History</h3>
           </div>
-          <div className="divide-y divide-gray-100">
-            {mockTransactions.map((tx) => (
-              <div key={tx.id} className="p-4 flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-gray-900">{tx.form}</p>
-                  <p className="text-sm text-gray-500">{tx.date}</p>
+          {loading ? (
+            <div className="p-8 text-center text-gray-500">Loading...</div>
+          ) : transactions.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">No transactions found</div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {transactions.map((tx) => (
+                <div key={tx.id} className="p-4 flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-gray-900">Payment #{tx.reference}</p>
+                    <p className="text-sm text-gray-500">{new Date(tx.created_at).toLocaleDateString()}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-medium text-gray-900">${tx.amount.toFixed(2)}</p>
+                    <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${
+                      tx.status === 'PAID' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                    }`}>
+                      {tx.status}
+                    </span>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-medium text-gray-900">${tx.amount.toFixed(2)}</p>
-                  <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${
-                    tx.status === 'PAID' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
-                  }`}>
-                    {tx.status}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </main>
     </div>
