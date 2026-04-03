@@ -1,6 +1,9 @@
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { authService } from '@/services/authService'
+import { setTokens } from '@/lib/auth'
+import { ApiError } from '@/lib/apiClient'
 
 export function AcceptInvite() {
   const { token } = useParams()
@@ -29,14 +32,31 @@ export function AcceptInvite() {
       return
     }
 
+    if (!token) {
+      setError('Invalid invitation link')
+      return
+    }
+
     setIsLoading(true)
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      const response = await authService.acceptInvite({
+        token,
+        password: formData.password,
+      })
+      setTokens(response.access_token, response.refresh_token)
       setIsSuccess(true)
-      setTimeout(() => navigate('/login'), 2000)
-    } catch {
-      setError('Failed to accept invitation. The link may have expired.')
+      setTimeout(() => navigate('/dashboard'), 2000)
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.status === 400) {
+          setError('This invitation link has expired or already been used.')
+        } else {
+          setError(err.message || 'Failed to accept invitation')
+        }
+      } else {
+        setError('Failed to accept invitation. The link may have expired.')
+      }
     } finally {
       setIsLoading(false)
     }
@@ -67,7 +87,7 @@ export function AcceptInvite() {
               Welcome to the Team!
             </h2>
             <p className="font-body text-slate-500 mb-8">
-              Your account has been created. Redirecting to login...
+              Your account has been created. Redirecting to dashboard...
             </p>
             <div className="flex justify-center">
               <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>

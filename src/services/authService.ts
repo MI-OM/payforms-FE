@@ -46,6 +46,7 @@ export interface User {
   last_name: string
   role: 'ADMIN' | 'STAFF' | 'CONTACT'
   organization_id: string
+  organization_name?: string
   title?: string
   designation?: string
 }

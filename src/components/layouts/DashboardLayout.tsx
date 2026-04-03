@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Outlet } from 'react-router-dom'
 import { cn } from '@/lib/utils'
@@ -20,6 +20,7 @@ function MaterialIcon({ name, className = '', filled = false }: { name: string; 
     search: { d: "M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" },
     notifications: { d: "M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" },
     help_outline: { d: "M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z" },
+    person: { d: "M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" },
   }
   
   const icon = icons[name]
@@ -37,6 +38,18 @@ export function DashboardLayout() {
   const navigate = useNavigate()
   const { user, logout } = useAuth()
   const isAdmin = user?.role === 'ADMIN'
+  const [showUserMenu, setShowUserMenu] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const navItems = [
     { icon: 'dashboard', label: 'Dashboard', path: '/dashboard', adminOnly: false },
@@ -67,7 +80,9 @@ export function DashboardLayout() {
             <MaterialIcon name="account_balance" className="text-white text-xl" />
           </div>
           <div>
-            <h1 className="text-lg font-bold tracking-tighter text-slate-900 leading-tight font-headline">The Ledger</h1>
+            <h1 className="text-lg font-bold tracking-tighter text-slate-900 leading-tight font-headline truncate max-w-[160px]">
+              {user?.organization_name || 'The Ledger'}
+            </h1>
             <p className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">
               {isAdmin ? 'Institutional Admin' : 'Staff Portal'}
             </p>
@@ -148,21 +163,58 @@ export function DashboardLayout() {
               </button>
             </div>
             <div className="h-8 w-[1px] bg-slate-100" />
-            <button className="bg-slate-900 text-white text-xs font-bold px-4 py-2 rounded shadow-sm hover:bg-black transition-all">
-              New Transaction
-            </button>
-            <div className="flex items-center gap-3 ml-2">
-              <div className="text-right hidden xl:block">
-                <p className="text-xs font-bold text-slate-900">{user?.first_name ? `${user.first_name} ${user.last_name}` : 'User'}</p>
-                <p className="text-[10px] text-slate-500 uppercase tracking-tighter">
-                  {user?.role === 'ADMIN' ? 'Admin' : 'Staff'}
-                </p>
-              </div>
-              <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center">
-                <span className="text-sm font-bold text-slate-600">
-                  {user?.first_name?.charAt(0).toUpperCase() || 'U'}
-                </span>
-              </div>
+            <div className="relative" ref={menuRef}>
+              <button 
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="flex items-center gap-3 hover:bg-slate-100 rounded-lg px-2 py-1 transition-colors"
+              >
+                <div className="text-right hidden xl:block">
+                  <p className="text-xs font-bold text-slate-900">{user?.first_name ? `${user.first_name} ${user.last_name}` : 'User'}</p>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-tighter">
+                    {user?.role === 'ADMIN' ? 'Admin' : 'Staff'}
+                  </p>
+                </div>
+                <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center">
+                  <span className="text-sm font-bold text-slate-600">
+                    {user?.first_name?.charAt(0).toUpperCase() || 'U'}
+                  </span>
+                </div>
+              </button>
+              
+              {showUserMenu && (
+                <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-100 py-2 z-50">
+                  <div className="px-4 py-3 border-b border-slate-100">
+                    <p className="text-sm font-bold text-slate-900">{user?.first_name} {user?.last_name}</p>
+                    <p className="text-xs text-slate-500">{user?.email}</p>
+                    <p className="text-[10px] text-slate-400 uppercase mt-1">{user?.role === 'ADMIN' ? 'Admin' : 'Staff'}</p>
+                  </div>
+                  <Link 
+                    to="/profile" 
+                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 text-slate-700 text-sm"
+                    onClick={() => setShowUserMenu(false)}
+                  >
+                    <MaterialIcon name="person" className="text-lg" />
+                    <span>My Profile</span>
+                  </Link>
+                  <Link 
+                    to="/settings" 
+                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 text-slate-700 text-sm"
+                    onClick={() => setShowUserMenu(false)}
+                  >
+                    <MaterialIcon name="settings" className="text-lg" />
+                    <span>Settings</span>
+                  </Link>
+                  <div className="border-t border-slate-100 mt-2 pt-2">
+                    <button 
+                      onClick={handleLogout}
+                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 text-red-600 text-sm w-full"
+                    >
+                      <MaterialIcon name="logout" className="text-lg" />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </header>

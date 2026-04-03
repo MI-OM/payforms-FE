@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { authService, type User } from '@/services/authService'
+import { organizationService } from '@/services/organizationService'
 import { clearTokens, getAccessToken, isLockedOut, getLockoutRemainingMs, recordFailedAttempt, getRemainingAttempts } from '@/lib/auth'
 import { ApiError } from '@/lib/apiClient'
 
@@ -39,8 +40,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const token = getAccessToken()
       if (token) {
         try {
-          const userData = await authService.getMe()
-          setUser(userData)
+          const [userData, orgData] = await Promise.all([
+            authService.getMe(),
+            organizationService.getOrganization().catch(() => null)
+          ])
+          setUser({ ...userData, organization_name: orgData?.name })
         } catch {
           clearTokens()
           setUser(null)
@@ -149,7 +153,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const response = await authService.login({ email, password })
-      setUser(response.user)
+      const orgData = await organizationService.getOrganization().catch(() => null)
+      setUser({ ...response.user, organization_name: orgData?.name })
       setRemainingAttempts(5)
     } catch (err) {
       if (err instanceof ApiError) {

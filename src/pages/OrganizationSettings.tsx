@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Building, Users, Shield, Bell, Palette, CreditCard, Key, Upload, Eye, EyeOff, Check, AlertCircle, Image, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -289,10 +290,29 @@ function IntegrationsSettings() {
 }
 
 function AppearanceSettings() {
+  const [loading, setLoading] = useState(true)
   const [logo, setLogo] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+
+  const fetchOrg = useCallback(async () => {
+    setLoading(true)
+    try {
+      const org = await organizationService.getOrganization()
+      if (org.logo_url) {
+        setLogo(org.logo_url)
+      }
+    } catch (err) {
+      console.error('Failed to load organization', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchOrg()
+  }, [fetchOrg])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -319,11 +339,26 @@ function AppearanceSettings() {
   }
 
   const handleSave = async () => {
+    if (!logo) return
     setIsSaving(true)
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    setIsSaving(false)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    try {
+      await organizationService.uploadLogo(logo)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } catch (err) {
+      alert('Failed to save logo')
+      console.error(err)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    )
   }
 
   return (
@@ -412,7 +447,7 @@ function AppearanceSettings() {
             Logo saved
           </span>
         )}
-        <Button onClick={handleSave} disabled={isSaving}>
+        <Button onClick={handleSave} disabled={isSaving || !logo}>
           {isSaving ? 'Saving...' : 'Save Logo'}
         </Button>
       </div>
@@ -421,27 +456,57 @@ function AppearanceSettings() {
 }
 
 function NotificationsSettings() {
+  const [loading, setLoading] = useState(true)
   const [settings, setSettings] = useState({
-    submissionConfirmation: true,
-    paymentConfirmation: true,
-    paymentFailure: true,
-    weeklyReport: false,
-    monthlyReport: true,
-    newContactImport: true,
-    staffInvite: true,
-    securityAlerts: true,
-    systemUpdates: false,
-    marketingEmails: false,
+    require_contact_login: false,
+    notify_submission_confirmation: true,
+    notify_payment_confirmation: true,
+    notify_payment_failure: true,
   })
   const [isSaving, setIsSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
+  const fetchSettings = useCallback(async () => {
+    setLoading(true)
+    try {
+      const org = await organizationService.getOrganization()
+      setSettings({
+        require_contact_login: org.require_contact_login || false,
+        notify_submission_confirmation: org.notify_submission_confirmation ?? true,
+        notify_payment_confirmation: org.notify_payment_confirmation ?? true,
+        notify_payment_failure: org.notify_payment_failure ?? true,
+      })
+    } catch (err) {
+      console.error('Failed to load settings', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchSettings()
+  }, [fetchSettings])
+
   const handleSave = async () => {
     setIsSaving(true)
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    setIsSaving(false)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    try {
+      await organizationService.updateOrganization(settings)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } catch (err) {
+      alert('Failed to save settings')
+      console.error(err)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    )
   }
 
   return (
@@ -455,8 +520,8 @@ function NotificationsSettings() {
               <p className="text-sm text-gray-500">Get notified when a form is submitted</p>
             </div>
             <Toggle 
-              checked={settings.submissionConfirmation}
-              onChange={(checked) => setSettings({...settings, submissionConfirmation: checked})}
+              checked={settings.notify_submission_confirmation}
+              onChange={(checked) => setSettings({...settings, notify_submission_confirmation: checked})}
             />
           </div>
           <div className="flex items-center justify-between">
@@ -465,8 +530,8 @@ function NotificationsSettings() {
               <p className="text-sm text-gray-500">Get notified when a payment is successful</p>
             </div>
             <Toggle 
-              checked={settings.paymentConfirmation}
-              onChange={(checked) => setSettings({...settings, paymentConfirmation: checked})}
+              checked={settings.notify_payment_confirmation}
+              onChange={(checked) => setSettings({...settings, notify_payment_confirmation: checked})}
             />
           </div>
           <div className="flex items-center justify-between">
@@ -475,96 +540,24 @@ function NotificationsSettings() {
               <p className="text-sm text-gray-500">Get notified when a payment fails</p>
             </div>
             <Toggle 
-              checked={settings.paymentFailure}
-              onChange={(checked) => setSettings({...settings, paymentFailure: checked})}
+              checked={settings.notify_payment_failure}
+              onChange={(checked) => setSettings({...settings, notify_payment_failure: checked})}
             />
           </div>
         </div>
       </div>
 
       <div className="bg-white rounded-xl p-6 shadow-sm">
-        <h3 className="font-bold mb-4 text-gray-900">Reports</h3>
+        <h3 className="font-bold mb-4 text-gray-900">Contact Login</h3>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium text-gray-900">Weekly Report</p>
-              <p className="text-sm text-gray-500">Receive weekly summary of transactions</p>
+              <p className="font-medium text-gray-900">Require Contact Login</p>
+              <p className="text-sm text-gray-500">Contacts must log in to access payment forms</p>
             </div>
             <Toggle 
-              checked={settings.weeklyReport}
-              onChange={(checked) => setSettings({...settings, weeklyReport: checked})}
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-gray-900">Monthly Report</p>
-              <p className="text-sm text-gray-500">Receive monthly analytics summary</p>
-            </div>
-            <Toggle 
-              checked={settings.monthlyReport}
-              onChange={(checked) => setSettings({...settings, monthlyReport: checked})}
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl p-6 shadow-sm">
-        <h3 className="font-bold mb-4 text-gray-900">Activity Alerts</h3>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-gray-900">New Contact Import</p>
-              <p className="text-sm text-gray-500">Get notified when contacts are imported</p>
-            </div>
-            <Toggle 
-              checked={settings.newContactImport}
-              onChange={(checked) => setSettings({...settings, newContactImport: checked})}
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-gray-900">Staff Invitations</p>
-              <p className="text-sm text-gray-500">Get notified when team members are invited</p>
-            </div>
-            <Toggle 
-              checked={settings.staffInvite}
-              onChange={(checked) => setSettings({...settings, staffInvite: checked})}
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-gray-900">Security Alerts</p>
-              <p className="text-sm text-gray-500">Important security-related notifications</p>
-            </div>
-            <Toggle 
-              checked={settings.securityAlerts}
-              onChange={(checked) => setSettings({...settings, securityAlerts: checked})}
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl p-6 shadow-sm">
-        <h3 className="font-bold mb-4 text-gray-900">Other</h3>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-gray-900">System Updates</p>
-              <p className="text-sm text-gray-500">New features and maintenance notices</p>
-            </div>
-            <Toggle 
-              checked={settings.systemUpdates}
-              onChange={(checked) => setSettings({...settings, systemUpdates: checked})}
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-gray-900">Marketing Emails</p>
-              <p className="text-sm text-gray-500">Tips, best practices, and promotions</p>
-            </div>
-            <Toggle 
-              checked={settings.marketingEmails}
-              onChange={(checked) => setSettings({...settings, marketingEmails: checked})}
+              checked={settings.require_contact_login}
+              onChange={(checked) => setSettings({...settings, require_contact_login: checked})}
             />
           </div>
         </div>
@@ -586,11 +579,7 @@ function NotificationsSettings() {
 }
 
 function TeamSettings() {
-  const [members] = useState([
-    { id: '1', name: 'Admin User', email: 'admin@architecturalledger.com', role: 'Admin', status: 'Active' },
-    { id: '2', name: 'Jane Smith', email: 'jane@architecturalledger.com', role: 'Manager', status: 'Active' },
-    { id: '3', name: 'John Doe', email: 'john@architecturalledger.com', role: 'Staff', status: 'Pending' },
-  ])
+  const navigate = useNavigate()
 
   return (
     <div className="space-y-6">
@@ -599,7 +588,7 @@ function TeamSettings() {
           <h3 className="font-bold text-gray-900">Team Members</h3>
           <p className="text-sm text-gray-500">Manage your organization team</p>
         </div>
-        <Button>Invite Member</Button>
+        <Button onClick={() => navigate('/team/invite')}>Invite Member</Button>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
@@ -613,33 +602,13 @@ function TeamSettings() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {members.map((member) => (
-              <tr key={member.id}>
-                <td className="px-6 py-4">
-                  <div>
-                    <p className="font-medium text-gray-900">{member.name}</p>
-                    <p className="text-sm text-gray-500">{member.email}</p>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded">
-                    {member.role}
-                  </span>
-                </td>
-                <td className="px-6 py-4">
-                  <span className={`px-2 py-1 text-xs font-medium rounded ${
-                    member.status === 'Active' 
-                      ? 'bg-green-100 text-green-700' 
-                      : 'bg-amber-100 text-amber-700'
-                  }`}>
-                    {member.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <Button variant="ghost" size="sm">Edit</Button>
-                </td>
-              </tr>
-            ))}
+            <tr>
+              <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
+                <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                <p className="text-sm">No team members yet.</p>
+                <p className="text-xs text-gray-400 mt-1">Click "Invite Member" to add staff to your organization.</p>
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>
