@@ -1,4 +1,7 @@
 import { Link } from 'react-router-dom'
+import { useState } from 'react'
+import { authService } from '@/services/authService'
+import { Loader2 } from 'lucide-react'
 
 export function EmailVerifiedSuccess() {
   return (
@@ -453,6 +456,23 @@ export function EmailVerificationAlreadyUsed() {
 }
 
 export function VerifyYourEmailPrompt() {
+  const [isResending, setIsResending] = useState(false)
+  const [resendSuccess, setResendSuccess] = useState(false)
+  const [resendError, setResendError] = useState('')
+
+  const handleResend = async () => {
+    setIsResending(true)
+    setResendError('')
+    try {
+      await authService.requestEmailVerification()
+      setResendSuccess(true)
+    } catch (err: unknown) {
+      setResendError(err instanceof Error ? err.message : 'Failed to resend email')
+    } finally {
+      setIsResending(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col font-sans antialiased">
       <style>{`
@@ -504,9 +524,28 @@ export function VerifyYourEmailPrompt() {
 
             {/* Actions */}
             <div className="space-y-4">
-              <button className="w-full bg-slate-900 text-white font-semibold py-4 px-6 rounded-md transition-all hover:bg-slate-800 focus:ring-2 focus:ring-offset-2 focus:ring-slate-900">
-                Resend Email
+              <button 
+                onClick={handleResend}
+                disabled={isResending || resendSuccess}
+                className="w-full bg-slate-900 text-white font-semibold py-4 px-6 rounded-md transition-all hover:bg-slate-800 focus:ring-2 focus:ring-offset-2 focus:ring-slate-900 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isResending ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Sending...
+                  </>
+                ) : resendSuccess ? (
+                  'Email Sent!'
+                ) : (
+                  'Resend Email'
+                )}
               </button>
+              {resendSuccess && (
+                <p className="text-sm text-green-600">Check your inbox for a new verification email.</p>
+              )}
+              {resendError && (
+                <p className="text-sm text-red-600">{resendError}</p>
+              )}
               <div className="pt-4">
                 <Link to="/login" className="text-sm font-medium text-slate-400 hover:underline flex items-center justify-center gap-2 transition-colors">
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
