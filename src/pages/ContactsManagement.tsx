@@ -85,7 +85,19 @@ export function ContactsManagement() {
         params.search = searchQuery
       }
       const response: PaginatedResponse<Contact> = await contactService.getContacts(params)
-      setContacts(response.data)
+      
+      const contactsWithGroups = await Promise.all(
+        response.data.map(async (contact) => {
+          try {
+            const details = await contactService.getContactDetails(contact.id)
+            return { ...contact, groups: details.groups, group_hierarchy: details.group_hierarchy }
+          } catch {
+            return contact
+          }
+        })
+      )
+      
+      setContacts(contactsWithGroups)
       setTotal(response.total)
       setTotalPages(response.totalPages)
     } catch (err) {
@@ -448,11 +460,24 @@ export function ContactsManagement() {
                           </div>
                         </td>
                         <td className="px-4 lg:px-6 py-3 lg:py-4">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#dae2fd] text-[#3f465c]">
-                            {selectedGroupId
-                              ? allGroups.find(g => g.id === selectedGroupId)?.name || 'Unassigned'
-                              : 'Unassigned'}
-                          </span>
+                          {contact.groups && contact.groups.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {contact.groups.slice(0, 2).map((group) => (
+                                <span key={group.id} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#dae2fd] text-[#3f465c]">
+                                  {group.name}
+                                </span>
+                              ))}
+                              {contact.groups.length > 2 && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-500">
+                                  +{contact.groups.length - 2}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-500">
+                              Unassigned
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 lg:px-6 py-3 lg:py-4 text-sm font-medium text-right text-[#191c1e] hidden lg:table-cell">$0.00</td>
                         <td className="px-4 lg:px-6 py-3 lg:py-4 text-sm font-bold text-right text-[#009668] hidden lg:table-cell">$0.00</td>

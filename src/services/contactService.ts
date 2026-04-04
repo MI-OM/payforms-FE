@@ -17,6 +17,8 @@ export interface Contact {
   is_active: boolean
   require_login: boolean
   created_at: string
+  groups?: Group[]
+  group_hierarchy?: string[]
 }
 
 export interface ContactDetails extends Contact {
