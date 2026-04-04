@@ -4,6 +4,7 @@ import { Mail, Phone, Building, MapPin, Calendar, Edit, Trash2, History, Loader2
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { contactService, type ContactDetails, type Transaction } from '@/services/contactService'
+import { toast } from '@/components/ui/use-toast'
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount)
@@ -56,7 +57,7 @@ export function ContactProfileManagement() {
       await contactService.deleteContact(id)
       navigate('/contacts')
     } catch (err) {
-      alert('Failed to delete contact')
+      toast({ title: 'Error', description: 'Failed to delete contact', variant: 'destructive' })
       console.error(err)
       setDeleting(false)
     }

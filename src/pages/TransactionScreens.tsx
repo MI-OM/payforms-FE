@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Download, Clock, CheckCircle, AlertCircle, FileText, Loader, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { paymentService, type TransactionHistory as TransactionHistoryType } from '@/services/paymentService'
+import { toast } from '@/components/ui/use-toast'
 
 export function TransactionHistory() {
   const { id } = useParams<{ id: string }>()
@@ -147,7 +148,7 @@ export function TransactionExport() {
       a.click()
       window.URL.revokeObjectURL(url)
     } catch (err) {
-      alert('Failed to export transactions')
+      toast({ title: 'Error', description: 'Failed to export transactions', variant: 'destructive' })
       console.error(err)
     } finally {
       setIsExporting(false)

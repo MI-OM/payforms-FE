@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { contactService } from '@/services/contactService'
+import { toast } from '@/components/ui/use-toast'
 
 export function AddNewContactForm() {
   const navigate = useNavigate()
@@ -25,7 +26,7 @@ export function AddNewContactForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.email || !form.first_name || !form.last_name) {
-      alert('Please fill in all required fields')
+      toast({ title: 'Validation Error', description: 'Please fill in all required fields', variant: 'destructive' })
       return
     }
     setLoading(true)
@@ -44,7 +45,7 @@ export function AddNewContactForm() {
       })
       navigate('/contacts')
     } catch (err) {
-      alert('Failed to create contact')
+      toast({ title: 'Error', description: 'Failed to create contact', variant: 'destructive' })
       console.error(err)
     } finally {
       setLoading(false)

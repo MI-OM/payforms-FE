@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import { reportService, type ReportSummary, type FormPerformance } from '@/services/reportService'
 import { paymentService, type Transaction } from '@/services/paymentService'
 import { formService, type Form } from '@/services/formService'
+import { toast } from '@/components/ui/use-toast'
 
 function MaterialIcon({ name, className = '', filled = false }: { name: string; className?: string; filled?: boolean }) {
   const iconStyle = filled ? { fontVariationSettings: "'FILL' 1" } : undefined
@@ -48,12 +49,12 @@ export function AdminDashboardContent() {
           reportService.getSummary().catch(() => null),
           paymentService.getTransactions({ limit: 10 }).catch(() => ({ data: [] })),
           reportService.getFormsPerformance().catch(() => []),
-          formService.getForms({ limit: 100 }).catch(() => ({ data: [] }))
+          formService.getForms({ limit: 100 }).catch(() => ({ data: [], total: 0, page: 1, limit: 100, totalPages: 0 }))
         ])
         
         setSummary(summaryData)
         setTransactions(txnData.data || [])
-        setTopForms(Array.isArray(performanceData) ? performanceData : (performanceData?.data || []))
+        setTopForms(Array.isArray(performanceData) ? performanceData : [])
         setForms(formsData.data || [])
         
         const hasData = summaryData || (txnData.data && txnData.data.length > 0) || (formsData.data && formsData.data.length > 0)
@@ -61,6 +62,7 @@ export function AdminDashboardContent() {
       } catch (err) {
         setError('Failed to load dashboard data')
         setIsEmpty(true)
+        toast({ title: 'Error', description: 'Failed to load dashboard data', variant: 'destructive' })
       } finally {
         setLoading(false)
       }

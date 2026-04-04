@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { organizationService } from '@/services/organizationService'
+import { toast } from '@/components/ui/use-toast'
 
 const tabs = [
   { id: 'general', label: 'General', icon: Building },
@@ -76,7 +77,7 @@ function GeneralSettings() {
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } catch (err) {
-      alert('Failed to save settings')
+      toast({ title: 'Error', description: 'Failed to save settings', variant: 'destructive' })
       console.error(err)
     } finally {
       setIsSaving(false)
@@ -169,7 +170,7 @@ function IntegrationsSettings() {
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } catch (err) {
-      alert('Failed to save keys')
+      toast({ title: 'Error', description: 'Failed to save keys', variant: 'destructive' })
       console.error(err)
     } finally {
       setIsSaving(false)
@@ -346,7 +347,7 @@ function AppearanceSettings() {
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } catch (err) {
-      alert('Failed to save logo')
+      toast({ title: 'Error', description: 'Failed to save logo', variant: 'destructive' })
       console.error(err)
     } finally {
       setIsSaving(false)
@@ -494,7 +495,7 @@ function NotificationsSettings() {
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } catch (err) {
-      alert('Failed to save settings')
+      toast({ title: 'Error', description: 'Failed to save settings', variant: 'destructive' })
       console.error(err)
     } finally {
       setIsSaving(false)

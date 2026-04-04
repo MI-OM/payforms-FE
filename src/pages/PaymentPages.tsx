@@ -542,13 +542,70 @@ export function PaymentSuccessState() {
   const referenceFromUrl = searchParams.get('reference')
   
   const navigate = useNavigate()
+  const [verifying, setVerifying] = useState(true)
+  const [verifiedData, setVerifiedData] = useState<{ status: string; amount?: number; reference: string } | null>(null)
+  const [verificationError, setVerificationError] = useState<string | null>(null)
   
   const formData = state?.formData || { name: '', email: '' }
-  const amount = state?.amount || 0
   const organization = state?.organization || ''
-  const reference = referenceFromUrl || state?.reference || `PAY-${Math.random().toString(36).substring(2, 10).toUpperCase()}`
   const submissionId = state?.submission_id || ''
+  
+  useEffect(() => {
+    const verifyPaymentCallback = async () => {
+      if (!referenceFromUrl) {
+        setVerifying(false)
+        return
+      }
+      
+      try {
+        const result = await publicFormService.verifyPayment(referenceFromUrl)
+        setVerifiedData(result)
+        setVerifying(false)
+      } catch (err) {
+        console.error('Payment verification failed:', err)
+        setVerificationError('Unable to verify payment status. Please contact support.')
+        setVerifying(false)
+      }
+    }
+    
+    verifyPaymentCallback()
+  }, [referenceFromUrl])
+  
+  const reference = referenceFromUrl || state?.reference || `PAY-${Math.random().toString(36).substring(2, 10).toUpperCase()}`
+  const amount = verifiedData?.amount || state?.amount || 0
   const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+
+  if (verifying) {
+    return (
+      <div className="min-h-screen bg-[#f7f9fb] flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-[#000] mx-auto mb-4" />
+          <p className="text-[#45464d]">Verifying payment...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (verificationError) {
+    return (
+      <div className="min-h-screen bg-[#f7f9fb] flex items-center justify-center">
+        <div className="text-center max-w-md p-8">
+          <div className="mb-6 p-6 rounded-full bg-[#ffdad6]/20 inline-block">
+            <MaterialIcon name="warning" className="text-6xl text-[#ba1a1a]" />
+          </div>
+          <h2 className="text-2xl font-bold text-[#191c1e] mb-4">Verification Issue</h2>
+          <p className="text-[#45464d] mb-6">{verificationError}</p>
+          <p className="text-sm text-[#45464d] mb-6">Reference: <span className="font-mono font-semibold">{reference}</span></p>
+          <button
+            onClick={() => navigate('/')}
+            className="px-6 py-3 bg-[#000] text-white rounded-lg font-bold hover:opacity-90"
+          >
+            Return to Home
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-[#f7f9fb] text-[#191c1e] overflow-hidden">
@@ -590,6 +647,10 @@ export function PaymentSuccessState() {
             </div>
             
             <h1 className="font-['Manrope'] font-extrabold text-3xl tracking-tight mb-4 text-[#191c1e]">Transaction Successful</h1>
+            <div className="inline-flex items-center gap-2 bg-[#002113] px-4 py-1.5 rounded-full mb-4">
+              <MaterialIcon name="verified" className="text-[#009668] text-sm" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[#009668] font-['Inter']">Payment Verified</span>
+            </div>
             <p className="text-[#45464d] leading-relaxed px-4 mb-10 font-medium">
               Your payment for <span className="text-[#191c1e] font-bold">{organization}</span> has been confirmed. A receipt has been sent to <span className="text-[#188ace] font-semibold">{formData.email}</span>.
             </p>
@@ -647,6 +708,44 @@ export function PaymentSuccessState() {
 
 export function PaymentFailureState() {
   const navigate = useNavigate()
+  
+  const searchParams = new URLSearchParams(window.location.search)
+  const errorCode = searchParams.get('code') || searchParams.get('error_code')
+  const errorMessage = searchParams.get('message') || searchParams.get('error_message')
+  
+  const getErrorDisplay = () => {
+    const defaultMessage = 'Your payment could not be processed. Please try again or use a different payment method.'
+    
+    if (errorMessage) return errorMessage
+    
+    switch (errorCode) {
+      case 'cancelled':
+        return 'Payment was cancelled. You can try again when you\'re ready.'
+      case 'insufficient_funds':
+        return 'Your card has insufficient funds. Please try a different payment method.'
+      case 'expired_card':
+        return 'Your card has expired. Please use a different card.'
+      case 'incorrect_pin':
+        return 'Incorrect PIN entered. Please try again.'
+      case 'processing_error':
+        return 'A processing error occurred. Please try again in a few moments.'
+      default:
+        return defaultMessage
+    }
+  }
+  
+  const getErrorTitle = () => {
+    if (errorCode === 'cancelled') return 'Payment Cancelled'
+    if (errorCode === 'insufficient_funds') return 'Insufficient Funds'
+    if (errorCode === 'expired_card') return 'Card Expired'
+    return 'Transaction Declined'
+  }
+  
+  const getErrorStatus = () => {
+    if (errorCode === 'cancelled') return 'Cancelled'
+    if (errorCode) return `Error: ${errorCode}`
+    return 'Error 402: Payment Declined'
+  }
 
   return (
     <div className="min-h-screen bg-[#f7f9fb] text-[#191c1e] font-['Inter']">
@@ -703,29 +802,31 @@ export function PaymentFailureState() {
             </div>
             
             <h2 className="font-['Manrope'] text-3xl font-extrabold tracking-tight text-[#191c1e] mb-4">
-              Transaction Declined
+              {getErrorTitle()}
             </h2>
             <p className="text-[#45464d] leading-relaxed mb-6">
-              Your bank was unable to authorize this transaction. Please check your card details or try a different payment method.
+              {getErrorDisplay()}
             </p>
             
             <div className="inline-flex items-center gap-2 bg-[#e6e8ea] px-4 py-2 rounded-full mb-10">
               <span className="text-[10px] uppercase tracking-widest font-bold text-[#45464d] opacity-60 font-['Inter']">Status</span>
-              <span className="text-xs font-semibold text-[#ba1a1a]">Error 402: Insufficient Funds</span>
+              <span className="text-xs font-semibold text-[#ba1a1a]">{getErrorStatus()}</span>
             </div>
             
             <div className="w-full space-y-4">
-              <button
-                onClick={() => navigate(-1)}
-                className="w-full py-4 bg-[#000] text-white font-bold rounded-md hover:opacity-90 transition-all active:scale-[0.98] cursor-pointer shadow-lg shadow-black/10"
-              >
-                Retry Payment
-              </button>
+              {errorCode !== 'cancelled' && (
+                <button
+                  onClick={() => navigate('/')}
+                  className="w-full py-4 bg-[#000] text-white font-bold rounded-md hover:opacity-90 transition-all active:scale-[0.98] cursor-pointer shadow-lg shadow-black/10"
+                >
+                  Try Again
+                </button>
+              )}
               <a
                 className="inline-block pt-2 text-[#004b73] font-semibold underline decoration-2 underline-offset-4 hover:text-[#000] transition-colors cursor-pointer text-sm"
                 href="/"
               >
-                Contact Support
+                Return to Home
               </a>
             </div>
           </div>

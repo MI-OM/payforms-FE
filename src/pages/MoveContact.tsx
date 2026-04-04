@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { contactService, type Contact } from '@/services/contactService'
 import { groupService, type Group } from '@/services/groupService'
+import { toast } from '@/components/ui/use-toast'
 
 export function MoveContactToGroupView() {
   const navigate = useNavigate()
@@ -47,7 +48,7 @@ export function MoveContactToGroupView() {
       navigate('/contacts')
     } catch (err) {
       console.error('Failed to move contacts:', err)
-      alert('Failed to move contacts')
+      toast({ title: 'Error', description: 'Failed to move contacts', variant: 'destructive' })
     } finally {
       setIsSaving(false)
     }

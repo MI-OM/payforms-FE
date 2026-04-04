@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { contactService, type Contact, type Transaction } from '@/services/contactService'
 import { organizationService } from '@/services/organizationService'
+import { toast } from '@/components/ui/use-toast'
 
 const templates = [
   { id: 'invoice', name: 'Invoice Template', description: 'Professional invoice for services', fields: 8, uses: 245 },
@@ -121,7 +122,7 @@ export function FullStatementTemplateContact() {
       document.body.removeChild(a)
     } catch (err) {
       console.error('Failed to download statement:', err)
-      alert('Failed to download statement')
+      toast({ title: 'Error', description: 'Failed to download statement', variant: 'destructive' })
     }
   }
 
@@ -235,7 +236,7 @@ export function FullTransactionHistoryContact() {
       document.body.removeChild(a)
     } catch (err) {
       console.error('Failed to export:', err)
-      alert('Failed to export transactions')
+      toast({ title: 'Error', description: 'Failed to export transactions', variant: 'destructive' })
     }
   }
 
@@ -337,7 +338,7 @@ export function EditContactView() {
         is_active: contact.is_active,
       })
     } catch (err) {
-      alert('Failed to load contact')
+      toast({ title: 'Error', description: 'Failed to load contact', variant: 'destructive' })
       console.error(err)
     } finally {
       setLoading(false)
@@ -362,7 +363,7 @@ export function EditContactView() {
       })
       navigate(`/contacts/${id}`)
     } catch (err) {
-      alert('Failed to update contact')
+      toast({ title: 'Error', description: 'Failed to update contact', variant: 'destructive' })
       console.error(err)
     } finally {
       setSaving(false)

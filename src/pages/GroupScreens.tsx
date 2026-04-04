@@ -4,6 +4,7 @@ import { ChevronRight, ChevronDown, Plus, Search, Users, X, Check, Folder, Folde
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { groupService, type GroupTreeNode, type Contact } from '@/services/groupService'
+import { toast } from '@/components/ui/use-toast'
 
 interface GroupNode {
   id: string
@@ -285,7 +286,7 @@ export function GroupContactsManagement() {
       await Promise.all(selectedIds.map(contactId => groupService.removeContactFromGroup(id, contactId)))
       setContacts(contacts.filter(c => !c.selected))
     } catch (err) {
-      alert('Failed to remove contacts')
+      toast({ title: 'Error', description: 'Failed to remove contacts', variant: 'destructive' })
       console.error(err)
     }
   }
@@ -301,7 +302,7 @@ export function GroupContactsManagement() {
       setIsAddMode(false)
       setContacts(contacts.map(c => ({ ...c, selected: false })))
     } catch (err) {
-      alert('Failed to add contacts')
+      toast({ title: 'Error', description: 'Failed to add contacts', variant: 'destructive' })
       console.error(err)
     } finally {
       setIsSaving(false)

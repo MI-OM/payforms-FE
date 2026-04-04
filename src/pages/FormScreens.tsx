@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { ArrowLeft, Plus, GripVertical, Trash2, Edit2, Settings, AlertTriangle, X, Check, Grip, Loader } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { formService, type FormField, type Form } from '@/services/formService'
+import { toast } from '@/components/ui/use-toast'
 
 const fieldTypes = [
   { value: 'TEXT', label: 'Short Text' },
@@ -50,7 +51,7 @@ export function FormFieldsManagement() {
       await formService.deleteField(fieldId)
       setFields(fields.filter(f => f.id !== fieldId))
     } catch (err) {
-      alert('Failed to delete field')
+      toast({ title: 'Error', description: 'Failed to delete field', variant: 'destructive' })
       console.error(err)
     }
   }
@@ -70,7 +71,7 @@ export function FormFieldsManagement() {
       setNewField({ label: '', type: 'TEXT', required: false, options: '' })
       setIsAddingField(false)
     } catch (err) {
-      alert('Failed to add field')
+      toast({ title: 'Error', description: 'Failed to add field', variant: 'destructive' })
       console.error(err)
     } finally {
       setSaving(false)
@@ -90,7 +91,7 @@ export function FormFieldsManagement() {
       setFields(fields.map(f => f.id === updated.id ? updated : f))
       setEditingField(null)
     } catch (err) {
-      alert('Failed to update field')
+      toast({ title: 'Error', description: 'Failed to update field', variant: 'destructive' })
       console.error(err)
     } finally {
       setSaving(false)
@@ -114,7 +115,7 @@ export function FormFieldsManagement() {
       await formService.reorderFields(id, reorderedFields.map(f => ({ id: f.id, order_index: f.order_index })))
     } catch (err) {
       fetchData()
-      alert('Failed to reorder fields')
+      toast({ title: 'Error', description: 'Failed to reorder fields', variant: 'destructive' })
       console.error(err)
     }
   }
@@ -395,7 +396,7 @@ export function FormSettings() {
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } catch (err) {
-      alert('Failed to save settings')
+      toast({ title: 'Error', description: 'Failed to save settings', variant: 'destructive' })
       console.error(err)
     } finally {
       setIsSaving(false)
@@ -586,7 +587,7 @@ export function FormDeleteConfirmation() {
       await formService.deleteForm(id)
       navigate('/forms')
     } catch (err) {
-      alert('Failed to delete form')
+      toast({ title: 'Error', description: 'Failed to delete form', variant: 'destructive' })
       console.error(err)
       setIsDeleting(false)
     }

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { contactService, type Contact, type Group, type ImportValidationResult } from '@/services/contactService'
 import { groupService } from '@/services/groupService'
+import { toast } from '@/components/ui/use-toast'
 
 function getInitials(firstName: string, lastName: string): string {
   return [firstName, lastName].map(n => n?.[0] || '').join('').toUpperCase().slice(0, 2)
@@ -209,7 +210,7 @@ export function ContactExport() {
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
     } catch (err) {
-      alert('Failed to export contacts')
+      toast({ title: 'Error', description: 'Failed to export contacts', variant: 'destructive' })
       console.error(err)
     } finally {
       setIsExporting(false)
@@ -570,7 +571,7 @@ export function AssignGroupsToContact() {
       navigate(`/contacts/${id}`)
     } catch (err) {
       console.error('Failed to save groups:', err)
-      alert('Failed to save groups')
+      toast({ title: 'Error', description: 'Failed to save groups', variant: 'destructive' })
     } finally {
       setIsSaving(false)
     }
@@ -699,7 +700,7 @@ export function ImportValidationReview() {
   const handleCommit = async () => {
     const stored = localStorage.getItem('pending_import_id')
     if (!stored) {
-      alert('No pending import found')
+      toast({ title: 'No Import Found', description: 'No pending import found to commit', variant: 'destructive' })
       return
     }
     
@@ -711,7 +712,7 @@ export function ImportValidationReview() {
       navigate('/import/activities')
     } catch (err) {
       console.error('Failed to commit import:', err)
-      alert('Failed to commit import')
+      toast({ title: 'Error', description: 'Failed to commit import', variant: 'destructive' })
     } finally {
       setIsCommitting(false)
     }

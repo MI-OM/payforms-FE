@@ -3,6 +3,7 @@ import { Search, Download, ChevronDown, Upload, Shield, Edit, Settings, Loader2 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { auditService, type AuditLog } from '@/services/auditService'
+import { toast } from '@/components/ui/use-toast'
 
 const iconMap: Record<string, React.ElementType> = {
   'import': Upload,
@@ -65,7 +66,7 @@ export function AllActivityLogs() {
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
     } catch (err) {
-      alert('Failed to export logs')
+      toast({ title: 'Error', description: 'Failed to export logs', variant: 'destructive' })
       console.error(err)
     } finally {
       setExporting(false)

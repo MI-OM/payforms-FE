@@ -4,6 +4,7 @@ import { Search, Plus, MoreVertical, Eye, Edit, Copy, Trash2, Loader2 } from 'lu
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { formService, type Form } from '@/services/formService'
+import { toast } from '@/components/ui/use-toast'
 
 function formatRelativeTime(dateString: string): string {
   const date = new Date(dateString)
@@ -56,7 +57,7 @@ export function AllFormsManagement() {
       setForms(prev => prev.filter(f => f.id !== id))
       setOpenMenu(null)
     } catch (err) {
-      alert('Failed to delete form')
+      toast({ title: 'Error', description: 'Failed to delete form', variant: 'destructive' })
       console.error(err)
     } finally {
       setDeletingId(null)
@@ -78,7 +79,7 @@ export function AllFormsManagement() {
       setForms(prev => [newForm, ...prev])
       setOpenMenu(null)
     } catch (err) {
-      alert('Failed to duplicate form')
+      toast({ title: 'Error', description: 'Failed to duplicate form', variant: 'destructive' })
       console.error(err)
     }
   }

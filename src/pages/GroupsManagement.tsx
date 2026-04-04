@@ -4,6 +4,7 @@ import { Search, Plus, Edit, ChevronRight, UserPlus, Trash2, Loader2 } from 'luc
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { groupService, type Group, type Contact } from '@/services/groupService'
+import { toast } from '@/components/ui/use-toast'
 
 export function ContactsGroupsManagement() {
   const navigate = useNavigate()
@@ -126,7 +127,7 @@ export function GroupEditorView() {
       await groupService.updateGroup(id, form)
       navigate('/groups')
     } catch (err) {
-      alert('Failed to save group')
+      toast({ title: 'Error', description: 'Failed to save group', variant: 'destructive' })
       console.error(err)
     } finally {
       setSaving(false)
@@ -139,7 +140,7 @@ export function GroupEditorView() {
       await groupService.deleteGroup(id)
       navigate('/groups')
     } catch (err) {
-      alert('Failed to delete group')
+      toast({ title: 'Error', description: 'Failed to delete group', variant: 'destructive' })
       console.error(err)
     }
   }

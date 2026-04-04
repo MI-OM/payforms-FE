@@ -12,7 +12,7 @@ interface SelectedTarget {
 }
 
 interface Group extends GroupTreeNode {
-  contactCount?: number
+  contact_count?: number
 }
 
 interface GroupTreeItemProps {
@@ -30,8 +30,8 @@ function GroupTreeItem({ group, selectedIds, expandedGroups, onToggle, onSelect,
   const isExpanded = expandedGroups.has(group.id)
   const isSelected = selectedIds.has(group.id)
   const totalCount = hasChildren
-    ? (group.children?.reduce((sum, c) => sum + (c.contactCount || 0), 0) || 0)
-    : (group.contactCount || 0)
+    ? (group.children?.reduce((sum, c) => sum + (c.contact_count || 0), 0) || 0)
+    : (group.contact_count || 0)
 
   return (
     <div>
@@ -115,7 +115,7 @@ function GroupTreeItem({ group, selectedIds, expandedGroups, onToggle, onSelect,
                 <span className={cn('text-sm', selectedIds.has(child.id) && 'text-[#188ace]')}>
                   {child.name}
                 </span>
-                <span className="text-xs text-slate-400">{child.contactCount} contacts</span>
+                <span className="text-xs text-slate-400">{child.contact_count} contacts</span>
               </div>
             </div>
           ))}
@@ -277,11 +277,11 @@ export function FormBuilderAssignAudience({ onBack, onNext }: FormBuilderAssignA
   const totalContacts = selectedGroupIds.size > 0
     ? groups.reduce((sum, g) => {
         if (selectedGroupIds.has(g.id)) {
-          return sum + (g.children?.reduce((s, c) => s + (c.contactCount || 0), 0) || g.contactCount || 0)
+          return sum + (g.children?.reduce((s, c) => s + (c.contact_count || 0), 0) || g.contact_count || 0)
         }
         g.children?.forEach((c) => {
           if (selectedGroupIds.has(c.id)) {
-            sum += c.contactCount || 0
+            sum += c.contact_count || 0
           }
         })
         return sum

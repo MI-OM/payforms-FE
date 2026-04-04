@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { notificationService, type ScheduledNotification as NotificationScheduledNotification, type NotificationHistory as NotificationHistoryItem } from '@/services/notificationService'
 import { auditService } from '@/services/auditService'
 import { reportService } from '@/services/reportService'
+import { toast } from '@/components/ui/use-toast'
 
 export function ScheduledNotifications() {
   const navigate = useNavigate()
@@ -53,7 +54,7 @@ export function ScheduledNotifications() {
       setNewNotification({ subject: '', body: '', scheduledDate: '', scheduledTime: '', recipientType: 'all', groups: [] })
       fetchScheduled()
     } catch (err) {
-      alert('Failed to schedule notification')
+      toast({ title: 'Error', description: 'Failed to schedule notification', variant: 'destructive' })
       console.error(err)
     } finally {
       setIsSending(false)
@@ -66,7 +67,7 @@ export function ScheduledNotifications() {
       await notificationService.cancelScheduledNotification(id)
       setScheduled(scheduled.filter(n => n.id !== id))
     } catch (err) {
-      alert('Failed to cancel notification')
+      toast({ title: 'Error', description: 'Failed to cancel notification', variant: 'destructive' })
       console.error(err)
     }
   }
@@ -340,7 +341,7 @@ export function AuditLogs() {
       a.click()
       window.URL.revokeObjectURL(url)
     } catch (err) {
-      alert('Failed to export logs')
+      toast({ title: 'Error', description: 'Failed to export logs', variant: 'destructive' })
       console.error(err)
     } finally {
       setExporting(false)
@@ -513,7 +514,7 @@ export function ReportsExport() {
       a.click()
       window.URL.revokeObjectURL(url)
     } catch (err) {
-      alert('Failed to export report')
+      toast({ title: 'Error', description: 'Failed to export report', variant: 'destructive' })
       console.error(err)
     } finally {
       setIsExporting(false)

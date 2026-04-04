@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Download, TrendingUp, TrendingDown, DollarSign, Users, FileText, CreditCard, Loader } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { reportService, type ReportSummary, type AnalyticsData } from '@/services/reportService'
+import { toast } from '@/components/ui/use-toast'
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount)
@@ -49,7 +50,7 @@ export function ReportsAnalytics() {
       a.click()
       window.URL.revokeObjectURL(url)
     } catch (err) {
-      alert('Failed to export report')
+      toast({ title: 'Error', description: 'Failed to export report', variant: 'destructive' })
       console.error(err)
     } finally {
       setExporting(false)
