@@ -292,7 +292,8 @@ function IntegrationsSettings() {
 
 function AppearanceSettings() {
   const [loading, setLoading] = useState(true)
-  const [logo, setLogo] = useState<string | null>(null)
+  const [logoUrl, setLogoUrl] = useState<string>('')
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -302,7 +303,8 @@ function AppearanceSettings() {
     try {
       const org = await organizationService.getOrganization()
       if (org.logo_url) {
-        setLogo(org.logo_url)
+        setLogoUrl(org.logo_url)
+        setLogoPreview(org.logo_url)
       }
     } catch (err) {
       console.error('Failed to load organization', err)
@@ -315,12 +317,23 @@ function AppearanceSettings() {
     fetchOrg()
   }, [fetchOrg])
 
+  const handleUrlChange = (url: string) => {
+    setLogoUrl(url)
+    if (url) {
+      setLogoPreview(url)
+    } else {
+      setLogoPreview(null)
+    }
+  }
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
       const reader = new FileReader()
       reader.onloadend = () => {
-        setLogo(reader.result as string)
+        const result = reader.result as string
+        setLogoPreview(result)
+        setLogoUrl(result)
       }
       reader.readAsDataURL(file)
     }
@@ -333,19 +346,22 @@ function AppearanceSettings() {
     if (file && file.type.startsWith('image/')) {
       const reader = new FileReader()
       reader.onloadend = () => {
-        setLogo(reader.result as string)
+        const result = reader.result as string
+        setLogoPreview(result)
+        setLogoUrl(result)
       }
       reader.readAsDataURL(file)
     }
   }
 
   const handleSave = async () => {
-    if (!logo) return
+    if (!logoUrl) return
     setIsSaving(true)
     try {
-      await organizationService.uploadLogo(logo)
+      await organizationService.uploadLogo(logoUrl)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
+      toast({ title: 'Success', description: 'Logo saved successfully' })
     } catch (err) {
       toast({ title: 'Error', description: 'Failed to save logo', variant: 'destructive' })
       console.error(err)
@@ -378,17 +394,17 @@ function AppearanceSettings() {
           onDragLeave={() => setIsDragging(false)}
           onDrop={handleDrop}
         >
-          {logo ? (
+          {logoPreview ? (
             <div className="flex flex-col items-center">
               <div className="w-32 h-32 rounded-xl overflow-hidden bg-gray-50 flex items-center justify-center mb-4">
-                <img src={logo} alt="Logo preview" className="max-w-full max-h-full object-contain" />
+                <img src={logoPreview} alt="Logo preview" className="max-w-full max-h-full object-contain" />
               </div>
               <div className="flex gap-2">
                 <label className="inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium cursor-pointer transition-colors">
                   Change Logo
                   <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
                 </label>
-                <Button variant="ghost" onClick={() => setLogo(null)}>Remove</Button>
+                <Button variant="ghost" onClick={() => { setLogoPreview(null); setLogoUrl('') }}>Remove</Button>
               </div>
             </div>
           ) : (
@@ -417,8 +433,8 @@ function AppearanceSettings() {
         <div className="flex items-center gap-6">
           <div className="p-4 bg-gray-50 rounded-xl">
             <div className="w-16 h-16 bg-blue-600 rounded-lg flex items-center justify-center">
-              {logo ? (
-                <img src={logo} alt="Logo" className="max-w-full max-h-full object-contain" />
+              {logoPreview ? (
+                <img src={logoPreview} alt="Logo" className="max-w-full max-h-full object-contain" />
               ) : (
                 <span className="text-white font-bold text-xl">AL</span>
               )}
@@ -428,8 +444,8 @@ function AppearanceSettings() {
           <div className="p-4 bg-gray-50 rounded-xl">
             <div className="flex items-center gap-2">
               <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                {logo ? (
-                  <img src={logo} alt="Logo" className="max-w-full max-h-full object-contain" />
+                {logoPreview ? (
+                  <img src={logoPreview} alt="Logo" className="max-w-full max-h-full object-contain" />
                 ) : (
                   <span className="text-white font-bold text-sm">AL</span>
                 )}
@@ -441,6 +457,26 @@ function AppearanceSettings() {
         </div>
       </div>
 
+      <div className="bg-white rounded-xl p-6 shadow-sm">
+        <h3 className="font-bold mb-4 text-gray-900">Logo URL</h3>
+        <p className="text-sm text-gray-500 mb-4">
+          Alternatively, enter a URL to your logo image.
+        </p>
+        <div className="flex gap-2">
+          <Input 
+            type="url"
+            placeholder="https://example.com/logo.png"
+            value={logoUrl}
+            onChange={(e) => handleUrlChange(e.target.value)}
+            className="flex-1"
+          />
+          <Button onClick={handleSave} disabled={isSaving || !logoUrl}>
+            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save'}
+          </Button>
+        </div>
+        {saved && <p className="text-green-600 text-sm mt-2">Logo saved!</p>}
+      </div>
+
       <div className="flex justify-end items-center gap-3">
         {saved && (
           <span className="flex items-center gap-1 text-green-600 text-sm">
@@ -448,7 +484,7 @@ function AppearanceSettings() {
             Logo saved
           </span>
         )}
-        <Button onClick={handleSave} disabled={isSaving || !logo}>
+        <Button onClick={handleSave} disabled={isSaving || !logoUrl}>
           {isSaving ? 'Saving...' : 'Save Logo'}
         </Button>
       </div>

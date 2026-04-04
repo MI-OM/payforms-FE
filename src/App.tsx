@@ -144,6 +144,7 @@ function App() {
         {/* Contact Auth Routes */}
         <Route path="/contact/login" element={<ContactLoginPage />} />
         <Route path="/contact/set-password" element={<ContactSetPassword />} />
+        <Route path="/contact-reset" element={<ContactSetPassword />} />
         <Route path="/contact/reset-password" element={<ContactResetPasswordRequest />} />
         <Route path="/contact/reset-password/:token" element={<ContactResetPasswordConfirm />} />
         <Route path="/contact/dashboard" element={<ContactDashboard />} />

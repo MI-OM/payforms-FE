@@ -53,14 +53,16 @@ const createContactApiClient = () => {
       if (token) {
         headers['Authorization'] = `Bearer ${token}`
       }
-      const response = await fetch(`${import.meta.env.VITE_API_URL}${endpoint}`, {
+      const url = `${import.meta.env.VITE_API_URL}${endpoint}`
+      const response = await fetch(url, {
         method: 'POST',
         headers,
         body: JSON.stringify(data),
       })
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.message || `Request failed: ${response.status}`)
+        console.error('API Error:', { endpoint, data, error: errorData })
+        throw new Error(errorData.message || errorData.error || `Request failed: ${response.status}`)
       }
       return response.json()
     },
@@ -87,21 +89,25 @@ const contactApi = createContactApiClient()
 
 export const contactAuthService = {
   login: async (data: ContactLoginRequest): Promise<ContactLoginResponse> => {
-    const response = await contactApi.post<ContactLoginResponse>('/contact-auth/login', data)
+    const loginData = {
+      ...data,
+      organization_domain: window.location.hostname !== 'localhost' ? window.location.hostname : undefined,
+    }
+    const response = await contactApi.post<ContactLoginResponse>('/contact-auth/login', loginData)
     contactAuth.setTokens(response.access_token, response.refresh_token)
     return response
   },
 
   setPassword: async (data: ContactSetPasswordRequest): Promise<{ message: string }> => {
-    return apiClient.post('/contact-auth/set-password', data)
+    return contactApi.post<{ message: string }>('/contact-auth/set-password', data)
   },
 
   requestPasswordReset: async (data: ContactResetRequest): Promise<{ message: string }> => {
-    return apiClient.post('/contact-auth/password-reset/request', data)
+    return contactApi.post<{ message: string }>('/contact-auth/password-reset/request', data)
   },
 
   confirmPasswordReset: async (data: ContactResetConfirmRequest): Promise<{ message: string }> => {
-    return apiClient.post('/contact-auth/password-reset/confirm', data)
+    return contactApi.post<{ message: string }>('/contact-auth/password-reset/confirm', data)
   },
 
   logout: async (): Promise<void> => {

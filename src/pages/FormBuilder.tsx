@@ -53,7 +53,7 @@ export function FormBuilder() {
   }
 
   return (
-    <div className="min-h-screen bg-surface ml-64 p-8">
+    <div className="bg-surface p-8">
       <div className="max-w-3xl mx-auto">
         <div className="flex items-center gap-4 mb-8">
           <Link to="/forms" className="p-2 hover:bg-surface-container-low rounded-lg">
@@ -204,7 +204,7 @@ export function FormBuilderRefinedFlow() {
 export function FormBuilderPublishStep() {
   const navigate = useNavigate()
   return (
-    <div className="min-h-screen bg-surface ml-64 flex items-center justify-center p-8">
+    <div className="bg-surface flex items-center justify-center p-8">
       <div className="max-w-lg w-full">
         <div className="bg-surface-container-lowest rounded-xl p-8 text-center">
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -231,7 +231,7 @@ interface FormBuilderAssignAudienceProps {
 
 export function FormBuilderAssignAudience({ onBack, onNext }: FormBuilderAssignAudienceProps = {}) {
   return (
-    <div className="min-h-screen bg-surface ml-64 flex items-center justify-center p-8">
+    <div className="bg-surface flex items-center justify-center p-8">
       <div className="max-w-lg w-full">
         <div className="bg-surface-container-lowest rounded-xl p-8 text-center">
           <h1 className="text-2xl font-extrabold tracking-tight mb-3">Assign Audience</h1>

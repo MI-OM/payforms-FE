@@ -121,11 +121,19 @@ export function GroupEditorView() {
   }, [id])
 
   const handleSave = async () => {
-    if (!id) return
+    if (!form.name.trim()) {
+      toast({ title: 'Error', description: 'Group name is required', variant: 'destructive' })
+      return
+    }
     setSaving(true)
     try {
-      await groupService.updateGroup(id, form)
+      if (id) {
+        await groupService.updateGroup(id, form)
+      } else {
+        await groupService.createGroup(form)
+      }
       navigate('/groups')
+      toast({ title: 'Success', description: `Group ${id ? 'updated' : 'created'} successfully` })
     } catch (err) {
       toast({ title: 'Error', description: 'Failed to save group', variant: 'destructive' })
       console.error(err)

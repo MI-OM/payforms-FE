@@ -112,14 +112,16 @@ export function ImportContactsPage() {
     try {
       const result = await contactService.importContactsCSV(csvData)
       setImportId(result.import_id)
-      setCurrentStep('review')
       
       const validation = await contactService.validateImport(parsedRows)
       setValidationResult(validation)
+      
+      setCurrentStep('review')
     } catch (err) {
+      console.error('Import validation error:', err)
       toast({
         title: 'Error',
-        description: 'Failed to validate import. Please try again.',
+        description: 'Failed to validate import. Please check your CSV format and try again.',
         variant: 'destructive',
       })
     } finally {

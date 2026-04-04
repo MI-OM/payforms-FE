@@ -319,9 +319,16 @@ export function EditContactView() {
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
     first_name: '',
+    middle_name: '',
     last_name: '',
     email: '',
     phone: '',
+    gender: '',
+    student_id: '',
+    external_id: '',
+    guardian_name: '',
+    guardian_email: '',
+    guardian_phone: '',
     is_active: true,
   })
 
@@ -331,10 +338,17 @@ export function EditContactView() {
     try {
       const contact = await contactService.getContact(id)
       setForm({
-        first_name: contact.first_name,
-        last_name: contact.last_name,
+        first_name: contact.first_name || '',
+        middle_name: contact.middle_name || '',
+        last_name: contact.last_name || '',
         email: contact.email,
         phone: contact.phone || '',
+        gender: contact.gender || '',
+        student_id: contact.student_id || '',
+        external_id: contact.external_id || '',
+        guardian_name: contact.guardian_name || '',
+        guardian_email: contact.guardian_email || '',
+        guardian_phone: contact.guardian_phone || '',
         is_active: contact.is_active,
       })
     } catch (err) {
@@ -352,15 +366,19 @@ export function EditContactView() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!id) return
+    if (!form.email || !form.first_name || !form.last_name) {
+      toast({ title: 'Error', description: 'Email, first name, and last name are required', variant: 'destructive' })
+      return
+    }
     setSaving(true)
     try {
       await contactService.updateContact(id, {
-        first_name: form.first_name,
-        last_name: form.last_name,
+        name: `${form.first_name} ${form.last_name}`.trim(),
         email: form.email,
         phone: form.phone || undefined,
         is_active: form.is_active,
       })
+      toast({ title: 'Success', description: 'Contact updated successfully' })
       navigate(`/contacts/${id}`)
     } catch (err) {
       toast({ title: 'Error', description: 'Failed to update contact', variant: 'destructive' })
@@ -380,14 +398,14 @@ export function EditContactView() {
 
   return (
     <div className="min-h-screen bg-surface ml-64 p-8">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-3xl mx-auto">
         <div className="bg-surface-container-lowest rounded-xl p-8">
           <h1 className="text-2xl font-extrabold tracking-tight mb-6">Edit Contact</h1>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <label className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">First Name</label>
+                <label className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">First Name *</label>
                 <Input 
                   value={form.first_name} 
                   onChange={(e) => setForm({ ...form, first_name: e.target.value })}
@@ -395,7 +413,14 @@ export function EditContactView() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Last Name</label>
+                <label className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Middle Name</label>
+                <Input 
+                  value={form.middle_name} 
+                  onChange={(e) => setForm({ ...form, middle_name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Last Name *</label>
                 <Input 
                   value={form.last_name} 
                   onChange={(e) => setForm({ ...form, last_name: e.target.value })}
@@ -404,23 +429,97 @@ export function EditContactView() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Email</label>
-              <Input 
-                type="email" 
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                required 
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Email *</label>
+                <Input 
+                  type="email" 
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  required 
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Phone</label>
+                <Input 
+                  type="tel" 
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Phone</label>
-              <Input 
-                type="tel" 
-                value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Student ID</label>
+                <Input 
+                  value={form.student_id}
+                  onChange={(e) => setForm({ ...form, student_id: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">External ID</label>
+                <Input 
+                  value={form.external_id}
+                  onChange={(e) => setForm({ ...form, external_id: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Gender</label>
+                <select
+                  className="w-full px-4 py-3 bg-surface-container-low border border-outline-variant rounded-lg"
+                  value={form.gender}
+                  onChange={(e) => setForm({ ...form, gender: e.target.value })}
+                >
+                  <option value="">Select...</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Status</label>
+                <select
+                  className="w-full px-4 py-3 bg-surface-container-low border border-outline-variant rounded-lg"
+                  value={form.is_active ? 'active' : 'inactive'}
+                  onChange={(e) => setForm({ ...form, is_active: e.target.value === 'active' })}
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="border-t border-outline-variant/10 pt-6">
+              <h3 className="text-sm font-bold text-on-surface-variant mb-4">Guardian Information</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Guardian Name</label>
+                  <Input 
+                    value={form.guardian_name}
+                    onChange={(e) => setForm({ ...form, guardian_name: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Guardian Phone</label>
+                  <Input 
+                    type="tel"
+                    value={form.guardian_phone}
+                    onChange={(e) => setForm({ ...form, guardian_phone: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="mt-4">
+                <label className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Guardian Email</label>
+                <Input 
+                  type="email"
+                  value={form.guardian_email}
+                  onChange={(e) => setForm({ ...form, guardian_email: e.target.value })}
+                />
+              </div>
             </div>
 
             <div className="flex gap-3 pt-4">

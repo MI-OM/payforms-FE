@@ -1,5 +1,4 @@
 import { apiClient } from '@/lib/apiClient'
-import { contactAuth } from '@/lib/contactAuth'
 
 export interface FormField {
   id: string
@@ -162,37 +161,10 @@ export interface FormSubmissionResult {
 const createPublicApiClient = () => {
   return {
     get: async <T>(endpoint: string): Promise<T> => {
-      const token = contactAuth.getAccessToken()
-      const headers: Record<string, string> = {}
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`
-      }
-      const response = await fetch(`${import.meta.env.VITE_API_URL}${endpoint}`, {
-        method: 'GET',
-        headers,
-      })
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.message || `Request failed: ${response.status}`)
-      }
-      return response.json()
+      return apiClient.get<T>(endpoint)
     },
     post: async <T>(endpoint: string, data: unknown): Promise<T> => {
-      const token = contactAuth.getAccessToken()
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`
-      }
-      const response = await fetch(`${import.meta.env.VITE_API_URL}${endpoint}`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(data),
-      })
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.message || `Request failed: ${response.status}`)
-      }
-      return response.json()
+      return apiClient.post<T>(endpoint, data)
     },
   }
 }
