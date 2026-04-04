@@ -39,7 +39,7 @@ export function DashboardLayout() {
         />
 
         {/* Page Content */}
-        <section className="flex-1 px-4 lg:px-8 py-8">
+        <section className="flex-1">
           <Outlet />
         </section>
       </main>

@@ -3,6 +3,10 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { publicFormService, type PublicForm, type FormSubmissionData } from '@/services/formService'
+import { paymentService, type Transaction } from '@/services/paymentService'
+import { contactService } from '@/services/contactService'
+import { organizationService } from '@/services/organizationService'
+import { reportService } from '@/services/reportService'
 import { Loader2 } from 'lucide-react'
 
 function MaterialIcon({ name, className = '', filled = false }: { name: string; className?: string; filled?: boolean }) {
@@ -853,25 +857,73 @@ export function PaymentFailureState() {
 }
 
 export function OfficialPaymentReceipt() {
-  const { state } = window.history.state as { state?: { formData?: { name?: string; email?: string }; amount?: number; organization?: string; studentRef?: string } } || {}
-  const { id } = useParams()
-  
-  const formData = state?.formData || { name: 'Alexander Sterling', email: 'a.sterling@ledger.edu' }
-  const amount = state?.amount || 1300
-  const studentRef = state?.studentRef || 'AL-9932-88'
-  const organization = state?.organization || 'Saint Jude Academy'
-  const reference = id || `PAY-${Math.random().toString(36).substring(2, 10).toUpperCase()}`
-  const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  const navigate = useNavigate()
+  const { id } = useParams<{ id: string }>()
+  const [loading, setLoading] = useState(true)
+  const [transaction, setTransaction] = useState<Transaction | null>(null)
+  const [contact, setContact] = useState<{ first_name?: string; last_name?: string; email: string; student_id?: string } | null>(null)
+  const [organization, setOrganization] = useState<{ name: string } | null>(null)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!id) {
+        setLoading(false)
+        return
+      }
+      try {
+        const [txnData, orgData] = await Promise.all([
+          paymentService.getTransaction(id).catch(() => null),
+          organizationService.getOrganization().catch(() => null)
+        ])
+        setTransaction(txnData)
+        setOrganization(orgData)
+        
+        if (txnData?.contact_id) {
+          try {
+            const contactData = await contactService.getContact(txnData.contact_id)
+            setContact(contactData)
+          } catch {
+            setContact(null)
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load receipt data:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [id])
+
+  const contactName = contact 
+    ? `${contact.first_name || ''} ${contact.last_name || ''}`.trim() || 'Customer'
+    : 'Customer'
+  const contactEmail = contact?.email || ''
+  const studentRef = contact?.student_id || id?.slice(0, 12).toUpperCase() || ''
+  const organizationName = organization?.name || 'Payforms'
+  const reference = transaction?.reference || id || ''
+  const amount = transaction?.amount || 0
+  const date = transaction?.created_at 
+    ? new Date(transaction.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 
   const handlePrint = () => window.print()
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#f7f9fb] flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[#006398]" />
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-[#f7f9fb] text-[#191c1e] font-['Inter'] selection:bg-[#188ace] selection:text-white">
       <header className="bg-[#f7f9fb] docked full-width top-0 sticky z-50 no-print">
         <div className="flex justify-between items-center w-full px-8 py-4 max-w-5xl mx-auto">
-          <div className="font-['Manrope'] tracking-tight">
+          <button onClick={() => navigate(-1)} className="font-['Manrope'] tracking-tight hover:opacity-70 transition-opacity">
             <span className="text-xl font-bold tracking-tighter text-[#191c1e]">Payforms</span>
-          </div>
+          </button>
           <div className="flex items-center gap-6">
             <button
               onClick={handlePrint}
@@ -906,7 +958,7 @@ export function OfficialPaymentReceipt() {
                 </svg>
               </div>
               <div>
-                <h1 className="font-['Manrope'] font-extrabold text-2xl tracking-tighter text-[#191c1e]">{organization}</h1>
+                <h1 className="font-['Manrope'] font-extrabold text-2xl tracking-tighter text-[#191c1e]">{organizationName}</h1>
                 <p className="text-xs font-['Inter'] uppercase tracking-widest text-[#45464d]">Academic Institution</p>
               </div>
             </div>
@@ -926,9 +978,9 @@ export function OfficialPaymentReceipt() {
               <div>
                 <h3 className="text-[10px] font-['Inter'] uppercase tracking-widest text-[#45464d] mb-3 border-b border-[#c6c6cd]/15 pb-1">Bill To</h3>
                 <div className="space-y-1">
-                  <p className="font-['Manrope'] font-bold text-lg text-[#191c1e]">{formData.name}</p>
-                  <p className="text-sm font-['Inter'] text-[#45464d]">ID: <span className="text-[#191c1e] font-mono">{studentRef}</span></p>
-                  <p className="text-sm font-['Inter'] text-[#45464d]">{formData.email}</p>
+                  <p className="font-['Manrope'] font-bold text-lg text-[#191c1e]">{contactName}</p>
+                  {studentRef && <p className="text-sm font-['Inter'] text-[#45464d]">ID: <span className="text-[#191c1e] font-mono">{studentRef}</span></p>}
+                  {contactEmail && <p className="text-sm font-['Inter'] text-[#45464d]">{contactEmail}</p>}
                 </div>
               </div>
             </div>
@@ -985,11 +1037,11 @@ export function OfficialPaymentReceipt() {
             <div className="w-full max-w-xs space-y-4">
               <div className="flex justify-between items-center px-6">
                 <span className="text-sm font-['Inter'] text-[#45464d]">Subtotal</span>
-                <span className="text-sm font-['Manrope'] font-bold text-[#191c1e]">$1,295.00</span>
+                <span className="text-sm font-['Manrope'] font-bold text-[#191c1e]">${amount.toFixed(2)}</span>
               </div>
               <div className="flex justify-between items-center px-6 py-4 bg-[#000] rounded-lg text-white">
                 <span className="font-['Inter'] uppercase tracking-widest text-xs opacity-80">Total Amount</span>
-                <span className="font-['Manrope'] font-black text-2xl">${amount.toLocaleString()}.00</span>
+                <span className="font-['Manrope'] font-black text-2xl">${amount.toLocaleString()}</span>
               </div>
               <div className="px-6 text-right">
                 <p className="text-[10px] font-['Inter'] text-[#45464d] italic">Paid in full via Paystack Secure Gate</p>
@@ -1042,6 +1094,60 @@ export function OfficialPaymentReceipt() {
 }
 
 export function PaymentReminderEmailTemplate() {
+  const { id } = useParams<{ id?: string }>()
+  const [loading, setLoading] = useState(true)
+  const [contact, setContact] = useState<{ first_name?: string; last_name?: string; email: string } | null>(null)
+  const [organization, setOrganization] = useState<{ name: string } | null>(null)
+  const [pendingAmount, setPendingAmount] = useState(0)
+  const [dueDate, setDueDate] = useState('')
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [orgData] = await Promise.all([
+          organizationService.getOrganization().catch(() => null)
+        ])
+        setOrganization(orgData)
+        
+        if (id) {
+          try {
+            const contactData = await contactService.getContact(id)
+            setContact(contactData)
+          } catch {
+            setContact(null)
+          }
+        }
+        
+        const summary = await reportService.getSummary().catch(() => null)
+        if (summary?.pending_payments) {
+          setPendingAmount(summary.pending_payments)
+        }
+        
+        const futureDate = new Date()
+        futureDate.setDate(futureDate.getDate() + 30)
+        setDueDate(futureDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }))
+      } catch (err) {
+        console.error('Failed to load reminder data:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [id])
+
+  const contactName = contact
+    ? `${contact.first_name || ''} ${contact.last_name || ''}`.trim() || 'Student'
+    : 'Student'
+  const organizationName = organization?.name || 'Payforms'
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#f7f9fb] flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[#006398]" />
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-[#f7f9fb] p-8">
       <div className="max-w-2xl mx-auto">
@@ -1050,15 +1156,21 @@ export function PaymentReminderEmailTemplate() {
             <h1 className="text-white text-2xl font-bold font-['Manrope']">Payment Reminder</h1>
           </div>
           <div className="p-8">
-            <p className="mb-4 font-['Inter']">Dear Student,</p>
+            <p className="mb-4 font-['Inter']">Dear {contactName},</p>
             <p className="mb-4 font-['Inter']">
-              This is a friendly reminder that your payment of <strong>$12,500.00</strong> for Tuition Fee - Fall 2024 is due on January 31, 2024.
+              This is a friendly reminder that your outstanding balance of <strong>${pendingAmount.toLocaleString()}</strong> for {organizationName} is due soon.
             </p>
             <div className="bg-[#f2f4f6] rounded-lg p-4 mb-6">
-              <p className="text-sm text-[#45464d] font-['Inter']">Amount Due</p>
-              <p className="text-2xl font-bold font-['Manrope'] text-[#191c1e]">$12,500.00</p>
+              <p className="text-sm text-[#45464d] font-['Inter']">Outstanding Balance</p>
+              <p className="text-2xl font-bold font-['Manrope'] text-[#191c1e]">${pendingAmount.toLocaleString()}</p>
             </div>
-            <Button className="w-full font-['Manrope']">Pay Now</Button>
+            <div className="bg-[#f2f4f6] rounded-lg p-4 mb-6">
+              <p className="text-sm text-[#45464d] font-['Inter']">Payment Deadline</p>
+              <p className="text-lg font-bold font-['Manrope'] text-[#191c1e]">{dueDate}</p>
+            </div>
+            <Button className="w-full font-['Manrope']" onClick={() => window.open('/', '_blank')}>
+              Pay Now
+            </Button>
           </div>
         </div>
       </div>

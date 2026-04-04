@@ -14,9 +14,9 @@ interface SidebarProps {
 
 const navItems = [
   { label: "Dashboard", path: "/dashboard", iconKey: "dashboard" },
-  { label: "Transactions", path: "/transactions", iconKey: "payments" },
-  { label: "Payforms", path: "/forms", iconKey: "receipt_long" },
-  { label: "Customers", path: "/contacts", iconKey: "group" },
+  { label: "Forms", path: "/forms", iconKey: "receipt_long" },
+  { label: "Payments", path: "/payments", iconKey: "payments" },
+  { label: "Contacts", path: "/contacts", iconKey: "group" },
   { label: "Settings", path: "/settings", iconKey: "settings", adminOnly: true },
 ]
 
@@ -135,7 +135,7 @@ export function Sidebar({
             onClick={onCloseMobileMenu}
             className="w-full bg-black text-white py-2.5 rounded-lg text-sm font-bold mb-4 hover:opacity-90 transition-all flex items-center justify-center"
           >
-            Create Payform
+            Create Form
           </Link>
           <Link
             to="/support"

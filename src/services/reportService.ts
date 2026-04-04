@@ -8,6 +8,8 @@ export interface ReportSummary {
   total_contacts: number
   pending_payments: number
   failed_payments: number
+  today_revenue?: number
+  today_transactions?: number
 }
 
 export interface AnalyticsData {

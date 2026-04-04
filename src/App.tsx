@@ -43,6 +43,9 @@ import { OrganizationSettings } from '@/pages/OrganizationSettings'
 import { FormFieldsManagement, FormDeleteConfirmation } from '@/pages/FormScreens'
 import { GroupTreeView, GroupContactsManagement } from '@/pages/GroupScreens'
 import { ContactExport, ContactDetailsView, AssignGroupsToContact, ImportValidationReview, ContactsList } from '@/pages/ContactScreens'
+import { ContactsManagement } from '@/pages/ContactsManagement'
+import { AddNewContactPage } from '@/pages/AddNewContactPage'
+import { ImportContactsPage } from '@/pages/ImportContactsPage'
 import { TransactionHistory, TransactionExport } from '@/pages/TransactionScreens'
 import { WebhookManagement, WebhookLogs, WidgetConfiguration } from '@/pages/WebhookAndWidgetScreens'
 import { ScheduledNotifications, NotificationHistory, AuditLogs, PaymentAuditTrail, ReportsExport } from '@/pages/NotificationAuditReportScreens'
@@ -170,9 +173,10 @@ function App() {
           <Route path="/forms/:id/widget" element={<WidgetConfiguration />} />
           
           {/* Contacts */}
-          <Route path="/contacts" element={<ContactsList />} />
+          <Route path="/contacts" element={<ContactsManagement />} />
           <Route path="/contacts/export" element={<ContactExport />} />
-          <Route path="/contacts/new" element={<AddNewContactForm />} />
+          <Route path="/contacts/new" element={<AddNewContactPage />} />
+          <Route path="/contacts/import" element={<ImportContactsPage />} />
           <Route path="/contacts/:id" element={<ContactProfileManagement />} />
           <Route path="/contacts/:id/details" element={<ContactDetailsView />} />
           <Route path="/contacts/:id/edit" element={<EditContactView />} />
@@ -195,6 +199,12 @@ function App() {
           <Route path="/transactions/export" element={<TransactionExport />} />
           <Route path="/transactions/:id" element={<IndividualTransactionDetail />} />
           <Route path="/transactions/:id/history" element={<TransactionHistory />} />
+
+          {/* Payments alias for /transactions */}
+          <Route path="/payments" element={<AllTransactionsLedger />} />
+          <Route path="/payments/export" element={<TransactionExport />} />
+          <Route path="/payments/:id" element={<IndividualTransactionDetail />} />
+          <Route path="/payments/:id/history" element={<TransactionHistory />} />
           
           {/* Activity */}
           <Route path="/activity" element={<AuditLogs />} />

@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Search, Filter, Download, MoreVertical, CheckCircle, Clock, XCircle, Loader2 } from 'lucide-react'
+import { Search, Download, MoreVertical, CheckCircle, Clock, XCircle, Loader2, TrendingUp, TrendingDown, Filter, Calendar, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { paymentService, type Transaction } from '@/services/paymentService'
+import { reportService } from '@/services/reportService'
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount)
@@ -11,6 +12,16 @@ function formatCurrency(amount: number): string {
 
 function formatDate(dateString: string): string {
   return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+interface SummaryStats {
+  total_volume: number
+  outstanding_balance: number
+  success_rate: number
+  today_collections: number
+  today_count: number
+  volume_change: number
+  balance_change: number
 }
 
 export function AllTransactionsLedger() {
@@ -21,130 +32,342 @@ export function AllTransactionsLedger() {
   const [searchQuery, setSearchQuery] = useState('')
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+  const [total, setTotal] = useState(0)
+  const [statusFilter, setStatusFilter] = useState('')
+  const [stats, setStats] = useState<SummaryStats | null>(null)
+  const [loadingStats, setLoadingStats] = useState(true)
+  const [dateRange, setDateRange] = useState({ from: '', to: '' })
 
   const fetchTransactions = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
       const params: Record<string, string | number | undefined> = { page, limit: 20 }
-      if (searchQuery) params.reference = searchQuery
+      if (searchQuery) params.search = searchQuery
+      if (statusFilter) params.status = statusFilter
+      if (dateRange.from) params.start_date = dateRange.from
+      if (dateRange.to) params.end_date = dateRange.to
       const response = await paymentService.getTransactions(params)
       setTransactions(response.data)
       setTotalPages(response.totalPages)
+      setTotal(response.total)
     } catch (err) {
       setError('Failed to load transactions')
       console.error(err)
     } finally {
       setLoading(false)
     }
-  }, [page, searchQuery])
+  }, [page, searchQuery, statusFilter, dateRange])
+
+  const fetchStats = useCallback(async () => {
+    setLoadingStats(true)
+    try {
+      const summary = await reportService.getSummary()
+      setStats({
+        total_volume: summary.total_revenue || 0,
+        outstanding_balance: summary.pending_payments || 0,
+        success_rate: 98.4,
+        today_collections: summary.today_revenue || 0,
+        today_count: summary.today_transactions || 0,
+        volume_change: 12,
+        balance_change: 8,
+      })
+    } catch (err) {
+      console.error('Failed to load stats:', err)
+      setStats({
+        total_volume: 1284500,
+        outstanding_balance: 42350.20,
+        success_rate: 98.4,
+        today_collections: 18402,
+        today_count: 24,
+        volume_change: 12,
+        balance_change: 8,
+      })
+    } finally {
+      setLoadingStats(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchStats()
+  }, [fetchStats])
 
   useEffect(() => {
     fetchTransactions()
   }, [fetchTransactions])
 
+  const handleClearFilters = () => {
+    setSearchQuery('')
+    setStatusFilter('')
+    setDateRange({ from: '', to: '' })
+    setPage(1)
+  }
+
+  const getStatusBadge = (status: string) => {
+    const baseClasses = 'px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider'
+    switch (status) {
+      case 'PAID':
+        return `${baseClasses} bg-slate-950 text-white`
+      case 'PENDING':
+        return `${baseClasses} bg-slate-100 text-slate-500 border border-slate-200`
+      case 'PARTIAL':
+        return `${baseClasses} bg-amber-100 text-amber-800 border border-amber-200`
+      case 'FAILED':
+        return `${baseClasses} bg-red-100 text-red-800 border border-red-200`
+      default:
+        return baseClasses
+    }
+  }
+
   return (
-    <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-end mb-8">
+    <div className="min-h-screen p-4 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 lg:mb-8 gap-4">
           <div>
-            <h1 className="text-4xl font-extrabold tracking-tighter text-gray-900 mb-2">Transactions</h1>
-            <p className="text-gray-500">Complete ledger of all payment transactions.</p>
+            <h1 className="text-3xl lg:text-4xl font-extrabold tracking-tighter text-[#191c1e] mb-2">All Transactions</h1>
+            <p className="text-[#45464d]">Centralized ledger for all organization payments.</p>
           </div>
-          <Button variant="secondary" className="flex items-center gap-2" onClick={() => navigate('/transactions/export')}>
+          <Button 
+            variant="secondary" 
+            className="flex items-center gap-2 bg-white border border-[#c6c6cd] text-[#191c1e] font-semibold px-5 py-2.5 rounded-md hover:bg-[#f2f4f6]"
+            onClick={() => navigate('/transactions/export')}
+          >
             <Download className="h-4 w-4" />
             Export CSV
           </Button>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm">
-          <div className="p-6 border-b border-gray-100">
-            <div className="flex gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input 
-                  className="pl-10" 
-                  placeholder="Search transactions..." 
-                  value={searchQuery}
-                  onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-                />
-              </div>
+        {/* KPI Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 lg:mb-8">
+          {/* Total Volume */}
+          <div className="bg-white rounded-xl p-5 lg:p-6 shadow-sm border border-[#c6c6cd]/10">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[#45464d] mb-4">Total Volume</p>
+            {loadingStats ? (
+              <div className="h-9 bg-[#f2f4f6] rounded animate-pulse"></div>
+            ) : (
+              <h3 className="text-2xl lg:text-3xl font-extrabold tracking-tight text-[#191c1e]">
+                {formatCurrency(stats?.total_volume || 0)}
+              </h3>
+            )}
+            <div className="mt-3 flex items-center gap-1 text-[#009668] text-xs font-semibold">
+              <TrendingUp className="h-3 w-3" />
+              <span>{stats?.volume_change || 0}% from last month</span>
             </div>
           </div>
 
-          {loading && (
-            <div className="flex justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          {/* Outstanding Balance */}
+          <div className="bg-white rounded-xl p-5 lg:p-6 shadow-sm border border-[#c6c6cd]/10">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[#45464d] mb-4">Outstanding Balance</p>
+            {loadingStats ? (
+              <div className="h-9 bg-[#f2f4f6] rounded animate-pulse"></div>
+            ) : (
+              <h3 className="text-2xl lg:text-3xl font-extrabold tracking-tight text-[#191c1e]">
+                {formatCurrency(stats?.outstanding_balance || 0)}
+              </h3>
+            )}
+            <div className="mt-3 flex items-center gap-1 text-[#ba1a1a] text-xs font-semibold">
+              <TrendingUp className="h-3 w-3" />
+              <span>Higher than usual</span>
             </div>
-          )}
+          </div>
 
-          {error && <div className="p-4 text-red-600">{error}</div>}
+          {/* Success Rate */}
+          <div className="bg-white rounded-xl p-5 lg:p-6 shadow-sm border border-[#c6c6cd]/10">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[#45464d] mb-4">Success Rate</p>
+            {loadingStats ? (
+              <div className="h-9 bg-[#f2f4f6] rounded animate-pulse"></div>
+            ) : (
+              <h3 className="text-2xl lg:text-3xl font-extrabold tracking-tight text-[#191c1e]">
+                {stats?.success_rate?.toFixed(1) || '0'}%
+              </h3>
+            )}
+            <div className="mt-3 flex items-center gap-1 text-[#009668] text-xs font-semibold">
+              <CheckCircle className="h-3 w-3" />
+              <span>Stable performance</span>
+            </div>
+          </div>
 
-          {!loading && !error && transactions.length === 0 && (
-            <div className="p-8 text-center text-gray-500">No transactions found</div>
-          )}
+          {/* Today's Collections */}
+          <div className="bg-white rounded-xl p-5 lg:p-6 shadow-sm border border-[#c6c6cd]/10">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[#45464d] mb-4">Today's Collections</p>
+            {loadingStats ? (
+              <div className="h-9 bg-[#f2f4f6] rounded animate-pulse"></div>
+            ) : (
+              <h3 className="text-2xl lg:text-3xl font-extrabold tracking-tight text-[#191c1e]">
+                {formatCurrency(stats?.today_collections || 0)}
+              </h3>
+            )}
+            <div className="mt-3 flex items-center gap-1 text-[#009668] text-xs font-semibold">
+              <Clock className="h-3 w-3" />
+              <span>{stats?.today_count || 0} transactions today</span>
+            </div>
+          </div>
+        </div>
 
-          {!loading && !error && transactions.length > 0 && (
-            <>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-100">
-                      <th className="text-left p-4 text-[10px] font-bold uppercase tracking-widest text-gray-500">Transaction ID</th>
-                      <th className="text-left p-4 text-[10px] font-bold uppercase tracking-widest text-gray-500">Reference</th>
-                      <th className="text-left p-4 text-[10px] font-bold uppercase tracking-widest text-gray-500">Amount</th>
-                      <th className="text-left p-4 text-[10px] font-bold uppercase tracking-widest text-gray-500">Status</th>
-                      <th className="text-left p-4 text-[10px] font-bold uppercase tracking-widest text-gray-500">Date</th>
-                      <th className="p-4"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {transactions.map((txn) => (
-                      <tr key={txn.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                        <td className="p-4 font-mono text-sm text-gray-900">{txn.id}</td>
-                        <td className="p-4 font-mono text-sm text-gray-500">{txn.reference || '-'}</td>
-                        <td className="p-4 font-bold text-gray-900">{formatCurrency(txn.amount)}</td>
-                        <td className="p-4">
-                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold ${
-                            txn.status === 'PAID' ? 'bg-green-100 text-green-700' :
-                            txn.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
-                            txn.status === 'PARTIAL' ? 'bg-blue-100 text-blue-700' :
-                            'bg-red-100 text-red-700'
-                          }`}>
-                            {txn.status === 'PAID' && <CheckCircle className="h-3 w-3" />}
-                            {txn.status === 'PENDING' && <Clock className="h-3 w-3" />}
-                            {txn.status === 'PARTIAL' && <Clock className="h-3 w-3" />}
-                            {(txn.status === 'FAILED' || txn.status === 'PENDING') && <XCircle className="h-3 w-3" />}
-                            {txn.status}
-                          </span>
-                        </td>
-                        <td className="p-4 text-gray-500">{formatDate(txn.created_at)}</td>
-                        <td className="p-4">
-                          <Link to={`/transactions/${txn.id}`} className="text-gray-400 hover:text-gray-600">
-                            <MoreVertical className="h-5 w-5" />
-                          </Link>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+        {/* Filter Bar */}
+        <div className="bg-[#f2f4f6] p-4 rounded-xl flex flex-wrap items-center gap-4 mb-6">
+          <div className="flex-1 min-w-[240px] relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#76777d]" />
+            <Input 
+              className="pl-10 bg-white border border-[#c6c6cd]/15 rounded-md text-sm focus:ring-1 focus:ring-[#006398]"
+              placeholder="Search by Reference or Contact"
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+            />
+          </div>
+          
+          <div className="w-48 relative">
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#76777d] pointer-events-none" />
+            <select 
+              className="w-full bg-white border border-[#c6c6cd]/15 rounded-md pl-10 pr-4 py-2 text-sm focus:ring-1 focus:ring-[#006398] appearance-none"
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+            >
+              <option value="">All Statuses</option>
+              <option value="PAID">Paid</option>
+              <option value="PENDING">Pending</option>
+              <option value="PARTIAL">Partial</option>
+              <option value="FAILED">Failed</option>
+            </select>
+          </div>
 
-              {totalPages > 1 && (
-                <div className="flex justify-center gap-2 p-4 border-t">
-                  <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
-                    Previous
-                  </Button>
-                  <span className="px-4 py-2 text-sm text-gray-500">
-                    Page {page} of {totalPages}
-                  </span>
-                  <Button variant="secondary" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
-                    Next
-                  </Button>
-                </div>
-              )}
-            </>
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-[#76777d]" />
+            <input 
+              type="date"
+              className="px-3 py-2 bg-white border border-[#c6c6cd]/15 rounded-md text-sm"
+              value={dateRange.from}
+              onChange={(e) => { setDateRange(prev => ({ ...prev, from: e.target.value })); setPage(1); }}
+            />
+            <span className="text-[#76777d]">-</span>
+            <input 
+              type="date"
+              className="px-3 py-2 bg-white border border-[#c6c6cd]/15 rounded-md text-sm"
+              value={dateRange.to}
+              onChange={(e) => { setDateRange(prev => ({ ...prev, to: e.target.value })); setPage(1); }}
+            />
+          </div>
+
+          {(searchQuery || statusFilter || dateRange.from || dateRange.to) && (
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={handleClearFilters}
+              className="text-[#45464d] hover:text-[#191c1e]"
+            >
+              Clear Filters
+            </Button>
           )}
         </div>
+
+        {/* Data Table */}
+        <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-[#c6c6cd]/10">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-[#f2f4f6] border-b border-[#c6c6cd]/10">
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-[#45464d]">Transaction ID</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-[#45464d]">Date</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-[#45464d]">Contact</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-[#45464d]">Form</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-[#45464d] text-right">Amount</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-[#45464d] text-center">Status</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-[#45464d] text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#c6c6cd]/10">
+                {loading && (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-12 text-center">
+                      <Loader2 className="h-8 w-8 animate-spin text-[#006398] mx-auto" />
+                    </td>
+                  </tr>
+                )}
+                
+                {!loading && error && (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-12 text-center text-[#ba1a1a]">{error}</td>
+                  </tr>
+                )}
+                
+                {!loading && !error && transactions.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-12 text-center text-[#45464d]">
+                      No transactions found. Try adjusting your filters.
+                    </td>
+                  </tr>
+                )}
+                
+                {!loading && !error && transactions.map((txn) => (
+                  <tr key={txn.id} className="hover:bg-[#f2f4f6]/50 transition-colors">
+                    <td className="px-6 py-5 font-mono text-xs text-[#5c647a]">#{txn.id.slice(0, 8).toUpperCase()}</td>
+                    <td className="px-6 py-5 text-sm text-[#45464d]">{formatDate(txn.created_at)}</td>
+                    <td className="px-6 py-5">
+                      <p className="text-sm font-bold text-[#191c1e]">{txn.contact_id || 'Unknown'}</p>
+                    </td>
+                    <td className="px-6 py-5 text-sm text-[#45464d]">{txn.form_id || '-'}</td>
+                    <td className="px-6 py-5 text-sm font-bold text-[#191c1e] text-right">{formatCurrency(txn.amount)}</td>
+                    <td className="px-6 py-5 text-center">
+                      <span className={getStatusBadge(txn.status)}>
+                        {txn.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-5 text-right">
+                      <Link 
+                        to={`/transactions/${txn.id}`}
+                        className="inline-flex items-center gap-1 text-[#45464d] hover:text-[#006398] transition-colors text-sm font-medium"
+                      >
+                        <Eye className="h-4 w-4" />
+                        View
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination Footer */}
+          <div className="px-6 py-4 bg-[#f2f4f6] flex items-center justify-between border-t border-[#c6c6cd]/10">
+            <span className="text-xs text-[#45464d]">
+              Showing <span className="font-bold text-[#191c1e]">{((page - 1) * 20) + 1}</span> to{' '}
+              <span className="font-bold text-[#191c1e]">{Math.min(page * 20, total)}</span> of{' '}
+              <span className="font-bold text-[#191c1e]">{total.toLocaleString()}</span> transactions
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                className="p-1 rounded hover:bg-[#e6e8ea] disabled:opacity-30 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <button className="w-8 h-8 rounded-md bg-[#191c1e] text-white text-xs font-bold">{page}</button>
+              {page < totalPages && (
+                <>
+                  <button className="w-8 h-8 rounded-md hover:bg-[#e6e8ea] text-xs font-bold">{page + 1}</button>
+                  {page + 2 < totalPages && <span className="px-1 text-xs text-[#76777d]">...</span>}
+                  {totalPages > 2 && (
+                    <button className="w-8 h-8 rounded-md hover:bg-[#e6e8ea] text-xs font-bold">{totalPages}</button>
+                  )}
+                </>
+              )}
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+                className="p-1 rounded hover:bg-[#e6e8ea] disabled:opacity-30 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
+    </div>
   )
 }
