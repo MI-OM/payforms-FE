@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { ArrowLeft, Check, Loader2, Mail, Key, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { contactService, type CreateContactRequest } from '@/services/contactService'
 import { toast } from '@/components/ui/use-toast'
 
-function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
+function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: ReactNode }) {
   return (
     <label className="flex items-start gap-3 cursor-pointer">
       <div className="relative inline-flex items-center cursor-pointer mt-0.5">

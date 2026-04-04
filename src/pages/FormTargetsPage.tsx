@@ -29,14 +29,14 @@ export function FormTargetsPage() {
     const fetchData = async () => {
       if (!id) return
       try {
-        const [targetsData, groupsData, contactsData] = await Promise.all([
+        const [targetsData, groupsData, contactsResponse] = await Promise.all([
           formService.getFormTargets(id).catch(() => []),
           groupService.getGroupTree().catch(() => []),
-          contactService.getContacts({ limit: 100 }).catch(() => [])
+          contactService.getContacts({ limit: 100 }).catch(() => ({ data: [] as Contact[] }))
         ])
         setTargets(targetsData)
         setGroups(groupsData)
-        setContacts(contactsData.data)
+        setContacts('data' in contactsResponse ? contactsResponse.data : contactsResponse)
         setSelectedTargets(targetsData.map(t => ({
           type: t.target_type,
           id: t.target_id,
