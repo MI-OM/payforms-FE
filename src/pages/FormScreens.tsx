@@ -34,12 +34,9 @@ export function FormFieldsManagement() {
     if (!id) return
     setLoading(true)
     try {
-      const [formData, fieldsData] = await Promise.all([
-        formService.getForm(id),
-        formService.getFormFields(id),
-      ])
+      const formData = await formService.getForm(id)
       setForm(formData)
-      setFields(fieldsData)
+      setFields(formData.fields || [])
     } catch (err) {
       console.error('Failed to load form', err)
       toast({ title: 'Error', description: 'Failed to load form data', variant: 'destructive' })
