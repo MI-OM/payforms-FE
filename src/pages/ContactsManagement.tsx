@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Download, Search, Filter, Plus, Loader2, Upload, Edit, FolderInput, Mail, Trash2, X, AlertTriangle } from 'lucide-react'
+import { Download, Search, Filter, Plus, Loader2, Upload, Edit, FolderInput, Mail, Trash2, X, AlertTriangle, Send } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { contactService, type Contact, type PaginatedResponse } from '@/services/contactService'
@@ -234,6 +234,12 @@ export function ContactsManagement() {
             <Button variant="secondary" className="bg-[#eceef0] text-[#191c1e] font-semibold px-5 py-2.5 rounded-md flex items-center gap-2 hover:bg-[#d8dadc] transition-colors">
               <Upload className="h-4 w-4" />
               Import Contacts
+            </Button>
+          </Link>
+          <Link to="/contacts/reminder">
+            <Button variant="secondary" className="bg-[#002113] text-white font-semibold px-5 py-2.5 rounded-md flex items-center gap-2 hover:bg-[#003d20] transition-colors">
+              <Send className="h-4 w-4" />
+              Send Reminder
             </Button>
           </Link>
           <Link to="/contacts/new">

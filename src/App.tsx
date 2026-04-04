@@ -14,6 +14,8 @@ import { AllFormsManagement } from '@/pages/AllFormsManagement'
 import { FormBuilder, FormBuilderRefinedFlow, FormBuilderPublishStep, FormBuilderAssignAudience } from '@/pages/FormBuilder'
 import { FormSettings } from '@/pages/FormSettings'
 import { FormAssignGroupsPage } from '@/pages/FormAssignGroupsPage'
+import { FormTargetsPage } from '@/pages/FormTargetsPage'
+import { SendReminderPage, SendGroupReminderPage } from '@/pages/SendReminderPage'
 import { useNavigate } from 'react-router-dom'
 import { FormWidgetTemplatesShowcase } from '@/pages/ContactAndFormsPages'
 import { AddNewContactForm } from '@/pages/AddNewContactForm'
@@ -171,6 +173,7 @@ function App() {
           <Route path="/forms/:id/fields" element={<FormFieldsManagement />} />
           <Route path="/forms/:id/settings" element={<FormSettings />} />
           <Route path="/forms/:id/groups" element={<FormAssignGroupsPage />} />
+          <Route path="/forms/:id/targets" element={<FormTargetsPage />} />
           <Route path="/forms/:id/delete" element={<FormDeleteConfirmation />} />
           <Route path="/forms/:id/widget" element={<WidgetConfiguration />} />
           
@@ -187,6 +190,8 @@ function App() {
           <Route path="/contacts/:id/move" element={<MoveContactToGroupView />} />
           <Route path="/contacts/:id/groups" element={<AssignGroupsToContact />} />
           <Route path="/contacts/:id/delete" element={<DeleteContactConfirmationModal />} />
+          <Route path="/contacts/reminder" element={<SendReminderPage />} />
+          <Route path="/groups/reminder" element={<SendGroupReminderPage />} />
           
           {/* Groups */}
           <Route path="/groups" element={<GroupTreeView />} />
