@@ -1,10 +1,27 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { ArrowLeft, Check, Loader2 } from 'lucide-react'
+import { ArrowLeft, Check, Loader2, Mail, Key, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { contactService, type CreateContactRequest } from '@/services/contactService'
 import { toast } from '@/components/ui/use-toast'
+
+function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
+  return (
+    <label className="flex items-start gap-3 cursor-pointer">
+      <div className="relative inline-flex items-center cursor-pointer mt-0.5">
+        <input
+          type="checkbox"
+          className="sr-only peer"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+        />
+        <div className="w-11 h-6 bg-[#e0e3e5] peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#006398]/20 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#006398]"></div>
+      </div>
+      <span className="text-sm text-[#191c1e]">{label}</span>
+    </label>
+  )
+}
 
 export function AddNewContactPage() {
   const navigate = useNavigate()
@@ -21,6 +38,7 @@ export function AddNewContactPage() {
     guardian_email: '',
     guardian_phone: '',
     require_login: true,
+    must_reset_password: false,
   })
 
   const handleChange = (field: keyof CreateContactRequest, value: string | boolean) => {
@@ -42,9 +60,12 @@ export function AddNewContactPage() {
     setLoading(true)
     try {
       await contactService.createContact(formData)
+      const willReceiveEmail = formData.require_login || formData.must_reset_password
       toast({
         title: 'Success',
-        description: 'Contact created successfully',
+        description: willReceiveEmail
+          ? 'Contact created successfully. They will receive a password setup email shortly.'
+          : 'Contact created successfully',
       })
       navigate('/contacts')
     } catch (err) {
@@ -241,6 +262,79 @@ export function AddNewContactPage() {
                   onChange={(e) => handleChange('guardian_phone', e.target.value)}
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Login Settings */}
+          <div className="bg-white rounded-xl p-6 lg:p-8 shadow-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-lg bg-[#002113] flex items-center justify-center text-[#009668]">
+                <Key className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-[#009668] uppercase tracking-wide">Login Settings</h3>
+                <p className="text-xs text-[#45464d]">Configure portal access and authentication</p>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="flex items-start gap-3 p-4 bg-[#f2f4f6] rounded-xl">
+                <div className="w-8 h-8 rounded-full bg-[#006398]/10 flex items-center justify-center flex-shrink-0">
+                  <Mail className="h-4 w-4 text-[#006398]" />
+                </div>
+                <div className="flex-1">
+                  <Toggle
+                    checked={formData.require_login ?? true}
+                    onChange={(v) => setFormData(prev => ({ ...prev, require_login: v }))}
+                    label={
+                      <div>
+                        <span className="font-semibold">Require portal login</span>
+                        <p className="text-xs text-[#45464d] mt-1">
+                          Contact will receive a password setup email and can log in to the student portal
+                        </p>
+                      </div>
+                    }
+                  />
+                </div>
+              </div>
+
+              {formData.require_login && (
+                <div className="flex items-start gap-3 p-4 bg-[#f2f4f6] rounded-xl">
+                  <div className="w-8 h-8 rounded-full bg-[#93000a]/10 flex items-center justify-center flex-shrink-0">
+                    <Key className="h-4 w-4 text-[#93000a]" />
+                  </div>
+                  <div className="flex-1">
+                    <Toggle
+                      checked={formData.must_reset_password ?? false}
+                      onChange={(v) => setFormData(prev => ({ ...prev, must_reset_password: v }))}
+                      label={
+                        <div>
+                          <span className="font-semibold">Force password reset on first login</span>
+                          <p className="text-xs text-[#45464d] mt-1">
+                            Contact must change their password immediately after first login
+                          </p>
+                        </div>
+                      }
+                    />
+                  </div>
+                </div>
+              )}
+
+              {formData.require_login && (
+                <div className="flex items-start gap-3 p-4 bg-[#002113]/5 rounded-xl border border-[#009668]/20">
+                  <div className="w-8 h-8 rounded-full bg-[#009668]/10 flex items-center justify-center flex-shrink-0">
+                    <AlertCircle className="h-4 w-4 text-[#009668]" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-[#009668] font-medium">Automatic email notification</p>
+                    <p className="text-xs text-[#45464d] mt-1">
+                      {formData.must_reset_password
+                        ? 'Contact will receive a password setup email immediately after creation.'
+                        : 'Contact will receive login credentials via email after account creation.'}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
