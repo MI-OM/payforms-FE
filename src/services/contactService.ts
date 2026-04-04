@@ -208,6 +208,10 @@ export const contactService = {
     return apiClient.post(`/contacts/${contactId}/groups`, { group_ids: groupIds })
   },
 
+  assignContactsToGroup: async (groupId: string, contactIds: string[]): Promise<void> => {
+    return apiClient.post(`/groups/${groupId}/contacts`, { contact_ids: contactIds })
+  },
+
   exportContactStatement: async (contactId: string): Promise<Blob> => {
     const token = getAccessToken()
     if (!token) {

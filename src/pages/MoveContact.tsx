@@ -54,7 +54,7 @@ export function MoveContactToGroupView() {
     setIsSaving(true)
     setMoveStatus('loading')
     try {
-      await contactService.assignGroups(selectedGroup, selectedContacts)
+      await contactService.assignContactsToGroup(selectedGroup, selectedContacts)
       setMoveStatus('success')
       setTimeout(() => {
         navigate('/contacts')

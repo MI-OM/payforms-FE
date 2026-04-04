@@ -189,6 +189,7 @@ function App() {
           <Route path="/contacts/:id/statement" element={<FullStatementTemplateContact />} />
           <Route path="/contacts/:id/transactions" element={<FullTransactionHistoryContact />} />
           <Route path="/contacts/:id/move" element={<MoveContactToGroupView />} />
+          <Route path="/contacts/move" element={<MoveContactToGroupView />} />
           <Route path="/contacts/:id/groups" element={<AssignGroupsToContact />} />
           <Route path="/contacts/:id/delete" element={<DeleteContactConfirmationModal />} />
           <Route path="/contacts/reminder" element={<SendReminderPage />} />
