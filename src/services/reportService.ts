@@ -21,22 +21,76 @@ export interface AnalyticsData {
 export interface FormPerformance {
   form_id: string
   title: string
+  slug: string
+  is_active: boolean
+  created_at: string
   submissions: number
   payments: number
-  paid: number
-  pending: number
-  failed: number
-  partial: number
-  amount_paid: number
-  amount_pending: number
+  paid_payments: number
+  pending_payments: number
+  failed_payments: number
+  partial_payments: number
+  amount_total: number
+  paid_amount_total: number
+  pending_amount_total: number
+  failed_amount_total: number
+  partial_amount_total: number
   completion_rate: number
   collection_rate: number
+}
+
+export interface FormsPerformanceResponse {
+  range: { from?: string; to?: string }
+  totals: {
+    forms: number
+    submissions: number
+    payments: number
+    amount_total: number
+    paid_amount_total: number
+  }
+  data: FormPerformance[]
+}
+
+export interface GroupContribution {
+  group_id: string
+  group_name: string
+  parent_group_id?: string
+  contact_count: number
+  submissions: number
+  payments: number
+  paid_amount: number
+  pending_amount: number
+  expected_total?: number
+  deficit?: number
+  collection_rate?: number
+  children?: GroupContribution[]
+}
+
+export interface GroupContributionsResponse {
+  form_id?: string
+  form_title?: string
+  totals: {
+    contacts: number
+    submissions: number
+    payments: number
+    paid_amount: number
+  }
+  data: GroupContribution[]
 }
 
 export interface ReportFilters {
   start_date?: string
   end_date?: string
+  form_id?: string
   [key: string]: string | number | boolean | undefined
+}
+
+export interface PaginatedResponse<T> {
+  data: T[]
+  total: number
+  page: number
+  limit: number
+  totalPages: number
 }
 
 export const reportService = {
@@ -48,8 +102,12 @@ export const reportService = {
     return apiClient.get('/reports/analytics', { params })
   },
 
-  getFormsPerformance: async (params?: ReportFilters): Promise<FormPerformance[]> => {
+  getFormsPerformance: async (params?: ReportFilters): Promise<FormsPerformanceResponse> => {
     return apiClient.get('/reports/forms/performance', { params })
+  },
+
+  getGroupContributions: async (params?: ReportFilters): Promise<GroupContributionsResponse> => {
+    return apiClient.get('/reports/groups/contributions', { params })
   },
 
   exportReport: async (params: {
