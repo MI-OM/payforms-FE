@@ -147,10 +147,22 @@ export interface FormSubmissionData {
 }
 
 export interface FormSubmissionResult {
-  submission_id: string
+  submission?: {
+    id: string
+    form_id: string
+    contact_id: string
+  }
+  submission_id?: string
   payment?: {
     reference: string
+    submission_id: string
+    organization_id: string
+    [key: string]: any
+  }
+  authorization?: {
     authorization_url: string
+    access_code: string
+    reference: string
   }
   contact?: {
     id: string
@@ -186,7 +198,8 @@ export const publicFormService = {
       partial_amount?: number
     }
   ): Promise<FormSubmissionResult> => {
-    return publicApi.post<FormSubmissionResult>(`/public/forms/${slug}/submit`, {
+    const params = options?.callback_url ? `?callback_url=${encodeURIComponent(options.callback_url)}` : ''
+    return publicApi.post<FormSubmissionResult>(`/public/forms/${slug}/submit${params}`, {
       data,
       contact_email: options?.contact_email,
       contact_name: options?.contact_name,
@@ -194,7 +207,18 @@ export const publicFormService = {
     })
   },
 
-  verifyPayment: async (reference: string): Promise<{ status: string; reference: string }> => {
+  verifyPayment: async (reference: string): Promise<{
+    status: string
+    reference: string
+    amount?: number
+    currency?: string
+    customer_email?: string
+    customer_name?: string
+    paid_at?: string
+    payment_type?: string
+    form_title?: string
+    organization_name?: string
+  }> => {
     return publicApi.get(`/public/payments/callback?reference=${reference}`)
   },
 }

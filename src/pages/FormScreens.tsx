@@ -179,6 +179,16 @@ export function FormFieldsManagement() {
         </div>
 
         <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-800">
+              <strong>Important:</strong> For payment initialization, add these required fields:
+            </p>
+            <ul className="text-sm text-blue-700 mt-2 space-y-1">
+              <li>• <strong>Email field</strong> (type: EMAIL) - Used to identify the payer for payment receipt</li>
+              <li>• <strong>Full Name field</strong> (type: TEXT, label contains "name") - Used as the payer identifier</li>
+            </ul>
+          </div>
+
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <h2 className="text-lg font-bold text-gray-900">Fields ({fields.length})</h2>
@@ -196,8 +206,11 @@ export function FormFieldsManagement() {
           </div>
 
           {fields.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <p className="mb-4">No fields yet. Add fields to collect payer information.</p>
+            <div className="text-center py-12">
+              <p className="text-gray-500 mb-4">No fields yet. Add fields to collect payer information.</p>
+              <p className="text-sm text-amber-600 mb-4">
+                <strong>Tip:</strong> Don't forget to add Email and Full Name fields for payment processing.
+              </p>
               <Button onClick={() => setIsAddingField(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Your First Field

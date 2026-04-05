@@ -84,10 +84,14 @@ async function request<T>(
   }
 
   try {
+    console.log('[API] Request:', { method: options.method || 'GET', url, params, headers })
+    
     const response = await fetch(url, {
       ...fetchOptions,
       headers,
     })
+
+    console.log('[API] Response:', { status: response.status, statusText: response.statusText, url })
 
     if (response.status === 401) {
       const refreshToken = getRefreshToken()
@@ -134,11 +138,13 @@ async function request<T>(
 
     if (!response.ok) {
       let message = 'Request failed'
+      let errorData: any = {}
       
       const contentType = response.headers.get('content-type')
       if (contentType?.includes('application/json')) {
         try {
-          const errorData = await response.json()
+          errorData = await response.json()
+          console.log('[API] Error response data:', errorData)
           message = errorData.message || errorData.error || errorData.detail || `Server error (${response.status})`
         } catch {
           message = `Server error (${response.status})`
@@ -147,7 +153,8 @@ async function request<T>(
         message = `Server error (${response.status})`
       }
       
-      throw new ApiError(response.status, sanitizeErrorMessage(message), { status: response.status })
+      console.log('[API] Throwing error with:', { status: response.status, message, errorData })
+      throw new ApiError(response.status, sanitizeErrorMessage(message), { ...errorData, status: response.status })
     }
 
     if (response.status === 204) {

@@ -22,31 +22,74 @@ export function ReportsAnalytics() {
   const [groupContributions, setGroupContributions] = useState<GroupContributionsResponse | null>(null)
   const [exporting, setExporting] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'forms' | 'groups'>('overview')
-  const [dateRange, setDateRange] = useState({
-    start_date: '',
-    end_date: '',
+  const [dateRange, setDateRange] = useState(() => {
+    const now = new Date()
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
+    return {
+      start_date: firstDay.toISOString().split('T')[0],
+      end_date: now.toISOString().split('T')[0],
+    }
   })
+  const [endpointErrors, setEndpointErrors] = useState<Record<string, boolean>>({})
 
   const fetchData = useCallback(async () => {
     setLoading(true)
+    const errors: Record<string, boolean> = {}
+    
     try {
       const params = {
-        start_date: dateRange.start_date || undefined,
-        end_date: dateRange.end_date || undefined,
+        start_date: dateRange.start_date,
+        end_date: dateRange.end_date,
       }
-      const [summaryData, analyticsData, formsData, groupsData] = await Promise.all([
-        reportService.getSummary(params),
-        reportService.getAnalytics(params),
-        reportService.getFormsPerformance(params).catch(() => null),
-        reportService.getGroupContributions(params).catch(() => null),
+      
+      console.log('[DEBUG] Fetching reports with params:', params)
+      console.log('[DEBUG] API URL:', import.meta.env.VITE_API_URL)
+      
+      const groupParams = {
+        ...params,
+        form_id: undefined as string | undefined,
+      }
+
+      const [summaryData, analyticsData] = await Promise.all([
+        reportService.getSummary(params).catch(err => {
+          console.warn('[DEBUG] Summary error:', err)
+          console.warn('[DEBUG] Summary error status:', (err as any)?.status)
+          console.warn('[DEBUG] Summary error data:', (err as any)?.data)
+          errors.summary = true
+          return null
+        }),
+        reportService.getAnalytics(params).catch(err => {
+          console.warn('[DEBUG] Analytics error:', err)
+          errors.analytics = true
+          return null
+        }),
       ])
+      
+      const formsData = await reportService.getFormsPerformance(params).catch(err => {
+        console.warn('[DEBUG] Forms performance error:', err)
+        console.warn('[DEBUG] Forms performance error status:', (err as any)?.status)
+        console.warn('[DEBUG] Forms performance error data:', (err as any)?.data)
+        errors.forms = true
+        return null
+      })
+      
+      const groupsData = await reportService.getGroupContributions(groupParams).catch(err => {
+        console.warn('[DEBUG] Group contributions error:', err)
+        console.warn('[DEBUG] Group contributions error status:', (err as any)?.status)
+        console.warn('[DEBUG] Group contributions error data:', (err as any)?.data)
+        errors.groups = true
+        return null
+      })
+      
+      console.log('[DEBUG] Results:', { summaryData, analyticsData, formsData, groupsData })
+      
       setSummary(summaryData)
       setAnalytics(analyticsData)
       setFormsPerformance(formsData)
       setGroupContributions(groupsData)
+      setEndpointErrors(errors)
     } catch (err) {
-      console.error('Failed to load reports', err)
-      toast({ title: 'Error', description: 'Failed to load reports', variant: 'destructive' })
+      console.error('[DEBUG] Failed to load reports', err)
     } finally {
       setLoading(false)
     }
@@ -260,58 +303,71 @@ export function ReportsAnalytics() {
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="p-4 border-b">
             <h3 className="text-lg font-bold text-gray-900">Form Performance</h3>
-            {formsPerformance?.totals && (
+            {endpointErrors.forms ? (
+              <p className="text-sm text-amber-600 mt-1 flex items-center gap-2">
+                <span className="px-2 py-0.5 bg-amber-100 rounded text-xs">Endpoint unavailable</span>
+                This feature requires backend implementation
+              </p>
+            ) : formsPerformance?.totals && (
               <p className="text-sm text-gray-500 mt-1">
                 {formsPerformance.totals.submissions} submissions, {formsPerformance.totals.payments} payments, {formatCurrency(formsPerformance.totals.paid_amount_total)} collected
               </p>
             )}
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Form</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">Submissions</th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">Payments</th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">Collected</th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">Completion Rate</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {formsPerformance?.data?.map((form) => (
-                  <tr key={form.form_id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-gray-900">{form.title}</p>
-                      <p className="text-xs text-gray-500">{form.slug}</p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        form.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-                      }`}>
-                        {form.is_active ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right font-medium">{form.submissions}</td>
-                    <td className="px-4 py-3 text-right">
-                      <span className="text-green-600 font-medium">{form.paid_payments}</span>
-                      <span className="text-gray-400"> / {form.payments}</span>
-                    </td>
-                    <td className="px-4 py-3 text-right font-bold">{formatCurrency(form.paid_amount_total)}</td>
-                    <td className="px-4 py-3 text-right">
-                      <span className={`font-medium ${form.completion_rate >= 50 ? 'text-green-600' : 'text-amber-600'}`}>
-                        {form.completion_rate.toFixed(1)}%
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-                {(!formsPerformance?.data || formsPerformance.data.length === 0) && (
+            {endpointErrors.forms ? (
+              <div className="p-12 text-center">
+                <BarChart3 className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+                <p className="text-gray-500 mb-2">Form Performance API endpoint is not available</p>
+                <p className="text-sm text-gray-400">The backend needs to implement GET /reports/forms/performance</p>
+              </div>
+            ) : (
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b">
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-gray-500">No form performance data available</td>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Form</th>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">Submissions</th>
+                    <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">Payments</th>
+                    <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">Collected</th>
+                    <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">Completion Rate</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {formsPerformance?.data?.map((form) => (
+                    <tr key={form.form_id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3">
+                        <p className="font-medium text-gray-900">{form.title}</p>
+                        <p className="text-xs text-gray-500">{form.slug}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-1 text-xs rounded-full ${
+                          form.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                        }`}>
+                          {form.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right font-medium">{form.submissions}</td>
+                      <td className="px-4 py-3 text-right">
+                        <span className="text-green-600 font-medium">{form.paid_payments}</span>
+                        <span className="text-gray-400"> / {form.payments}</span>
+                      </td>
+                      <td className="px-4 py-3 text-right font-bold">{formatCurrency(form.paid_amount_total)}</td>
+                      <td className="px-4 py-3 text-right">
+                        <span className={`font-medium ${form.completion_rate >= 50 ? 'text-green-600' : 'text-amber-600'}`}>
+                          {form.completion_rate.toFixed(1)}%
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  {(!formsPerformance?.data || formsPerformance.data.length === 0) && (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center text-gray-500">No form performance data available</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       )}
@@ -320,48 +376,61 @@ export function ReportsAnalytics() {
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="p-4 border-b">
             <h3 className="text-lg font-bold text-gray-900">Group Contributions</h3>
-            {groupContributions?.totals && (
+            {endpointErrors.groups ? (
+              <p className="text-sm text-amber-600 mt-1 flex items-center gap-2">
+                <span className="px-2 py-0.5 bg-amber-100 rounded text-xs">Endpoint unavailable</span>
+                This feature requires backend implementation
+              </p>
+            ) : groupContributions?.totals && (
               <p className="text-sm text-gray-500 mt-1">
                 {groupContributions.totals.submissions} submissions, {formatCurrency(groupContributions.totals.paid_amount)} collected
               </p>
             )}
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Group</th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">Contacts</th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">Submissions</th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">Payments</th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">Collected</th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">Collection Rate</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {groupContributions?.data?.map((group) => (
-                  <tr key={group.group_id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-900">{group.group_name}</td>
-                    <td className="px-4 py-3 text-right">{group.contact_count}</td>
-                    <td className="px-4 py-3 text-right">{group.submissions}</td>
-                    <td className="px-4 py-3 text-right text-green-600 font-medium">{group.payments}</td>
-                    <td className="px-4 py-3 text-right font-bold">{formatCurrency(group.paid_amount)}</td>
-                    <td className="px-4 py-3 text-right">
-                      {group.collection_rate !== undefined ? (
-                        <span className={`font-medium ${group.collection_rate >= 50 ? 'text-green-600' : 'text-amber-600'}`}>
-                          {group.collection_rate.toFixed(1)}%
-                        </span>
-                      ) : '-'}
-                    </td>
-                  </tr>
-                ))}
-                {(!groupContributions?.data || groupContributions.data.length === 0) && (
+            {endpointErrors.groups ? (
+              <div className="p-12 text-center">
+                <Users className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+                <p className="text-gray-500 mb-2">Group Contributions API endpoint is not available</p>
+                <p className="text-sm text-gray-400">The backend needs to implement GET /reports/groups/contributions</p>
+              </div>
+            ) : (
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b">
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-gray-500">No group contribution data available</td>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Group</th>
+                    <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">Contacts</th>
+                    <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">Submissions</th>
+                    <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">Payments</th>
+                    <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">Collected</th>
+                    <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">Collection Rate</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {groupContributions?.data?.map((group) => (
+                    <tr key={group.group_id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium text-gray-900">{group.group_name}</td>
+                      <td className="px-4 py-3 text-right">{group.contact_count}</td>
+                      <td className="px-4 py-3 text-right">{group.submissions}</td>
+                      <td className="px-4 py-3 text-right text-green-600 font-medium">{group.payments}</td>
+                      <td className="px-4 py-3 text-right font-bold">{formatCurrency(group.paid_amount)}</td>
+                      <td className="px-4 py-3 text-right">
+                        {group.collection_rate !== undefined ? (
+                          <span className={`font-medium ${group.collection_rate >= 50 ? 'text-green-600' : 'text-amber-600'}`}>
+                            {group.collection_rate.toFixed(1)}%
+                          </span>
+                        ) : '-'}
+                      </td>
+                    </tr>
+                  ))}
+                  {(!groupContributions?.data || groupContributions.data.length === 0) && (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center text-gray-500">No group contribution data available</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       )}

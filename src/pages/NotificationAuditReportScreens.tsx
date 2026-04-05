@@ -598,12 +598,12 @@ export function ReportsExport() {
       <div className="flex items-center gap-4 mb-6">
         <button onClick={() => navigate('/reports')} className="p-2 hover:bg-gray-100 rounded-lg">
           <ArrowLeft className="h-5 w-5 text-gray-600" />
-          </button>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Export Report</h1>
-            <p className="text-gray-500">Download reports in various formats</p>
-          </div>
+        </button>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Export Report</h1>
+          <p className="text-gray-500">Download reports in various formats</p>
         </div>
+      </div>
 
         <div className="bg-white rounded-xl shadow-sm p-6">
           <div className="space-y-6">
@@ -711,7 +711,6 @@ export function ReportsExport() {
             </div>
           </div>
         </div>
-      </div>
     </div>
   )
 }

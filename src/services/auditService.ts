@@ -2,11 +2,11 @@ import { apiClient } from '@/lib/apiClient'
 import { getAccessToken } from '@/lib/auth'
 
 export interface AuditLog {
-  id: string
-  timestamp: string
-  action: string
-  entity_type: string
-  entity_id: string
+  id?: string
+  timestamp?: string
+  action?: string
+  entity_type?: string
+  entity_id?: string
   user_id?: string
   user_email?: string
   ip_address?: string

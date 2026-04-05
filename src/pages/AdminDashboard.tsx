@@ -437,7 +437,7 @@ function LiveDashboard({ onShowEmpty, summary, transactions, topForms, forms, fo
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-lg font-extrabold tracking-tighter">{formatCurrency(form.amount_paid || 0)}</p>
+                      <p className="text-lg font-extrabold tracking-tighter">{formatCurrency(form.paid_amount_total || 0)}</p>
                       <p className="text-[10px] text-slate-400">{form.submissions} submissions</p>
                     </div>
                   </div>

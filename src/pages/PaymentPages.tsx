@@ -9,8 +9,8 @@ import { organizationService } from '@/services/organizationService'
 import { reportService } from '@/services/reportService'
 import { Loader2 } from 'lucide-react'
 
-function MaterialIcon({ name, className = '', filled = false }: { name: string; className?: string; filled?: boolean }) {
-  const iconStyle = filled ? { fontVariationSettings: "'FILL' 1" } : undefined
+function MaterialIcon({ name, className = '', filled = false, style }: { name: string; className?: string; filled?: boolean; style?: React.CSSProperties }) {
+  const iconStyle = filled ? { fontVariationSettings: "'FILL' 1", ...style } : style
   const icons: Record<string, string> = {
     account_balance: "M4 10v7h3v-7H4zm6 0v7h3v-7h-3zM2 22h19v-3H2v3zm14-12v7h3v-7h-3zm-4.5-9L2 6v2h19V6l-9.5-5z",
     badge: "M12 2C9.243 2 7 4.243 7 7v3H6c-1.103 0-2 .897-2 2v8c0 1.103.897 2 2 2h12c1.103 0 2-.897 2-2v-8c0-1.103-.897-2-2-2h-1V7c0-2.757-2.243-5-5-5zm0 2c1.654 0 3 1.346 3 3v3H9V7c0-1.654 1.346-3 3-3zm0 10c1.103 0 2 .897 2 2s-.897 2-2 2-2-.897-2-2 .897-2 2-2z",
@@ -82,6 +82,18 @@ export function PublicPaymentPage() {
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
     
+    const hasEmailField = form?.fields?.some(f => f.type === 'EMAIL')
+    const hasNameField = form?.fields?.some(f => f.type === 'TEXT' && f.label.toLowerCase().includes('name'))
+    
+    if (form?.fields && form.fields.length > 0 && (!hasEmailField || !hasNameField)) {
+      const missing: string[] = []
+      if (!hasEmailField) missing.push('Email field (type: EMAIL)')
+      if (!hasNameField) missing.push('Full Name field (type: TEXT, label contains "name")')
+      newErrors._form = `This form requires: ${missing.join(' and ')}. Please contact the form administrator.`
+      setErrors(newErrors)
+      return false
+    }
+    
     if (!form?.fields || form.fields.length === 0) {
       if (form?.payment_type === 'VARIABLE' && paymentType === 'partial') {
         const amount = parseFloat(partialAmount)
@@ -150,13 +162,23 @@ export function PublicPaymentPage() {
         partial_amount: form.allow_partial && paymentType === 'partial' ? parseFloat(partialAmount) : undefined,
       })
       
-      if (result.payment?.authorization_url) {
-        window.location.href = result.payment.authorization_url
+      console.log('[Payment] Submission result:', result)
+      
+      const paymentReference = result.authorization?.reference || result.payment?.reference || ''
+      const paystackUrl = result.authorization?.authorization_url || ''
+      
+      if (paystackUrl) {
+        sessionStorage.setItem('pending_payment_reference', paymentReference)
+        sessionStorage.setItem('pending_payment_amount', (paymentType === 'partial' ? parseFloat(partialAmount) : (form?.amount || 0)).toString())
+        sessionStorage.setItem('pending_payment_organization', form?.organization_name || '')
+        window.location.href = paystackUrl
       } else {
+        sessionStorage.removeItem('pending_payment_reference')
         navigate(`/payment/success`, {
           state: {
-            submission_id: result.submission_id,
-            reference: result.payment?.reference,
+            submission_id: result.submission?.id,
+            reference: paymentReference,
+            amount: paymentType === 'partial' ? parseFloat(partialAmount) : (form?.amount || 0),
             organization: form.organization_name,
           }
         })
@@ -203,18 +225,18 @@ export function PublicPaymentPage() {
       
       <header className="w-full max-w-6xl px-6 py-12 flex justify-between items-center relative z-10 mx-auto">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-[#000] rounded-xl flex items-center justify-center">
-            <MaterialIcon name="account_balance" className="text-white text-3xl" filled />
+          <div className="w-8 h-8 bg-[#000] rounded-xl flex items-center justify-center">
+            <MaterialIcon name="account_balance" className="text-white" style={{ fontSize: '1.25rem' }} filled />
           </div>
           <div>
             <h1 className="font-['Manrope'] font-extrabold text-2xl tracking-tight text-[#000]">Payforms</h1>
             <p className="text-[#45464d] font-['Inter'] text-xs uppercase tracking-[0.1em]">Student Payment Portal</p>
           </div>
         </div>
-        <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-[#002113] rounded-full">
-          <MaterialIcon name="verified_user" className="text-[#009668] text-sm" filled />
-          <span className="text-[#009668] font-['Inter'] text-xs font-semibold">Secure Encryption Active</span>
-        </div>
+          <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-[#002113] rounded-full">
+            <MaterialIcon name="verified_user" className="text-[#009668] w-5 h-5" filled />
+            <span className="text-[#009668] font-['Inter'] text-xs font-semibold">Secure Encryption Active</span>
+          </div>
       </header>
       
       <main className="w-full max-w-6xl px-6 pb-24 relative z-10 mx-auto">
@@ -304,7 +326,7 @@ export function PublicPaymentPage() {
                             : 'bg-white ring-[#c6c6cd]/15 hover:ring-[#188ace]/50'
                         }`}
                       >
-                        <MaterialIcon name="account_balance_wallet" className="text-[#188ace] mb-3" />
+                        <MaterialIcon name="account_balance_wallet" className="w-8 h-8 text-[#188ace]" />
                         <span className="font-bold text-[#191c1e]">Full Settlement</span>
                         <span className="text-sm text-[#45464d]">Pay the total balance of ${(form.amount || 0).toLocaleString()}</span>
                       </button>
@@ -320,7 +342,7 @@ export function PublicPaymentPage() {
                             : 'bg-white ring-1 ring-[#c6c6cd]/15 hover:ring-[#188ace]/50'
                         }`}
                       >
-                        <MaterialIcon name="payments" className={paymentType === 'partial' ? 'text-[#000] mb-3' : 'text-[#188ace] mb-3'} />
+                        <MaterialIcon name="payments" className={`w-8 h-8 ${paymentType === 'partial' ? 'text-[#000]' : 'text-[#188ace]'}`} />
                         <span className="font-bold text-[#191c1e]">Partial Payment</span>
                         <span className="text-sm text-[#45464d]">Specify an amount to pay today</span>
                       </button>
@@ -406,6 +428,13 @@ export function PublicPaymentPage() {
                 )}
               </div>
               
+              {errors._form && (
+                <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm">
+                  <p className="font-bold mb-1">Configuration Required:</p>
+                  <p>{errors._form}</p>
+                </div>
+              )}
+              
               {errors.submit && (
                 <div className="mt-4 p-3 bg-red-50 rounded-lg text-red-600 text-sm">
                   {errors.submit}
@@ -426,7 +455,7 @@ export function PublicPaymentPage() {
                   ) : (
                     <>
                       <span>Proceed to Payment</span>
-                      <MaterialIcon name="arrow_forward" />
+                      <MaterialIcon name="arrow_forward" className="w-5 h-5" />
                     </>
                   )}
                 </button>
@@ -438,7 +467,7 @@ export function PublicPaymentPage() {
             </div>
             
             <div className="mt-8 p-6 bg-[#eceef0] rounded-xl flex gap-4 items-start">
-              <MaterialIcon name="verified" className="text-[#188ace]" />
+              <MaterialIcon name="verified" className="w-8 h-8 text-[#188ace]" />
               <div>
                 <h4 className="font-bold text-sm text-[#191c1e]">Institutional Compliance</h4>
                 <p className="text-xs text-[#45464d] leading-relaxed">This payment portal adheres to PCI-DSS Level 1 standards. Your data is encrypted using 256-bit SSL protocols.</p>
@@ -492,12 +521,12 @@ export function ConfirmPaymentCheckout() {
           <div className="flex items-center gap-4">
             <span className="text-xl font-extrabold tracking-tight text-[#191c1e] font-['Manrope']">Payforms</span>
             <div className="hidden sm:flex items-center gap-1 bg-[#002113] px-3 py-1 rounded-full">
-              <MaterialIcon name="lock" className="text-[#009668] text-[14px]" filled />
+              <MaterialIcon name="lock" className="w-5 h-5 text-[#009668]" filled />
               <span className="text-[10px] font-bold uppercase tracking-widest text-[#009668] font-['Inter']">Secure Checkout</span>
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <MaterialIcon name="lock" className="text-[#191c1e] cursor-pointer" />
+            <MaterialIcon name="lock" className="w-8 h-8 text-[#191c1e] cursor-pointer" />
           </div>
         </nav>
       </header>
@@ -550,14 +579,14 @@ export function ConfirmPaymentCheckout() {
                   disabled={isProcessing}
                   className="w-full bg-[#000] text-white py-4 rounded-md font-bold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity active:scale-[0.98] disabled:opacity-50"
                 >
-                  <MaterialIcon name="lock" className="text-lg" filled />
+                  <MaterialIcon name="lock" className="w-8 h-8" filled />
                   {isProcessing ? 'Processing...' : `Pay $${totalAmount.toLocaleString()}.00`}
                 </button>
                 <button
                   onClick={() => navigate(-1)}
                   className="w-full text-[#004b73] text-xs font-semibold py-2 hover:underline transition-all flex items-center justify-center gap-1"
                 >
-                  <MaterialIcon name="arrow_forward" className="text-sm rotate-180" />
+                  <MaterialIcon name="arrow_forward" className="w-5 h-5 rotate-180" />
                   Back to Information
                 </button>
               </div>
@@ -597,40 +626,74 @@ export function PaymentSuccessState() {
   const { state } = window.history.state as { state?: { formData?: { name?: string; email?: string }; amount?: number; organization?: string; studentRef?: string; reference?: string; submission_id?: string } } || {}
   const searchParams = new URLSearchParams(window.location.search)
   const referenceFromUrl = searchParams.get('reference')
+  const trxrefFromUrl = searchParams.get('trxref')
+  
+  const pendingReference = sessionStorage.getItem('pending_payment_reference')
+  const pendingAmount = sessionStorage.getItem('pending_payment_amount')
+  const pendingOrganization = sessionStorage.getItem('pending_payment_organization')
+  
+  console.log('[PaymentSuccess] URL:', window.location.href)
+  console.log('[PaymentSuccess] Search params:', Object.fromEntries(searchParams))
+  console.log('[PaymentSuccess] History state:', state)
+  console.log('[PaymentSuccess] Reference from URL:', referenceFromUrl)
+  console.log('[PaymentSuccess] trxref from URL:', trxrefFromUrl)
+  console.log('[PaymentSuccess] Pending from sessionStorage:', { pendingReference, pendingAmount, pendingOrganization })
   
   const navigate = useNavigate()
   const [verifying, setVerifying] = useState(true)
-  const [verifiedData, setVerifiedData] = useState<{ status: string; amount?: number; reference: string } | null>(null)
+  const [verifiedData, setVerifiedData] = useState<Record<string, any> | null>(null)
   const [verificationError, setVerificationError] = useState<string | null>(null)
   
-  const formData = state?.formData || { name: '', email: '' }
-  const organization = state?.organization || ''
+  const formData = verifiedData?.customer_name ? { name: verifiedData.customer_name, email: verifiedData.customer_email || '' } : (state?.formData || { name: '', email: '' })
+  const organization = verifiedData?.organization_name || verifiedData?.organization || state?.organization || pendingOrganization || ''
   const submissionId = state?.submission_id || ''
+  
+  const finalReference = referenceFromUrl || trxrefFromUrl || pendingReference || state?.reference
   
   useEffect(() => {
     const verifyPaymentCallback = async () => {
-      if (!referenceFromUrl) {
+      const refToVerify = referenceFromUrl || trxrefFromUrl || pendingReference
+      if (!refToVerify) {
+        console.log('[PaymentSuccess] No reference to verify')
         setVerifying(false)
         return
       }
       
       try {
-        const result = await publicFormService.verifyPayment(referenceFromUrl)
+        const result = await publicFormService.verifyPayment(refToVerify)
+        console.log('[PaymentSuccess] Full API response:', JSON.stringify(result, null, 2))
+        console.log('[PaymentSuccess] Available keys:', Object.keys(result))
         setVerifiedData(result)
-        setVerifying(false)
+        
+        if (result.reference) {
+          sessionStorage.removeItem('pending_payment_reference')
+          sessionStorage.removeItem('pending_payment_amount')
+          sessionStorage.removeItem('pending_payment_organization')
+        }
       } catch (err) {
         console.error('Payment verification failed:', err)
         setVerificationError('Unable to verify payment status. Please contact support.')
+      } finally {
         setVerifying(false)
       }
     }
     
     verifyPaymentCallback()
-  }, [referenceFromUrl])
+  }, [referenceFromUrl, trxrefFromUrl, pendingReference])
   
-  const reference = referenceFromUrl || state?.reference || `PAY-${Math.random().toString(36).substring(2, 10).toUpperCase()}`
-  const amount = verifiedData?.amount || state?.amount || 0
-  const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  const getAmount = () => {
+    if (verifiedData?.amount) return verifiedData.amount
+    if (verifiedData?.amount_paid) return verifiedData.amount_paid
+    if (verifiedData?.total) return verifiedData.total
+    if (pendingAmount) return parseFloat(pendingAmount)
+    return state?.amount || 0
+  }
+  
+  const reference = verifiedData?.reference || finalReference || `PAY-${Math.random().toString(36).substring(2, 10).toUpperCase()}`
+  const amount = getAmount()
+  const date = verifiedData?.paid_at || verifiedData?.created_at
+    ? new Date(verifiedData.paid_at || verifiedData.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 
   if (verifying) {
     return (
@@ -647,8 +710,8 @@ export function PaymentSuccessState() {
     return (
       <div className="min-h-screen bg-[#f7f9fb] flex items-center justify-center">
         <div className="text-center max-w-md p-8">
-          <div className="mb-6 p-6 rounded-full bg-[#ffdad6]/20 inline-block">
-            <MaterialIcon name="warning" className="text-6xl text-[#ba1a1a]" />
+            <div className="mb-6 p-6 rounded-full bg-[#ffdad6]/20 inline-block">
+            <MaterialIcon name="warning" className="w-8 h-8 text-[#ba1a1a]" />
           </div>
           <h2 className="text-2xl font-bold text-[#191c1e] mb-4">Verification Issue</h2>
           <p className="text-[#45464d] mb-6">{verificationError}</p>
@@ -699,17 +762,17 @@ export function PaymentSuccessState() {
             <div className="mb-8 relative">
               <div className="absolute inset-0 bg-[#4edea3] opacity-20 blur-2xl rounded-full"></div>
               <div className="relative w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-sm">
-                <MaterialIcon name="check_circle" className="text-[#009668] text-6xl" filled />
+                <MaterialIcon name="check_circle" className="w-16 h-16 text-[#009668]" filled />
               </div>
             </div>
             
             <h1 className="font-['Manrope'] font-extrabold text-3xl tracking-tight mb-4 text-[#191c1e]">Transaction Successful</h1>
             <div className="inline-flex items-center gap-2 bg-[#002113] px-4 py-1.5 rounded-full mb-4">
-              <MaterialIcon name="verified" className="text-[#009668] text-sm" />
+              <MaterialIcon name="verified" className="w-5 h-5 text-[#009668]" />
               <span className="text-[10px] font-bold uppercase tracking-widest text-[#009668] font-['Inter']">Payment Verified</span>
             </div>
             <p className="text-[#45464d] leading-relaxed px-4 mb-10 font-medium">
-              Your payment for <span className="text-[#191c1e] font-bold">{organization}</span> has been confirmed. A receipt has been sent to <span className="text-[#188ace] font-semibold">{formData.email}</span>.
+              Your payment for <span className="text-[#191c1e] font-bold">{verifiedData?.form_title || verifiedData?.title || organization}</span> has been confirmed. A receipt has been sent to <span className="text-[#188ace] font-semibold">{verifiedData?.customer_email || verifiedData?.email || formData.email}</span>.
             </p>
             
             <div className="w-full bg-[#f2f4f6] rounded-xl p-6 mb-10 text-left space-y-4">
@@ -719,8 +782,28 @@ export function PaymentSuccessState() {
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-xs uppercase tracking-widest font-bold text-[#45464d] font-['Inter']">Amount</span>
-                <span className="text-xl font-['Manrope'] font-bold text-[#191c1e]">${amount.toLocaleString()}.00</span>
+                <span className="text-xl font-['Manrope'] font-bold text-[#191c1e]">
+                  {verifiedData?.currency || 'NGN'} {amount.toLocaleString()}
+                </span>
               </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs uppercase tracking-widest font-bold text-[#45464d] font-['Inter']">Status</span>
+                <span className="px-3 py-1 bg-[#002113] text-[#009668] text-xs font-bold rounded-full uppercase tracking-wider">
+                  {verifiedData?.status || 'Verified'}
+                </span>
+              </div>
+              {(verifiedData?.customer_name || verifiedData?.name) && (
+                <div className="flex justify-between items-center">
+                  <span className="text-xs uppercase tracking-widest font-bold text-[#45464d] font-['Inter']">Payer</span>
+                  <span className="text-sm font-semibold text-[#191c1e]">{verifiedData.customer_name || verifiedData.name}</span>
+                </div>
+              )}
+              {(verifiedData?.payment_type || verifiedData?.type) && (
+                <div className="flex justify-between items-center">
+                  <span className="text-xs uppercase tracking-widest font-bold text-[#45464d] font-['Inter']">Type</span>
+                  <span className="text-sm font-semibold text-[#191c1e] capitalize">{(verifiedData.payment_type || verifiedData.type)}</span>
+                </div>
+              )}
               <div className="flex justify-between items-center">
                 <span className="text-xs uppercase tracking-widest font-bold text-[#45464d] font-['Inter']">Date</span>
                 <span className="text-sm font-semibold text-[#191c1e]">{date}</span>
@@ -732,7 +815,7 @@ export function PaymentSuccessState() {
                 onClick={() => navigate(`/payment/receipt/${reference}`)}
                 className="w-full py-4 bg-[#000] text-white rounded-md font-bold text-sm tracking-wide shadow-lg hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
               >
-                <MaterialIcon name="download" className="text-lg" />
+                <MaterialIcon name="download" className="w-8 h-8" />
                 Download Receipt
               </button>
               <a
@@ -745,7 +828,7 @@ export function PaymentSuccessState() {
           </div>
           
           <div className="bg-[#e6e8ea] py-4 px-10 flex items-center justify-center gap-2">
-            <MaterialIcon name="verified_user" className="text-[#009668] text-sm" />
+            <MaterialIcon name="verified_user" className="w-5 h-5 text-[#009668]" />
             <span className="text-[10px] uppercase tracking-[0.1em] font-extrabold text-[#009668] font-['Inter']">Forge Protocol Secured</span>
           </div>
         </div>
@@ -810,7 +893,7 @@ export function PaymentFailureState() {
         <nav className="flex justify-between items-center px-6 py-4 max-w-7xl mx-auto">
           <div className="text-xl font-extrabold tracking-tight text-[#191c1e] font-['Manrope']">Payforms</div>
           <div className="flex items-center gap-4 text-[#45464d]">
-            <MaterialIcon name="lock" />
+            <MaterialIcon name="lock" className="w-8 h-8" />
             <span className="font-['Manrope'] font-bold text-lg text-[#191c1e]">Secure Checkout</span>
           </div>
         </nav>
@@ -855,7 +938,7 @@ export function PaymentFailureState() {
           <div className="h-1.5 w-full bg-[#ba1a1a]"></div>
           <div className="p-10 flex flex-col items-center text-center">
             <div className="mb-8 p-6 rounded-full bg-[#ffdad6]/20 border border-[#ba1a1a]/10">
-              <MaterialIcon name="warning" className="text-6xl text-[#ba1a1a]" />
+              <MaterialIcon name="warning" className="w-8 h-8 text-[#ba1a1a]" />
             </div>
             
             <h2 className="font-['Manrope'] text-3xl font-extrabold tracking-tight text-[#191c1e] mb-4">
@@ -889,7 +972,7 @@ export function PaymentFailureState() {
           </div>
           
           <div className="bg-[#f2f4f6]/50 py-4 px-8 flex justify-center items-center gap-2">
-            <MaterialIcon name="verified_user" className="text-sm text-[#45464d]" filled />
+            <MaterialIcon name="verified_user" className="w-5 h-5 text-[#45464d]" filled />
             <span className="font-['Inter'] text-[10px] uppercase tracking-widest text-[#45464d]">Forge Protocol Secure Layer</span>
           </div>
         </div>
@@ -982,15 +1065,15 @@ export function OfficialPaymentReceipt() {
               onClick={handlePrint}
               className="flex items-center gap-2 text-[#45464d] hover:bg-[#e0e3e5] transition-colors px-3 py-1.5 rounded-lg scale-95 transition-transform duration-150"
             >
-              <MaterialIcon name="print" />
+              <MaterialIcon name="print" className="w-8 h-8" />
               <span className="text-xs font-['Inter'] uppercase tracking-widest">print</span>
             </button>
             <button className="flex items-center gap-2 text-[#45464d] hover:bg-[#e0e3e5] transition-colors px-3 py-1.5 rounded-lg scale-95 transition-transform duration-150">
-              <MaterialIcon name="share" />
+              <MaterialIcon name="share" className="w-8 h-8" />
               <span className="text-xs font-['Inter'] uppercase tracking-widest">share</span>
             </button>
             <button className="flex items-center gap-2 text-[#191c1e] font-bold hover:bg-[#e0e3e5] transition-colors px-3 py-1.5 rounded-lg scale-95 transition-transform duration-150">
-              <MaterialIcon name="download" />
+              <MaterialIcon name="download" className="w-8 h-8" />
               <span className="text-xs font-['Inter'] uppercase tracking-widest">download</span>
             </button>
           </div>
@@ -1000,7 +1083,7 @@ export function OfficialPaymentReceipt() {
       <main className="min-h-screen py-12 px-4 md:px-0">
         <div className="print-container max-w-[850px] mx-auto bg-white shadow-[0_0_40px_rgba(25,28,30,0.04)] rounded-xl overflow-hidden p-12 relative min-h-[1100px] flex flex-col border border-[#c6c6cd]/15">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-[0.03] rotate-[-15deg]">
-            <MaterialIcon name="verified" className="!text-[400px]" filled />
+            <MaterialIcon name="verified" className="w-96 h-96" filled />
           </div>
           
           <div className="flex justify-between items-start mb-20 relative z-10">
@@ -1019,7 +1102,7 @@ export function OfficialPaymentReceipt() {
               <h2 className="font-['Manrope'] font-black text-4xl tracking-tighter text-[#191c1e] mb-1">OFFICIAL RECEIPT</h2>
               <div className="inline-block px-3 py-1 bg-[#002113] rounded-md">
                 <span className="text-[10px] font-['Inter'] uppercase tracking-[0.1em] text-[#009668] font-bold flex items-center gap-1">
-                  <MaterialIcon name="lock" className="text-xs" filled />
+                  <MaterialIcon name="lock" className="w-4 h-4" filled />
                   Verified Protocol Entry
                 </span>
               </div>
@@ -1104,7 +1187,7 @@ export function OfficialPaymentReceipt() {
           
           <div className="mt-24 pt-12 border-t border-[#c6c6cd]/15 text-center relative z-10">
             <div className="flex justify-center mb-6">
-              <MaterialIcon name="verified_user" className="text-4xl text-[#009668]" filled />
+              <MaterialIcon name="verified_user" className="w-8 h-8 text-[#009668]" filled />
             </div>
             <p className="text-sm font-['Inter'] text-[#45464d] max-w-md mx-auto leading-relaxed">
               This document serves as an official ledger entry for Forge Protocol. This record is immutable and verified against transaction {reference}.
@@ -1140,7 +1223,7 @@ export function OfficialPaymentReceipt() {
         className="no-print fixed bottom-8 right-8 w-16 h-16 bg-[#000] text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-105 transition-transform active:scale-95 z-[60]"
         onClick={handlePrint}
       >
-        <MaterialIcon name="print" className="text-3xl" />
+        <MaterialIcon name="print" className="w-8 h-8" />
       </button>
     </div>
   )
