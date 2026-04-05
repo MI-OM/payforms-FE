@@ -80,21 +80,23 @@ export function AllFormsManagement() {
 
   const handleDuplicate = async (form: Form) => {
     try {
+      const baseSlug = form.slug.toLowerCase().replace(/[^a-z0-9-]/g, '-')
       const newForm = await formService.createForm({
         title: `${form.title} (Copy)`,
-        slug: `${form.slug}-copy-${Date.now()}`,
-        category: form.category,
-        description: form.description,
-        note: form.note,
+        slug: `${baseSlug}-copy-${Date.now()}`,
+        category: form.category || undefined,
+        description: form.description || undefined,
+        note: form.note || undefined,
         payment_type: form.payment_type,
-        amount: form.amount,
+        amount: typeof form.amount === 'number' ? form.amount : (typeof form.amount === 'string' ? parseFloat(form.amount) : undefined),
         allow_partial: form.allow_partial,
       })
       setForms(prev => [newForm, ...prev])
       setOpenMenu(null)
       toast({ title: 'Success', description: 'Form duplicated successfully' })
     } catch (err) {
-      toast({ title: 'Error', description: 'Failed to duplicate form', variant: 'destructive' })
+      const message = err instanceof Error ? err.message : 'Failed to duplicate form'
+      toast({ title: 'Error', description: message, variant: 'destructive' })
       console.error(err)
     }
   }
@@ -120,10 +122,16 @@ export function AllFormsManagement() {
   const handlePreview = async (form: Form) => {
     setPreviewLoading(true)
     try {
-      const publicForm = await publicFormService.getForm(form.slug)
+      const fullForm = await formService.getForm(form.id)
+      
+      const publicForm: any = {
+        ...fullForm,
+        fields: fullForm.fields || [],
+        amount: typeof fullForm.amount === 'number' ? fullForm.amount : parseFloat(fullForm.amount as any) || 0,
+      }
       setPreviewForm(publicForm)
     } catch (err) {
-      toast({ title: 'Error', description: 'Failed to load preview. Make sure the form has targets configured.', variant: 'destructive' })
+      toast({ title: 'Error', description: 'Failed to load preview. Make sure the form has fields configured.', variant: 'destructive' })
       console.error(err)
     } finally {
       setPreviewLoading(false)
@@ -374,14 +382,24 @@ function FormPreviewModal({ form, onClose }: FormPreviewModalProps) {
               {form.payment_type === 'FIXED' && (
                 <div className="bg-blue-50 rounded-lg p-4 mb-6">
                   <p className="text-sm text-gray-600">Amount Due</p>
-                  <p className="text-2xl font-bold text-gray-900">${form.amount?.toFixed(2)}</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    ${(form.amount || 0).toFixed(2)}
+                  </p>
                   {form.allow_partial && (
                     <p className="text-xs text-gray-500 mt-1">Partial payments allowed</p>
                   )}
                 </div>
               )}
 
-              {form.fields.sort((a, b) => a.order_index - b.order_index).map((field) => (
+              {form.payment_type === 'VARIABLE' && (
+                <div className="bg-amber-50 rounded-lg p-4 mb-6">
+                  <p className="text-sm text-gray-600">Payment Type</p>
+                  <p className="text-lg font-bold text-gray-900">Variable Amount</p>
+                  <p className="text-xs text-gray-500 mt-1">Payers can enter their own amount</p>
+                </div>
+              )}
+
+              {(form.fields || []).sort((a, b) => a.order_index - b.order_index).map((field) => (
                 <div key={field.id} className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     {field.label}
@@ -478,7 +496,7 @@ function FormPreviewModal({ form, onClose }: FormPreviewModalProps) {
                     Submitting...
                   </>
                 ) : (
-                  `Submit Payment${form.payment_type === 'FIXED' ? ` - $${form.amount?.toFixed(2)}` : ''}`
+                  `Submit Payment${form.payment_type === 'FIXED' ? ` - $${typeof form.amount === 'number' ? form.amount.toFixed(2) : '0.00'}` : ''}`
                 )}
               </Button>
             </form>

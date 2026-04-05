@@ -154,7 +154,12 @@ async function request<T>(
       return undefined as T
     }
 
-    return response.json()
+    const responseText = await response.text()
+    if (!responseText || responseText.trim() === '') {
+      return undefined as T
+    }
+
+    return JSON.parse(responseText)
   } catch (error) {
     if (error instanceof ApiError) {
       throw error

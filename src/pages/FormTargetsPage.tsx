@@ -86,7 +86,7 @@ export function FormTargetsPage() {
       }
       
       toast({ title: 'Success', description: 'Targets updated successfully' })
-      navigate(`/forms/${id}`)
+      navigate(`/forms`)
     } catch (err) {
       console.error('Failed to save targets:', err)
       toast({ title: 'Error', description: 'Failed to save targets', variant: 'destructive' })
@@ -125,7 +125,7 @@ export function FormTargetsPage() {
     <div className="min-h-screen bg-[#f7f9fb]">
       <div className="max-w-6xl mx-auto py-8 px-6">
         <div className="flex items-center gap-3 mb-8">
-          <button onClick={() => navigate(`/forms/${id}`)} className="p-2 hover:bg-slate-200 rounded-lg transition-colors">
+          <button onClick={() => navigate(`/forms`)} className="p-2 hover:bg-slate-200 rounded-lg transition-colors">
             <svg className="w-5 h-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
@@ -270,7 +270,7 @@ export function FormTargetsPage() {
               )}
 
               <div className="flex gap-3">
-                <Button variant="secondary" onClick={() => navigate(`/forms/${id}`)} className="flex-1" disabled={saving}>
+                <Button variant="secondary" onClick={() => navigate(`/forms`)} className="flex-1" disabled={saving}>
                   Cancel
                 </Button>
                 <Button onClick={handleSave} className="flex-1 bg-[#000] hover:bg-[#333]" disabled={saving}>
