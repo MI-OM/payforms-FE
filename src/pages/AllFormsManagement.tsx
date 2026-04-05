@@ -385,7 +385,7 @@ function FormPreviewModal({ form, onClose }: FormPreviewModalProps) {
                 <div className="bg-blue-50 rounded-lg p-4 mb-6">
                   <p className="text-sm text-gray-600">Amount Due</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    ${(form.amount || 0).toFixed(2)}
+                    ₦{(form.amount || 0).toFixed(2)}
                   </p>
                   {form.allow_partial && (
                     <p className="text-xs text-gray-500 mt-1">Partial payments allowed</p>
@@ -498,7 +498,7 @@ function FormPreviewModal({ form, onClose }: FormPreviewModalProps) {
                     Submitting...
                   </>
                 ) : (
-                  `Submit Payment${form.payment_type === 'FIXED' ? ` - $${typeof form.amount === 'number' ? form.amount.toFixed(2) : '0.00'}` : ''}`
+                  `Submit Payment${form.payment_type === 'FIXED' ? ` - ₦${typeof form.amount === 'number' ? form.amount.toFixed(2) : '0.00'}` : ''}`
                 )}
               </Button>
             </form>

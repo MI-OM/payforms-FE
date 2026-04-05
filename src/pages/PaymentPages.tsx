@@ -122,7 +122,7 @@ export function PublicPaymentPage() {
       if (isNaN(amount) || amount <= 0) {
         newErrors.amount = 'Please enter a valid amount'
       } else if (form?.amount && amount > form.amount) {
-        newErrors.amount = `Amount cannot exceed $${form.amount.toLocaleString()}`
+        newErrors.amount = `Amount cannot exceed ₦${form.amount.toLocaleString()}`
       }
     }
     
@@ -328,7 +328,7 @@ export function PublicPaymentPage() {
                       >
                         <MaterialIcon name="account_balance_wallet" className="w-8 h-8 text-[#188ace]" />
                         <span className="font-bold text-[#191c1e]">Full Settlement</span>
-                        <span className="text-sm text-[#45464d]">Pay the total balance of ${(form.amount || 0).toLocaleString()}</span>
+                        <span className="text-sm text-[#45464d]">Pay the total balance of ₦{(form.amount || 0).toLocaleString()}</span>
                       </button>
                       
                       <button
@@ -352,7 +352,7 @@ export function PublicPaymentPage() {
                       <div className="space-y-2">
                         <label className="font-['Inter'] text-xs font-bold uppercase tracking-wider text-[#45464d]">Enter Amount to Pay</label>
                         <div className="relative">
-                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-bold text-[#76777d]">$</span>
+                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-bold text-[#76777d]">₦</span>
                           <input
                             type="number"
                             placeholder="0.00"
@@ -363,7 +363,7 @@ export function PublicPaymentPage() {
                             className="w-full bg-white border border-[#c6c6cd]/30 rounded-xl py-3 pl-10 pr-4 text-lg font-semibold focus:ring-2 focus:ring-[#188ace] focus:border-[#188ace] outline-none transition-all"
                           />
                         </div>
-                        <p className="text-xs text-[#45464d]">Maximum: ${(form.amount || 0).toLocaleString()}</p>
+                        <p className="text-xs text-[#45464d]">Maximum: ₦{(form.amount || 0).toLocaleString()}</p>
                         {errors.amount && <p className="text-red-500 text-xs">{errors.amount}</p>}
                       </div>
                     )}
@@ -374,7 +374,7 @@ export function PublicPaymentPage() {
                   <div className="space-y-3 pt-4">
                     <label className="font-['Inter'] text-xs font-bold uppercase tracking-wider text-[#45464d]">Enter Amount to Pay</label>
                     <div className="relative">
-                      <span className="absolute left-6 top-1/2 -translate-y-1/2 text-3xl font-['Manrope'] font-bold text-[#76777d]">$</span>
+                      <span className="absolute left-6 top-1/2 -translate-y-1/2 text-3xl font-['Manrope'] font-bold text-[#76777d]">₦</span>
                       <input
                         type="number"
                         placeholder="0.00"
@@ -407,14 +407,14 @@ export function PublicPaymentPage() {
                 {form.payment_type === 'FIXED' && form.amount && (
                   <div className="flex justify-between items-center text-[#45464d]">
                     <span className="font-medium">Total Amount</span>
-                    <span className="font-mono text-[#191c1e] font-semibold">${form.amount.toLocaleString()}</span>
+                    <span className="font-mono text-[#191c1e] font-semibold">₦{form.amount.toLocaleString()}</span>
                   </div>
                 )}
                 <div className="h-px bg-[#c6c6cd]/20 my-4"></div>
                 <div className="flex justify-between items-end">
                   <div className="space-y-1">
                     <span className="font-['Inter'] text-xs font-bold uppercase tracking-wider text-[#45464d]">Amount to Pay Now</span>
-                    <div className="text-4xl font-['Manrope'] font-extrabold text-[#000]">${totalAmount.toLocaleString()}</div>
+                    <div className="text-4xl font-['Manrope'] font-extrabold text-[#000]">₦{totalAmount.toLocaleString()}</div>
                   </div>
                   <div className="text-right">
                     <span className="font-['Inter'] text-xs font-bold uppercase tracking-wider text-[#009668] bg-[#4edea3] px-2 py-1 rounded">Pending</span>
@@ -423,7 +423,7 @@ export function PublicPaymentPage() {
                 {form.payment_type === 'FIXED' && form.allow_partial && (
                   <div className="bg-[#f2f4f6] p-4 rounded-xl flex justify-between items-center">
                     <span className="text-sm font-medium text-[#45464d] italic">Remaining Balance</span>
-                    <span className="font-mono font-bold text-[#45464d]">${remainingBalance.toLocaleString()}</span>
+                    <span className="font-mono font-bold text-[#45464d]">₦{remainingBalance.toLocaleString()}</span>
                   </div>
                 )}
               </div>
@@ -558,18 +558,18 @@ export function ConfirmPaymentCheckout() {
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-[#45464d] text-sm">Total Due</span>
-                  <span className="text-[#191c1e] font-medium">${amount.toLocaleString()}.00</span>
+                  <span className="text-[#191c1e] font-medium">₦{amount.toLocaleString()}.00</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-[#45464d] text-sm">Processing Fee</span>
-                  <span className="text-[#191c1e] font-medium">${processingFee.toLocaleString()}.00</span>
+                  <span className="text-[#191c1e] font-medium">₦{processingFee.toLocaleString()}.00</span>
                 </div>
               </div>
               
               <div className="bg-[#e6e8ea] rounded-lg p-5 mt-4">
                 <div className="flex justify-between items-end">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-[#45464d] font-['Inter'] pb-1">Final Amount</span>
-                  <span className="text-3xl font-extrabold text-[#000] tracking-tighter font-['Manrope']">${totalAmount.toLocaleString()}.00</span>
+                  <span className="text-3xl font-extrabold text-[#000] tracking-tighter font-['Manrope']">₦{totalAmount.toLocaleString()}.00</span>
                 </div>
               </div>
               
@@ -580,7 +580,7 @@ export function ConfirmPaymentCheckout() {
                   className="w-full bg-[#000] text-white py-4 rounded-md font-bold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity active:scale-[0.98] disabled:opacity-50"
                 >
                   <MaterialIcon name="lock" className="w-8 h-8" filled />
-                  {isProcessing ? 'Processing...' : `Pay $${totalAmount.toLocaleString()}.00`}
+                  {isProcessing ? 'Processing...' : `Pay ₦${totalAmount.toLocaleString()}.00`}
                 </button>
                 <button
                   onClick={() => navigate(-1)}
@@ -920,15 +920,15 @@ export function PaymentFailureState() {
         <div className="bg-[#e6e8ea] rounded-xl p-8 md:col-span-5 space-y-4">
           <div className="flex justify-between">
             <span className="text-[#45464d]">Subtotal</span>
-            <span className="font-bold">$1,250.00</span>
+            <span className="font-bold">₦1,250.00</span>
           </div>
           <div className="flex justify-between border-b border-[#c6c6cd]/20 pb-4">
             <span className="text-[#45464d]">Protocol Fee</span>
-            <span className="font-bold">$0.00</span>
+            <span className="font-bold">₦0.00</span>
           </div>
           <div className="flex justify-between pt-4">
             <span className="text-xl font-['Manrope'] font-bold">Total</span>
-            <span className="text-xl font-['Manrope'] font-bold">$1,250.00</span>
+            <span className="text-xl font-['Manrope'] font-bold">₦1,250.00</span>
           </div>
         </div>
       </main>
@@ -1149,21 +1149,21 @@ export function OfficialPaymentReceipt() {
                     <p className="font-['Manrope'] font-semibold text-[#191c1e]">Tuition Deposit</p>
                     <p className="text-xs text-[#45464d] mt-1">Fall Semester 2024 - Academic Program</p>
                   </td>
-                  <td className="px-6 py-6 text-right font-['Manrope'] font-bold text-[#191c1e]">$1,250.00</td>
+                  <td className="px-6 py-6 text-right font-['Manrope'] font-bold text-[#191c1e]">₦1,250.00</td>
                 </tr>
                 <tr className="hover:bg-[#f2f4f6] transition-colors group">
                   <td className="px-6 py-6">
                     <p className="font-['Manrope'] font-semibold text-[#191c1e]">Lab Fees</p>
                     <p className="text-xs text-[#45464d] mt-1">Materials and Academic Studio Access</p>
                   </td>
-                  <td className="px-6 py-6 text-right font-['Manrope'] font-bold text-[#191c1e]">$45.00</td>
+                  <td className="px-6 py-6 text-right font-['Manrope'] font-bold text-[#191c1e]">₦45.00</td>
                 </tr>
                 <tr className="hover:bg-[#f2f4f6] transition-colors group">
                   <td className="px-6 py-6">
                     <p className="font-['Manrope'] font-semibold text-[#191c1e]">Processing Fee</p>
                     <p className="text-xs text-[#45464d] mt-1">Digital Transaction Ledger Fee</p>
                   </td>
-                  <td className="px-6 py-6 text-right font-['Manrope'] font-bold text-[#191c1e]">$5.00</td>
+                  <td className="px-6 py-6 text-right font-['Manrope'] font-bold text-[#191c1e]">₦5.00</td>
                 </tr>
               </tbody>
             </table>
@@ -1173,11 +1173,11 @@ export function OfficialPaymentReceipt() {
             <div className="w-full max-w-xs space-y-4">
               <div className="flex justify-between items-center px-6">
                 <span className="text-sm font-['Inter'] text-[#45464d]">Subtotal</span>
-                <span className="text-sm font-['Manrope'] font-bold text-[#191c1e]">${amount.toFixed(2)}</span>
+                <span className="text-sm font-['Manrope'] font-bold text-[#191c1e]">₦{amount.toFixed(2)}</span>
               </div>
               <div className="flex justify-between items-center px-6 py-4 bg-[#000] rounded-lg text-white">
                 <span className="font-['Inter'] uppercase tracking-widest text-xs opacity-80">Total Amount</span>
-                <span className="font-['Manrope'] font-black text-2xl">${amount.toLocaleString()}</span>
+                <span className="font-['Manrope'] font-black text-2xl">₦{amount.toLocaleString()}</span>
               </div>
               <div className="px-6 text-right">
                 <p className="text-[10px] font-['Inter'] text-[#45464d] italic">Paid in full via Paystack Secure Gate</p>
@@ -1294,11 +1294,11 @@ export function PaymentReminderEmailTemplate() {
           <div className="p-8">
             <p className="mb-4 font-['Inter']">Dear {contactName},</p>
             <p className="mb-4 font-['Inter']">
-              This is a friendly reminder that your outstanding balance of <strong>${pendingAmount.toLocaleString()}</strong> for {organizationName} is due soon.
+              This is a friendly reminder that your outstanding balance of <strong>₦{pendingAmount.toLocaleString()}</strong> for {organizationName} is due soon.
             </p>
             <div className="bg-[#f2f4f6] rounded-lg p-4 mb-6">
               <p className="text-sm text-[#45464d] font-['Inter']">Outstanding Balance</p>
-              <p className="text-2xl font-bold font-['Manrope'] text-[#191c1e]">${pendingAmount.toLocaleString()}</p>
+              <p className="text-2xl font-bold font-['Manrope'] text-[#191c1e]">₦{pendingAmount.toLocaleString()}</p>
             </div>
             <div className="bg-[#f2f4f6] rounded-lg p-4 mb-6">
               <p className="text-sm text-[#45464d] font-['Inter']">Payment Deadline</p>

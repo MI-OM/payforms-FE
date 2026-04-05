@@ -594,7 +594,7 @@ export function FormSettings() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₦</span>
                     <input 
                       type="number"
                       value={settings.amount}
