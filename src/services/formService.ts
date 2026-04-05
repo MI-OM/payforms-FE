@@ -183,12 +183,14 @@ export const publicFormService = {
       contact_email?: string
       contact_name?: string
       callback_url?: string
+      partial_amount?: number
     }
   ): Promise<FormSubmissionResult> => {
     return publicApi.post<FormSubmissionResult>(`/public/forms/${slug}/submit`, {
       data,
       contact_email: options?.contact_email,
       contact_name: options?.contact_name,
+      partial_amount: options?.partial_amount,
     })
   },
 

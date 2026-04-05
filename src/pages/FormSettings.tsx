@@ -64,7 +64,6 @@ export function FormSettings() {
         category: formSettings.category || undefined,
         description: formSettings.description || undefined,
         note: formSettings.note || undefined,
-        payment_type: formSettings.payment_type,
         amount: formSettings.amount,
         allow_partial: formSettings.allow_partial,
         is_active: formSettings.is_active,

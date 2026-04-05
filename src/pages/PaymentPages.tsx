@@ -82,8 +82,15 @@ export function PublicPaymentPage() {
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
     
-    if (!form?.fields) {
-      return false
+    if (!form?.fields || form.fields.length === 0) {
+      if (form?.payment_type === 'VARIABLE' && paymentType === 'partial') {
+        const amount = parseFloat(partialAmount)
+        if (isNaN(amount) || amount <= 0) {
+          newErrors.amount = 'Please enter a valid amount'
+        }
+      }
+      setErrors(newErrors)
+      return Object.keys(newErrors).length === 0
     }
     
     for (const field of form.fields) {
@@ -98,10 +105,12 @@ export function PublicPaymentPage() {
       }
     }
     
-    if (form?.allow_partial && paymentType === 'partial') {
+    if ((form?.allow_partial || form?.payment_type === 'VARIABLE') && paymentType === 'partial') {
       const amount = parseFloat(partialAmount)
       if (isNaN(amount) || amount <= 0) {
         newErrors.amount = 'Please enter a valid amount'
+      } else if (form?.amount && amount > form.amount) {
+        newErrors.amount = `Amount cannot exceed $${form.amount.toLocaleString()}`
       }
     }
     
@@ -115,9 +124,21 @@ export function PublicPaymentPage() {
     setSubmitting(true)
     
     try {
-      const submissionData: FormSubmissionData = {}
+      const submissionData: Record<string, string> = {}
       form.fields?.forEach(field => {
-        submissionData[field.label.toLowerCase().replace(/\s+/g, '_')] = formFields[field.id]
+        const value = formFields[field.id]
+        if (value !== undefined && value !== '') {
+          submissionData[field.label] = value
+        }
+      })
+      
+      console.log('Submitting form:', { 
+        formId, 
+        submissionData, 
+        formFields,
+        fields: form.fields,
+        paymentType,
+        partialAmount
       })
       
       const emailField = form.fields?.find(f => f.type === 'EMAIL')
@@ -126,6 +147,7 @@ export function PublicPaymentPage() {
       const result = await publicFormService.submitForm(formId, submissionData, {
         contact_email: emailField ? formFields[emailField.id] : undefined,
         contact_name: nameField ? formFields[nameField.id] : undefined,
+        partial_amount: form.allow_partial && paymentType === 'partial' ? parseFloat(partialAmount) : undefined,
       })
       
       if (result.payment?.authorization_url) {
@@ -139,9 +161,10 @@ export function PublicPaymentPage() {
           }
         })
       }
-    } catch (err) {
-      setErrors({ submit: 'Failed to submit form. Please try again.' })
-      console.error(err)
+    } catch (err: any) {
+      const errorMessage = err?.message || 'Failed to submit form. Please try again.'
+      setErrors({ submit: errorMessage })
+      console.error('Submission error:', err)
     } finally {
       setSubmitting(false)
     }
@@ -216,6 +239,9 @@ export function PublicPaymentPage() {
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {(!form.fields || form.fields.length === 0) && (
+                  <p className="text-[#45464d] text-sm col-span-2">No additional information required.</p>
+                )}
                 {form.fields?.map((field) => (
                   <div 
                     key={field.id} 
@@ -268,7 +294,10 @@ export function PublicPaymentPage() {
                     <label className="font-['Inter'] text-xs font-bold uppercase tracking-wider text-[#45464d]">Select Payment Type</label>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <button
-                        onClick={() => setPaymentType('full')}
+                        onClick={() => {
+                          setPaymentType('full')
+                          setPartialAmount((form.amount || 0).toString())
+                        }}
                         className={`flex flex-col items-start p-6 rounded-xl ring-1 transition-all text-left ${
                           paymentType === 'full' 
                             ? 'bg-white ring-2 ring-[#000] shadow-md' 
@@ -281,7 +310,10 @@ export function PublicPaymentPage() {
                       </button>
                       
                       <button
-                        onClick={() => setPaymentType('partial')}
+                        onClick={() => {
+                          setPaymentType('partial')
+                          setPartialAmount('')
+                        }}
                         className={`flex flex-col items-start p-6 rounded-xl transition-all text-left ${
                           paymentType === 'partial' 
                             ? 'bg-white ring-2 ring-[#000] shadow-md' 
@@ -293,6 +325,26 @@ export function PublicPaymentPage() {
                         <span className="text-sm text-[#45464d]">Specify an amount to pay today</span>
                       </button>
                     </div>
+                    
+                    {paymentType === 'partial' && (
+                      <div className="space-y-2">
+                        <label className="font-['Inter'] text-xs font-bold uppercase tracking-wider text-[#45464d]">Enter Amount to Pay</label>
+                        <div className="relative">
+                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-bold text-[#76777d]">$</span>
+                          <input
+                            type="number"
+                            placeholder="0.00"
+                            value={partialAmount}
+                            onChange={(e) => setPartialAmount(e.target.value)}
+                            min="1"
+                            max={form.amount || undefined}
+                            className="w-full bg-white border border-[#c6c6cd]/30 rounded-xl py-3 pl-10 pr-4 text-lg font-semibold focus:ring-2 focus:ring-[#188ace] focus:border-[#188ace] outline-none transition-all"
+                          />
+                        </div>
+                        <p className="text-xs text-[#45464d]">Maximum: ${(form.amount || 0).toLocaleString()}</p>
+                        {errors.amount && <p className="text-red-500 text-xs">{errors.amount}</p>}
+                      </div>
+                    )}
                   </div>
                 )}
                 
@@ -306,6 +358,7 @@ export function PublicPaymentPage() {
                         placeholder="0.00"
                         value={partialAmount}
                         onChange={(e) => setPartialAmount(e.target.value)}
+                        min="1"
                         className="w-full bg-transparent border-none border-b-2 border-[#c6c6cd]/20 rounded-none py-6 pl-14 text-5xl font-['Manrope'] font-extrabold focus:ring-0 focus:border-[#000] transition-all outline-none"
                       />
                     </div>

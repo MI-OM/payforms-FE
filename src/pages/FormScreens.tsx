@@ -75,7 +75,7 @@ export function FormFieldsManagement() {
         label: newField.label,
         type: newField.type,
         required: newField.required,
-        options: newField.type === 'SELECT' ? newField.options.split(',').map(o => o.trim()).filter(Boolean) : undefined,
+        options: newField.type === 'SELECT' ? newField.options.split(';').map(o => o.trim()).filter(Boolean) : undefined,
         order_index: fields.length,
       })
       setFields([...fields, field])
@@ -293,7 +293,7 @@ export function FormFieldsManagement() {
               </div>
               {newField.type === 'SELECT' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Options (comma separated) *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Options (semicolon separated) *</label>
                   <input 
                     type="text" 
                     value={newField.options}
@@ -359,11 +359,11 @@ export function FormFieldsManagement() {
               </div>
               {editingField.type === 'SELECT' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Options (comma separated) *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Options (semicolon separated) *</label>
                   <input 
                     type="text" 
                     value={editingField.options?.join(', ') || ''}
-                    onChange={(e) => setEditingField({...editingField, options: e.target.value.split(',').map(o => o.trim()).filter(Boolean)})}
+                    onChange={(e) => setEditingField({...editingField, options: e.target.value.split(';').map(o => o.trim()).filter(Boolean)})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                   />
                 </div>

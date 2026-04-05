@@ -126,8 +126,10 @@ export function AllFormsManagement() {
       
       const publicForm: any = {
         ...fullForm,
-        fields: fullForm.fields || [],
-        amount: typeof fullForm.amount === 'number' ? fullForm.amount : parseFloat(fullForm.amount as any) || 0,
+        fields: (fullForm as any).fields || [],
+        amount: typeof fullForm.amount === 'number' ? fullForm.amount : 
+                typeof fullForm.amount === 'string' ? parseFloat(fullForm.amount) : 0,
+        organization_name: (fullForm as any).organization_name || 'Payforms',
       }
       setPreviewForm(publicForm)
     } catch (err) {
