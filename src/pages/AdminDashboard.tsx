@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { cn } from '@/lib/utils'
-import { reportService, type ReportSummary, type FormPerformance } from '@/services/reportService'
+import { reportService, type ReportSummary, type FormPerformance, type AnalyticsData } from '@/services/reportService'
 import { paymentService, type Transaction } from '@/services/paymentService'
 import { formService, type Form } from '@/services/formService'
 import { toast } from '@/components/ui/use-toast'
@@ -31,8 +31,8 @@ function MaterialIcon({ name, className = '', filled = false }: { name: string; 
 }
 
 export function AdminDashboardContent() {
-  const [isEmpty, setIsEmpty] = useState(false)
   const [summary, setSummary] = useState<ReportSummary | null>(null)
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [topForms, setTopForms] = useState<FormPerformance[]>([])
   const [forms, setForms] = useState<Form[]>([])
@@ -45,23 +45,21 @@ export function AdminDashboardContent() {
         setLoading(true)
         setError(null)
         
-        const [summaryData, txnData, performanceData, formsData] = await Promise.all([
+        const [summaryData, analyticsData, txnData, performanceData, formsData] = await Promise.all([
           reportService.getSummary().catch(() => null),
+          reportService.getAnalytics().catch(() => null),
           paymentService.getTransactions({ limit: 10 }).catch(() => ({ data: [] })),
-          reportService.getFormsPerformance().catch(() => []),
+          reportService.getFormsPerformance().catch(() => ({ data: [] })),
           formService.getForms({ limit: 100 }).catch(() => ({ data: [], total: 0, page: 1, limit: 100, totalPages: 0 }))
         ])
         
         setSummary(summaryData)
+        setAnalytics(analyticsData)
         setTransactions(txnData.data || [])
-        setTopForms(Array.isArray(performanceData) ? performanceData : [])
+        setTopForms(performanceData.data || [])
         setForms(formsData.data || [])
-        
-        const hasData = summaryData || (txnData.data && txnData.data.length > 0) || (formsData.data && formsData.data.length > 0)
-        setIsEmpty(!hasData)
       } catch (err) {
         setError('Failed to load dashboard data')
-        setIsEmpty(true)
         toast({ title: 'Error', description: 'Failed to load dashboard data', variant: 'destructive' })
       } finally {
         setLoading(false)
@@ -92,6 +90,8 @@ export function AdminDashboardContent() {
     return form?.title || 'Unknown Form'
   }
 
+  const hasNoData = !summary && transactions.length === 0 && forms.length === 0
+
   return (
     <>
       {loading && (
@@ -106,12 +106,12 @@ export function AdminDashboardContent() {
         </div>
       )}
       
-      {!loading && isEmpty ? (
-        <EmptyState onShowLive={() => setIsEmpty(false)} />
+      {!loading && hasNoData ? (
+        <EmptyState />
       ) : !loading ? (
         <LiveDashboard 
-          onShowEmpty={() => setIsEmpty(true)} 
           summary={summary}
+          analytics={analytics}
           transactions={transactions}
           topForms={topForms}
           forms={forms}
@@ -124,7 +124,7 @@ export function AdminDashboardContent() {
   )
 }
 
-function EmptyState({ onShowLive }: { onShowLive: () => void }) {
+function EmptyState() {
   return (
     <div className="max-w-6xl mx-auto p-8 md:p-12">
       {/* Welcome Header */}
@@ -220,8 +220,8 @@ function EmptyState({ onShowLive }: { onShowLive: () => void }) {
 }
 
 interface LiveDashboardProps {
-  onShowEmpty: () => void
   summary: ReportSummary | null
+  analytics: AnalyticsData | null
   transactions: Transaction[]
   topForms: FormPerformance[]
   forms: Form[]
@@ -230,23 +230,19 @@ interface LiveDashboardProps {
   getFormName: (formId: string) => string
 }
 
-function LiveDashboard({ onShowEmpty, summary, transactions, topForms, forms, formatCurrency, formatDate, getFormName }: LiveDashboardProps) {
+function LiveDashboard({ summary, analytics, transactions, topForms, forms, formatCurrency, formatDate, getFormName }: LiveDashboardProps) {
+  const revenueData = analytics?.revenue_by_day || []
+  const maxRevenue = Math.max(...revenueData.map(d => d.amount), 1)
+  
   return (
-    <div className="max-w-[1600px] mx-auto">
-      <div className="mb-6 p-4 bg-[#4edea3]/20 rounded-lg flex items-center justify-between">
-        <p className="text-sm text-[#005236]">Demo Mode: Showing live dashboard</p>
-        <button onClick={onShowEmpty} className="px-4 py-2 border border-[#005236] text-[#005236] rounded text-sm font-bold hover:bg-[#4edea3]/20">
-          Show Empty State
-        </button>
-      </div>
-
+    <div className="max-w-[1600px] mx-auto px-6 py-4">
       {/* KPI Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="bg-[#ffffff] p-6 rounded-xl border-l-4 border-black shadow-sm group hover:shadow-md transition-all">
           <div className="flex justify-between items-start mb-4">
             <span className="text-[10px] font-bold text-[#45464d] uppercase tracking-widest">Total Revenue</span>
             <span className="text-[#009668] bg-[#4edea3]/20 px-2 py-0.5 rounded text-[10px] font-bold">
-              {summary?.total_transactions || 0}
+              {summary?.total_transactions || 0} txns
             </span>
           </div>
           <p className="text-3xl font-extrabold tracking-tighter text-[#191c1e]">{formatCurrency(summary?.total_revenue || 0)}</p>
@@ -277,9 +273,11 @@ function LiveDashboard({ onShowEmpty, summary, transactions, topForms, forms, fo
             <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Pending Collections</span>
           </div>
           <p className="text-3xl font-extrabold tracking-tighter">{formatCurrency(summary?.pending_payments || 0)}</p>
-          <button className="mt-4 text-[10px] font-bold bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded transition-colors uppercase tracking-wider">
-            Review Pending
-          </button>
+          <Link to="/transactions?status=PENDING">
+            <button className="mt-4 text-[10px] font-bold bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded transition-colors uppercase tracking-wider">
+              Review Pending
+            </button>
+          </Link>
         </div>
       </div>
 
@@ -295,33 +293,76 @@ function LiveDashboard({ onShowEmpty, summary, transactions, topForms, forms, fo
             <div className="flex gap-4">
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 rounded-full bg-black"></span>
-                <span className="text-[10px] font-bold uppercase">Gross Income</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-[#188ace]"></span>
-                <span className="text-[10px] font-bold uppercase">Net Profit</span>
+                <span className="text-[10px] font-bold uppercase">Revenue</span>
               </div>
             </div>
           </div>
 
           <div className="h-64 w-full relative">
-            <svg className="w-full h-full preserve-3d" viewBox="0 0 1000 300">
-              <line stroke="#f2f4f6" strokeWidth="1" x1="0" x2="1000" y1="50" y2="50"></line>
-              <line stroke="#f2f4f6" strokeWidth="1" x1="0" x2="1000" y1="150" y2="150"></line>
-              <line stroke="#f2f4f6" strokeWidth="1" x1="0" x2="1000" y1="250" y2="250"></line>
-              <path d="M0,280 Q100,240 200,260 T400,180 T600,220 T800,120 T1000,140" fill="none" stroke="#188ace" strokeWidth="3"></path>
-              <path d="M0,260 Q100,200 200,230 T400,140 T600,180 T800,80 T1000,100" fill="none" stroke="#000000" strokeWidth="4"></path>
-              <circle cx="800" cy="80" fill="#000000" r="5"></circle>
-              <circle cx="1000" cy="100" fill="#000000" r="5"></circle>
-            </svg>
+            {revenueData.length > 0 ? (
+              <svg className="w-full h-full" viewBox={`0 0 ${revenueData.length * 120} 300`} preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="revenueGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#188ace" stopOpacity="0.3" />
+                    <stop offset="100%" stopColor="#188ace" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                {revenueData.map((_, i) => (
+                  <line 
+                    key={`grid-${i}`} 
+                    stroke="#f2f4f6" 
+                    strokeWidth="1" 
+                    x1={i * 120 + 60} 
+                    x2={i * 120 + 60} 
+                    y1="0" 
+                    y2="280"
+                  />
+                ))}
+                <path 
+                  d={`M${revenueData.map((d, i) => `${i * 120 + 60},${280 - (d.amount / maxRevenue) * 250}`).join(' L')} L${(revenueData.length - 1) * 120 + 60},280 L60,280 Z`}
+                  fill="url(#revenueGradient)"
+                />
+                <path 
+                  d={`M${revenueData.map((d, i) => `${i * 120 + 60},${280 - (d.amount / maxRevenue) * 250}`).join(' L')}`}
+                  fill="none"
+                  stroke="#188ace"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                {revenueData.map((d, i) => (
+                  <circle 
+                    key={`dot-${i}`}
+                    cx={i * 120 + 60} 
+                    cy={280 - (d.amount / maxRevenue) * 250} 
+                    fill="#188ace" 
+                    r="5"
+                  />
+                ))}
+              </svg>
+            ) : (
+              <div className="flex items-center justify-center h-full text-[#45464d]">
+                <p className="text-sm">No revenue data available</p>
+              </div>
+            )}
             <div className="absolute bottom-0 left-0 right-0 flex justify-between px-2 text-[10px] font-bold text-[#45464d] uppercase py-4">
-              <span>Oct 18</span>
-              <span>Oct 19</span>
-              <span>Oct 20</span>
-              <span>Oct 21</span>
-              <span>Oct 22</span>
-              <span>Oct 23</span>
-              <span>Oct 24</span>
+              {revenueData.length > 0 ? (
+                revenueData.map((d, i) => (
+                  <span key={`label-${i}`}>
+                    {new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </span>
+                ))
+              ) : (
+                <>
+                  <span>Day 1</span>
+                  <span>Day 2</span>
+                  <span>Day 3</span>
+                  <span>Day 4</span>
+                  <span>Day 5</span>
+                  <span>Day 6</span>
+                  <span>Day 7</span>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -335,21 +376,21 @@ function LiveDashboard({ onShowEmpty, summary, transactions, topForms, forms, fo
                 <MaterialIcon name="person_add" className="text-[10px] text-[#4edea3]" filled />
               </div>
               <p className="text-xs font-bold">New staff member invited</p>
-              <p className="text-[10px] text-[#45464d] uppercase mt-0.5">Admin Cluster • 2m ago</p>
+              <p className="text-[10px] text-[#45464d] uppercase mt-0.5">Admin Cluster • Recent</p>
             </div>
             <div className="relative pl-10">
               <div className="absolute left-0 top-1 w-6 h-6 rounded-full bg-[#188ace]/10 flex items-center justify-center z-10 border-4 border-white">
                 <MaterialIcon name="publish" className="text-[10px] text-[#188ace]" filled />
               </div>
-              <p className="text-xs font-bold">Form published: Gala 2024</p>
-              <p className="text-[10px] text-[#45464d] uppercase mt-0.5">Marketing • 45m ago</p>
+              <p className="text-xs font-bold">New form created</p>
+              <p className="text-[10px] text-[#45464d] uppercase mt-0.5">System • Recent</p>
             </div>
             <div className="relative pl-10">
               <div className="absolute left-0 top-1 w-6 h-6 rounded-full bg-black flex items-center justify-center z-10 border-4 border-white">
                 <MaterialIcon name="verified_user" className="text-[10px] text-white" filled />
               </div>
-              <p className="text-xs font-bold">Security Audit completed</p>
-              <p className="text-[10px] text-[#45464d] uppercase mt-0.5">System • 3h ago</p>
+              <p className="text-xs font-bold">Payment received</p>
+              <p className="text-[10px] text-[#45464d] uppercase mt-0.5">System • Recent</p>
             </div>
           </div>
         </div>
@@ -361,14 +402,16 @@ function LiveDashboard({ onShowEmpty, summary, transactions, topForms, forms, fo
         <div className="xl:col-span-2 bg-[#ffffff] rounded-xl shadow-sm overflow-hidden">
           <div className="p-6 border-b border-[#f2f4f6] flex justify-between items-center">
             <h2 className="text-xl font-bold tracking-tighter">Recent Transactions</h2>
-            <button className="text-[10px] font-bold uppercase tracking-widest text-[#188ace] hover:underline">Export Ledger</button>
+            <Link to="/transactions" className="text-[10px] font-bold uppercase tracking-widest text-[#188ace] hover:underline">
+              View All
+            </Link>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead className="bg-[#f2f4f6] text-[10px] font-bold uppercase tracking-widest text-[#45464d]">
                 <tr>
                   <th className="px-6 py-4">Date</th>
-                  <th className="px-6 py-4">Contact Name</th>
+                  <th className="px-6 py-4">Reference</th>
                   <th className="px-6 py-4">Form Name</th>
                   <th className="px-6 py-4">Amount</th>
                   <th className="px-6 py-4">Status</th>
@@ -385,13 +428,8 @@ function LiveDashboard({ onShowEmpty, summary, transactions, topForms, forms, fo
                   transactions.map((txn, i) => (
                     <tr key={txn.id || i} className="hover:bg-[#f7f9fb] transition-colors">
                       <td className="px-6 py-4 font-medium text-[#191c1e]">{formatDate(txn.created_at)}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px]">
-                            {txn.contact_id?.charAt(0) || '?'}
-                          </div>
-                          {txn.contact_id}
-                        </div>
+                      <td className="px-6 py-4 font-mono text-[#45464d]">
+                        {txn.reference?.slice(0, 12) || txn.id?.slice(0, 8)}...
                       </td>
                       <td className="px-6 py-4 text-[#45464d]">{getFormName(txn.form_id)}</td>
                       <td className="px-6 py-4 font-bold text-[#191c1e]">{formatCurrency(txn.amount)}</td>
