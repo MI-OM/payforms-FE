@@ -225,8 +225,15 @@ export function NotificationHistory() {
 
   useEffect(() => {
     setLoading(true)
-    notificationService.getNotificationHistory({ limit: 50 }).then(response => {
-      setHistory(response.data)
+    notificationService.getScheduledNotifications({ limit: 50 }).then(response => {
+      setHistory(response.data.map(n => ({
+        id: n.id,
+        type: 'scheduled' as const,
+        subject: n.subject,
+        sent_at: n.scheduled_for,
+        recipient_count: n.recipients.length,
+        status: n.status === 'sent' ? 'sent' as const : n.status === 'cancelled' ? 'failed' as const : 'sent' as const,
+      })))
     }).catch(err => {
       console.error('Failed to load notification history', err)
     }).finally(() => setLoading(false))

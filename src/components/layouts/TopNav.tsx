@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { notificationService } from '@/services/notificationService'
 
 interface TopNavProps {
   user?: {
@@ -34,8 +35,25 @@ function MaterialIcon({ name, className = '' }: { name: string; className?: stri
 }
 
 export function TopNav({ user, onLogout, onToggleMobileMenu }: TopNavProps) {
+  const navigate = useNavigate()
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [notificationCount, setNotificationCount] = useState(0)
   const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const fetchNotificationCount = async () => {
+      try {
+        const response = await notificationService.getScheduledNotifications({ limit: 1 })
+        setNotificationCount(response.total)
+      } catch (err) {
+        console.error('Failed to fetch notification count:', err)
+      }
+    }
+    
+    fetchNotificationCount()
+    const interval = setInterval(fetchNotificationCount, 60000)
+    return () => clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -75,8 +93,16 @@ export function TopNav({ user, onLogout, onToggleMobileMenu }: TopNavProps) {
       {/* Actions */}
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-3 text-slate-500">
-          <button className="hover:text-slate-900 transition-opacity flex items-center">
+          <button 
+            onClick={() => navigate('/settings/notifications/scheduled')}
+            className="hover:text-slate-900 transition-opacity flex items-center relative"
+          >
             <MaterialIcon name="notifications" />
+            {notificationCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                {notificationCount > 99 ? '99+' : notificationCount}
+              </span>
+            )}
           </button>
           <button className="hover:text-slate-900 transition-opacity flex items-center">
             <MaterialIcon name="help_outline" />
