@@ -1,74 +1,137 @@
-# React + TypeScript + Vite
-
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
 # Payforms
+
+Payforms is a modern payment management SaaS application designed for organizations to collect payments from contacts, manage forms, and track financial transactions.
+
+## Features
+
+### Contact Management
+- Create, edit, and manage contacts
+- Organize contacts into groups and subgroups
+- Bulk import contacts via CSV
+- Export contact data
+- Contact profile with transaction history
+
+### Payment Forms
+- Create customizable payment forms
+- Support for fixed and partial payments
+- Set payment amounts and categories
+- Preview forms before publishing
+- Activate/deactivate forms
+
+### Groups & Organization
+- Hierarchical group structure with tree view
+- Move contacts between groups
+- Assign forms to specific groups
+- Subgroup management
+
+### Transactions & Payments
+- Complete transaction ledger
+- View individual transaction details
+- Payment verification with Paystack integration
+- Export transaction data
+- Payment audit trail
+
+### Reports & Analytics
+- Forms performance reports
+- Group contributions tracking
+- Export reports in various formats
+
+### Team Management
+- Invite staff members with role-based access
+- Admin and Staff roles
+- Staff invitation flow with password setup
+
+### Notifications
+- Scheduled email notifications
+- Notification history tracking
+- Payment audit notifications
+
+### Settings
+- Organization profile management
+- Webhook configuration
+- Widget setup for embedded forms
+
+## Tech Stack
+
+- **Frontend**: React, TypeScript, Vite
+- **UI Components**: Custom components with Tailwind CSS
+- **State Management**: React Context API
+- **Routing**: React Router v6
+- **HTTP Client**: Axios with interceptors
+- **Icons**: Lucide React
+- **Payment Processing**: Paystack API integration
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- npm or yarn
+
+### Installation
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd payforms-app
+
+# Install dependencies
+npm install
+```
+
+### Configuration
+
+Create a `.env` file in the root directory with the following variables:
+
+```env
+VITE_API_URL=<your-api-url>
+```
+
+### Development
+
+```bash
+# Start development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+```
+
+## Project Structure
+
+```
+src/
+├── components/        # Reusable UI components
+│   ├── layouts/      # Layout components (Sidebar, Dashboard)
+│   └── ui/           # Base UI components (Button, Input, etc.)
+├── contexts/          # React Context providers
+├── lib/              # Utilities and API client
+├── pages/            # Page components
+├── services/         # API service modules
+└── types/            # TypeScript type definitions
+```
+
+## API Integration
+
+The application integrates with a backend API for:
+- Authentication and authorization
+- Contact management
+- Form management
+- Transaction processing
+- Group operations
+- Reporting and analytics
+- Notification management
+
+## Security
+
+- JWT-based authentication
+- Role-based access control (Admin, Staff, Contact)
+- Password requirements enforcement
+- Secure token management
+
+## License
+
+Private - All rights reserved
