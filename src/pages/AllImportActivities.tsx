@@ -1,13 +1,26 @@
 import { useState, useEffect } from 'react'
-import { Search, Upload, CheckCircle, XCircle, Clock, Download } from 'lucide-react'
+import { useParams, useNavigate, Link } from 'react-router-dom'
+import { Search, Upload, CheckCircle, XCircle, Clock, Download, ArrowLeft, Loader2, AlertCircle, X, FileSpreadsheet } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { contactService, type Import } from '@/services/contactService'
+
+interface ImportDetail {
+  id: string
+  status: string
+  details: {
+    valid: number
+    duplicates: number
+    errors: number
+  }
+}
 
 export function AllImportActivities() {
   const [imports, setImports] = useState<Import[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [selectedImport, setSelectedImport] = useState<ImportDetail | null>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
 
   useEffect(() => {
     const fetchImports = async () => {
@@ -27,6 +40,18 @@ export function AllImportActivities() {
     imp.id.toLowerCase().includes(search.toLowerCase())
   )
 
+  const viewImportDetails = async (id: string) => {
+    setDetailLoading(true)
+    try {
+      const data = await contactService.getImport(id)
+      setSelectedImport(data)
+    } catch (err) {
+      console.error('Failed to fetch import details:', err)
+    } finally {
+      setDetailLoading(false)
+    }
+  }
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
@@ -36,7 +61,7 @@ export function AllImportActivities() {
   }
 
   return (
-    <div className="min-h-screen bg-surface ml-64 p-8">
+    <div className="min-h-screen bg-surface p-8">
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-end mb-8">
           <div>
@@ -95,13 +120,72 @@ export function AllImportActivities() {
                   </div>
                   <div className="flex items-center gap-4">
                     <span className="text-sm text-on-surface-variant">{formatDate(importItem.created_at)}</span>
-                    <Button variant="ghost" size="sm">View Details</Button>
+                    <Button variant="ghost" size="sm" onClick={() => viewImportDetails(importItem.id)}>
+                      View Details
+                    </Button>
                   </div>
                 </div>
               ))}
             </div>
           )}
         </div>
+
+        {selectedImport && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setSelectedImport(null)}>
+            <div className="bg-surface-container-lowest rounded-xl max-w-lg w-full mx-4 max-h-[80vh] overflow-auto" onClick={e => e.stopPropagation()}>
+              <div className="p-6 border-b border-outline-variant/10 flex justify-between items-center sticky top-0 bg-surface-container-lowest">
+                <div className="flex items-center gap-3">
+                  <FileSpreadsheet className="h-6 w-6 text-primary" />
+                  <div>
+                    <h2 className="text-xl font-bold">Import Details</h2>
+                    <p className="text-sm text-on-surface-variant font-mono">#{selectedImport.id.slice(0, 8)}</p>
+                  </div>
+                </div>
+                <button onClick={() => setSelectedImport(null)} className="p-2 hover:bg-surface-container-high rounded-full">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              
+              <div className="p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <span className={`px-3 py-1 rounded-full text-sm font-bold ${
+                    selectedImport.status === 'completed' ? 'bg-green-100 text-green-700' : 
+                    selectedImport.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
+                    'bg-red-100 text-red-700'
+                  }`}>
+                    {selectedImport.status}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="bg-surface-container-low rounded-lg p-4 text-center">
+                    <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                    <p className="text-2xl font-bold text-green-600">{selectedImport.details.valid}</p>
+                    <p className="text-xs text-on-surface-variant">Valid</p>
+                  </div>
+                  <div className="bg-surface-container-low rounded-lg p-4 text-center">
+                    <AlertCircle className="h-8 w-8 text-yellow-600 mx-auto mb-2" />
+                    <p className="text-2xl font-bold text-yellow-600">{selectedImport.details.duplicates}</p>
+                    <p className="text-xs text-on-surface-variant">Duplicates</p>
+                  </div>
+                  <div className="bg-surface-container-low rounded-lg p-4 text-center">
+                    <XCircle className="h-8 w-8 text-red-600 mx-auto mb-2" />
+                    <p className="text-2xl font-bold text-red-600">{selectedImport.details.errors}</p>
+                    <p className="text-xs text-on-surface-variant">Errors</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {detailLoading && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-surface-container-lowest rounded-xl p-8 flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

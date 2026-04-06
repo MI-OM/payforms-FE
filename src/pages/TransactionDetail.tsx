@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { paymentService, type Transaction } from '@/services/paymentService'
 
 function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount)
+  return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(amount)
 }
 
 function formatDate(dateString: string): string {
@@ -40,7 +40,7 @@ export function IndividualTransactionDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-surface ml-64 p-8 flex items-center justify-center">
+      <div className="min-h-screen bg-surface p-8 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     )
@@ -48,7 +48,7 @@ export function IndividualTransactionDetail() {
 
   if (error || !transaction) {
     return (
-      <div className="min-h-screen bg-surface ml-64 p-8 flex items-center justify-center">
+      <div className="min-h-screen bg-surface p-8 flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-600 mb-4">{error || 'Transaction not found'}</p>
           <Button onClick={() => navigate('/transactions')}>Back to Transactions</Button>
@@ -67,7 +67,7 @@ export function IndividualTransactionDetail() {
   const statusColor = statusColors[transaction.status] || { bg: 'bg-gray-100', text: 'text-gray-700' }
 
   return (
-    <div className="min-h-screen bg-surface ml-64 p-8">
+    <div className="min-h-screen bg-surface p-8">
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center gap-2 text-sm text-on-surface-variant mb-4">
           <button onClick={() => navigate('/transactions')} className="hover:text-on-surface flex items-center gap-1">

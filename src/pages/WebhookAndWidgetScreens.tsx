@@ -57,7 +57,7 @@ export function WebhookManagement() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 ml-64">
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto p-8">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -172,7 +172,7 @@ export function WebhookLogs() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 ml-64">
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto p-8">
         <div className="flex items-center gap-4 mb-8">
           <button onClick={() => navigate('/settings/webhooks')} className="p-2 hover:bg-gray-100 rounded-lg">
@@ -307,7 +307,7 @@ export function WidgetConfiguration() {
   const iframeCode = `<iframe src="https://api.payforms.app/public/forms/${formSlug}/widget?auto_redirect=${widgetSettings.autoRedirect}" width="${widgetSettings.width}" height="${widgetSettings.minHeight}" frameborder="0"></iframe>`
 
   return (
-    <div className="min-h-screen bg-gray-50 ml-64">
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto p-8">
         <div className="flex items-center gap-4 mb-8">
           <button onClick={() => navigate('/forms')} className="p-2 hover:bg-gray-100 rounded-lg">

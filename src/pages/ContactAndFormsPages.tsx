@@ -26,7 +26,7 @@ export function FormWidgetTemplatesShowcase() {
   }
   
   return (
-    <div className="min-h-screen bg-surface ml-64 p-8">
+    <div className="min-h-screen bg-surface p-8">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-end mb-8">
           <div>
@@ -135,7 +135,7 @@ export function FullStatementTemplateContact() {
   }
 
   return (
-    <div className="min-h-screen bg-surface ml-64 p-8">
+    <div className="min-h-screen bg-surface p-8">
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center gap-4 mb-8">
           <button onClick={() => navigate(`/contacts/${id}`)} className="p-2 hover:bg-surface-container-low rounded-lg">
@@ -249,7 +249,7 @@ export function FullTransactionHistoryContact() {
   }
 
   return (
-    <div className="min-h-screen bg-surface ml-64 p-8">
+    <div className="min-h-screen bg-surface p-8">
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center gap-4 mb-8">
           <button onClick={() => navigate(`/contacts/${id}`)} className="p-2 hover:bg-surface-container-low rounded-lg">
@@ -390,14 +390,14 @@ export function EditContactView() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-surface ml-64 p-8 flex items-center justify-center">
+      <div className="min-h-screen bg-surface p-8 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-surface ml-64 p-8">
+    <div className="min-h-screen bg-surface p-8">
       <div className="max-w-3xl mx-auto">
         <div className="bg-surface-container-lowest rounded-xl p-8">
           <h1 className="text-2xl font-extrabold tracking-tight mb-6">Edit Contact</h1>

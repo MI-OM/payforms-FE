@@ -73,7 +73,7 @@ export function ScheduledNotifications() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 ml-64">
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto p-8">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -237,7 +237,7 @@ export function NotificationHistory() {
   )
 
   return (
-    <div className="min-h-screen bg-gray-50 ml-64">
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto p-8">
         <div className="flex items-center justify-between mb-8">
           <div>

@@ -136,7 +136,7 @@ function App() {
         {/* Auth Success/Error */}
         <Route path="/invite/success" element={<InviteStaffSuccessState />} />
         <Route path="/invite/error" element={<InviteStaffErrorState />} />
-        <Route path="/invite/accept/:token" element={<AcceptInvite />} />
+        <Route path="/accept-invite" element={<AcceptInvite />} />
         <Route path="/password-reset" element={<PasswordResetRequest />} />
         <Route path="/password-reset/confirm/:token" element={<PasswordResetConfirm />} />
         <Route path="/move/success" element={<MoveContactSuccessFailureStates />} />

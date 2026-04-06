@@ -65,7 +65,7 @@ export function ContactProfileManagement() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-surface ml-64 p-8 flex items-center justify-center">
+      <div className="min-h-screen bg-surface p-8 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     )
@@ -73,7 +73,7 @@ export function ContactProfileManagement() {
 
   if (error || !contact) {
     return (
-      <div className="min-h-screen bg-surface ml-64 p-8 flex items-center justify-center">
+      <div className="min-h-screen bg-surface p-8 flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-600 mb-4">{error || 'Contact not found'}</p>
           <Button onClick={() => navigate('/contacts')}>Back to Contacts</Button>
@@ -85,7 +85,7 @@ export function ContactProfileManagement() {
   const fullName = [contact.first_name, contact.last_name].filter(Boolean).join(' ')
 
   return (
-    <div className="min-h-screen bg-surface ml-64 p-8">
+    <div className="min-h-screen bg-surface p-8">
       <div className="max-w-4xl mx-auto">
         <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
           <div className="bg-primary-container p-8">

@@ -80,14 +80,14 @@ export function FormSettings() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-surface ml-64 flex items-center justify-center">
+      <div className="min-h-screen bg-surface flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-surface ml-64 p-8">
+    <div className="min-h-screen bg-surface p-8">
       <div className="max-w-3xl mx-auto">
         <div className="flex items-center gap-4 mb-8">
           <Link to={`/forms/${id}/fields`} className="p-2 hover:bg-surface-container-low rounded-lg">

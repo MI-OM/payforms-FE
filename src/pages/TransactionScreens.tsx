@@ -29,7 +29,7 @@ export function TransactionHistory() {
   }, [fetchHistory])
 
   return (
-    <div className="min-h-screen bg-gray-50 ml-64">
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto p-8">
         <div className="flex items-center gap-4 mb-8">
           <button onClick={() => navigate(`/transactions/${id}`)} className="p-2 hover:bg-gray-100 rounded-lg">
@@ -156,7 +156,7 @@ export function TransactionExport() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 ml-64">
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-3xl mx-auto p-8">
         <div className="flex items-center gap-4 mb-8">
           <button onClick={() => navigate('/transactions')} className="p-2 hover:bg-gray-100 rounded-lg">

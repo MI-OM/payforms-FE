@@ -78,7 +78,7 @@ export function AdminProfileManagement() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f7f9fb] ml-64 flex items-center justify-center">
+      <div className="min-h-screen bg-[#f7f9fb] flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     )

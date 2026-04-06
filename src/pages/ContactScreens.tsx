@@ -44,7 +44,7 @@ export function ContactsList() {
   }, [fetchContacts])
 
   return (
-    <div className="min-h-screen bg-surface ml-64 p-8">
+    <div className="min-h-screen bg-surface p-8">
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-end mb-8">
           <div>
@@ -218,7 +218,7 @@ export function ContactExport() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 ml-64">
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-3xl mx-auto p-8">
         <div className="flex items-center gap-4 mb-8">
           <button onClick={() => navigate('/contacts')} className="p-2 hover:bg-gray-100 rounded-lg">
@@ -358,7 +358,7 @@ export function ContactDetailsView() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 ml-64 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     )
@@ -366,7 +366,7 @@ export function ContactDetailsView() {
 
   if (error || !contact) {
     return (
-      <div className="min-h-screen bg-gray-50 ml-64 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-600 mb-4">{error || 'Contact not found'}</p>
           <Button onClick={() => navigate('/contacts')}>Back to Contacts</Button>
@@ -378,7 +378,7 @@ export function ContactDetailsView() {
   const fullName = [contact.first_name, contact.middle_name, contact.last_name].filter(Boolean).join(' ')
 
   return (
-    <div className="min-h-screen bg-gray-50 ml-64">
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto p-8">
         <div className="flex items-center gap-4 mb-8">
           <button onClick={() => navigate('/contacts')} className="p-2 hover:bg-gray-100 rounded-lg">
@@ -581,14 +581,14 @@ export function AssignGroupsToContact() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 ml-64 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 ml-64">
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-2xl mx-auto p-8">
         <div className="flex items-center gap-4 mb-8">
           <button onClick={() => navigate(`/contacts/${id}`)} className="p-2 hover:bg-gray-100 rounded-lg">
@@ -720,7 +720,7 @@ export function ImportValidationReview() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 ml-64 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     )
@@ -728,7 +728,7 @@ export function ImportValidationReview() {
 
   if (!validationData) {
     return (
-      <div className="min-h-screen bg-gray-50 ml-64 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-500 mb-4">No validation data found</p>
           <Button onClick={() => navigate('/import')}>Go to Import</Button>
@@ -738,7 +738,7 @@ export function ImportValidationReview() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 ml-64">
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto p-8">
         <div className="flex items-center gap-4 mb-8">
           <button onClick={() => navigate('/import')} className="p-2 hover:bg-gray-100 rounded-lg">
