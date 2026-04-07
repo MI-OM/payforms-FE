@@ -3,6 +3,19 @@ import { AuthorizationError, ForbiddenError } from './authorization'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 
+const isDevelopment = import.meta.env.DEV
+
+const debug = {
+  log: (message: string, data?: unknown) => {
+    if (!isDevelopment) return
+    console.log(message, data ?? '')
+  },
+  error: (message: string, data?: unknown) => {
+    if (!isDevelopment) return
+    console.error(message, data ?? '')
+  },
+}
+
 export { AuthorizationError, ForbiddenError }
 
 function sanitizeErrorMessage(message: string): string {
@@ -84,14 +97,14 @@ async function request<T>(
   }
 
   try {
-    console.log('[API] Request:', { method: options.method || 'GET', url, params, headers })
-    
+    debug.log('[API] Request:', { method: options.method || 'GET', url, params, headers })
+     
     const response = await fetch(url, {
       ...fetchOptions,
       headers,
     })
 
-    console.log('[API] Response:', { status: response.status, statusText: response.statusText, url })
+    debug.log('[API] Response:', { status: response.status, statusText: response.statusText, url })
 
     if (response.status === 401) {
       const refreshToken = getRefreshToken()
@@ -144,7 +157,7 @@ async function request<T>(
       if (contentType?.includes('application/json')) {
         try {
           errorData = await response.json()
-          console.log('[API] Error response data:', errorData)
+          debug.log('[API] Error response data:', errorData)
           message = errorData.message || errorData.error || errorData.detail || `Server error (${response.status})`
         } catch {
           message = `Server error (${response.status})`
@@ -153,7 +166,7 @@ async function request<T>(
         message = `Server error (${response.status})`
       }
       
-      console.log('[API] Throwing error with:', { status: response.status, message, errorData })
+      debug.log('[API] Throwing error with:', { status: response.status, message, errorData })
       throw new ApiError(response.status, sanitizeErrorMessage(message), { ...errorData, status: response.status })
     }
 
