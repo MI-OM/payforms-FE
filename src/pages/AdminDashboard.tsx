@@ -69,12 +69,12 @@ export function AdminDashboardContent() {
     fetchDashboardData()
   }, [])
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: number | string) => {
     return new Intl.NumberFormat('en-NG', {
       style: 'currency',
       currency: 'NGN',
       minimumFractionDigits: 2
-    }).format(amount)
+    }).format(typeof amount === 'string' ? parseFloat(amount) : amount)
   }
 
   const formatDate = (dateString: string) => {
@@ -85,7 +85,8 @@ export function AdminDashboardContent() {
     })
   }
 
-  const getFormName = (formId: string) => {
+  const getFormName = (formId: string | undefined) => {
+    if (!formId) return 'Unknown Form'
     const form = forms.find(f => f.id === formId)
     return form?.title || 'Unknown Form'
   }
@@ -431,8 +432,8 @@ function LiveDashboard({ summary, analytics, transactions, topForms, forms, form
                       <td className="px-6 py-4 font-mono text-[#45464d]">
                         {txn.reference?.slice(0, 12) || txn.id?.slice(0, 8)}...
                       </td>
-                      <td className="px-6 py-4 text-[#45464d]">{getFormName(txn.form_id)}</td>
-                      <td className="px-6 py-4 font-bold text-[#191c1e]">{formatCurrency(txn.amount)}</td>
+                      <td className="px-6 py-4 text-[#45464d]">{getFormName((txn.submission as any)?.form_id)}</td>
+                      <td className="px-6 py-4 font-bold text-[#191c1e]">{formatCurrency(parseFloat(txn.amount))}</td>
                       <td className="px-6 py-4">
                         <span className={cn(
                           'px-2 py-1 rounded-full text-[10px] font-bold',

@@ -1014,9 +1014,9 @@ export function OfficialPaymentReceipt() {
         setTransaction(txnData)
         setOrganization(orgData)
         
-        if (txnData?.contact_id) {
+        if (txnData?.submission?.contact_id) {
           try {
-            const contactData = await contactService.getContact(txnData.contact_id)
+            const contactData = await contactService.getContact(txnData.submission.contact_id)
             setContact(contactData)
           } catch {
             setContact(null)
@@ -1038,7 +1038,7 @@ export function OfficialPaymentReceipt() {
   const studentRef = contact?.student_id || id?.slice(0, 12).toUpperCase() || ''
   const organizationName = organization?.name || 'Payforms'
   const reference = transaction?.reference || id || ''
-  const amount = transaction?.amount || 0
+  const amount = transaction?.amount ? parseFloat(transaction.amount) : 0
   const date = transaction?.created_at 
     ? new Date(transaction.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     : new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })

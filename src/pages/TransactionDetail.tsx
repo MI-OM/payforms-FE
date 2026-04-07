@@ -93,7 +93,7 @@ export function IndividualTransactionDetail() {
             <div className="grid grid-cols-2 gap-6 mb-8">
               <div>
                 <p className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold mb-1">Amount</p>
-                <p className="text-3xl font-extrabold">{formatCurrency(transaction.amount)}</p>
+                <p className="text-3xl font-extrabold">{formatCurrency(parseFloat(transaction.amount))}</p>
               </div>
               <div>
                 <p className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold mb-1">Date</p>
@@ -123,15 +123,15 @@ export function IndividualTransactionDetail() {
                   View History
                 </Button>
               </Link>
-              {transaction.contact_id && (
-                <Link to={`/contacts/${transaction.contact_id}`} className="flex-1">
+              {transaction.submission?.contact_id && (
+                <Link to={`/contacts/${transaction.submission.contact_id}`} className="flex-1">
                   <Button variant="secondary" className="w-full flex items-center justify-center gap-2">
                     View Contact
                   </Button>
                 </Link>
               )}
-              {transaction.form_id && (
-                <Link to={`/forms/${transaction.form_id}`} className="flex-1">
+              {transaction.submission?.form_id && (
+                <Link to={`/forms/${transaction.submission.form_id}`} className="flex-1">
                   <Button variant="secondary" className="w-full flex items-center justify-center gap-2">
                     View Form
                   </Button>

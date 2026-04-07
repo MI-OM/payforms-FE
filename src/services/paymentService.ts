@@ -13,13 +13,22 @@ export interface Payment {
 
 export interface Transaction {
   id: string
+  submission_id: string
+  organization_id: string
   reference: string
-  contact_id: string
-  form_id: string
-  amount: number
+  amount: string
+  total_amount: string
+  amount_paid: string
+  balance_due: string
   status: 'PENDING' | 'PAID' | 'PARTIAL' | 'FAILED'
-  paid_at?: string
+  paid_at: string | null
   created_at: string
+  submission?: {
+    id: string
+    form_id: string
+    contact_id?: string
+    organization_id: string
+  }
 }
 
 export interface TransactionHistory {
