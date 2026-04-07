@@ -2,14 +2,19 @@ import { apiClient } from '@/lib/apiClient'
 import { getAccessToken } from '@/lib/auth'
 
 export interface ReportSummary {
-  total_revenue: number
-  total_transactions: number
-  total_forms: number
-  total_contacts: number
-  pending_payments: number
-  failed_payments: number
-  today_revenue?: number
-  today_transactions?: number
+  forms: number
+  contacts: number
+  submissions: number
+  payments: number
+  payment_total: number
+  payment_paid_total: number
+  payment_pending_total: number
+  payment_failed_total: number
+  payment_partial_total: number
+  range?: {
+    start: string
+    end: string
+  }
 }
 
 export interface AnalyticsData {

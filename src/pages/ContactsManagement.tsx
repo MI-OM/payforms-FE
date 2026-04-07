@@ -25,12 +25,12 @@ function getFullName(contact: { first_name?: string; last_name?: string }): stri
 
 function formatCurrency(amount: number): string {
   if (amount >= 1000000) {
-    return `$${(amount / 1000000).toFixed(1)}M`
+    return `₦${(amount / 1000000).toFixed(1)}M`
   }
   if (amount >= 1000) {
-    return `$${(amount / 1000).toFixed(1)}k`
+    return `₦${(amount / 1000).toFixed(1)}k`
   }
-  return `$${amount.toFixed(2)}`
+  return `₦${amount.toFixed(2)}`
 }
 
 interface FinancialSummary {
@@ -53,6 +53,7 @@ export function ContactsManagement() {
   const [searchQuery, setSearchQuery] = useState('')
   const [financialSummary, setFinancialSummary] = useState<FinancialSummary | null>(null)
   const [loadingSummary, setLoadingSummary] = useState(false)
+  const [groupContactCounts, setGroupContactCounts] = useState<Record<string, number>>({})
   const [deleteModal, setDeleteModal] = useState<DeleteModalState>({
     isOpen: false,
     contactId: null,
@@ -65,6 +66,28 @@ export function ContactsManagement() {
     try {
       const groupTree = await groupService.getGroupTree()
       setGroups(groupTree)
+      
+      const counts: Record<string, number> = {}
+      const flattenGroupsForCount = (nodes: GroupTreeNode[]) => {
+        for (const node of nodes) {
+          counts[node.id] = node.contact_count || 0
+          if (node.children && node.children.length > 0) {
+            flattenGroupsForCount(node.children)
+          }
+        }
+      }
+      flattenGroupsForCount(groupTree)
+      
+      for (const groupId of Object.keys(counts)) {
+        try {
+          const response = await contactService.getContacts({ group_id: groupId, limit: 1 })
+          counts[groupId] = response.total
+        } catch (err) {
+          console.error(`Failed to fetch count for group ${groupId}:`, err)
+        }
+      }
+      
+      setGroupContactCounts(counts)
     } catch (err) {
       console.error('Failed to load groups:', err)
     }
@@ -121,8 +144,8 @@ export function ContactsManagement() {
     try {
       const summary = await reportService.getSummary()
       setFinancialSummary({
-        total_paid: summary.total_revenue || 0,
-        total_outstanding: summary.pending_payments || 0,
+        total_paid: summary.payment_paid_total || 0,
+        total_outstanding: summary.payment_pending_total || 0,
         total_records: total || 0
       })
     } catch (err) {
@@ -175,7 +198,7 @@ export function ContactsManagement() {
   }
 
   const getGroupCount = (group: GroupTreeNode): number => {
-    return group.contact_count || 0
+    return groupContactCounts[group.id] ?? group.contact_count ?? 0
   }
 
   const handleDeleteClick = (contact: Contact) => {
@@ -304,7 +327,7 @@ export function ContactsManagement() {
                       <span className="w-2 h-2 rounded-full bg-[#c6c6cd]"></span>
                       {group.name}
                     </span>
-                    <span className="text-[#45464d]/50 text-[10px]">{group.contact_count || 0}</span>
+                    <span className="text-[#45464d]/50 text-[10px]">{getGroupCount(group)}</span>
                   </button>
                 </li>
               ))}
@@ -479,8 +502,8 @@ export function ContactsManagement() {
                             </span>
                           )}
                         </td>
-                        <td className="px-4 lg:px-6 py-3 lg:py-4 text-sm font-medium text-right text-[#191c1e] hidden lg:table-cell">$0.00</td>
-                        <td className="px-4 lg:px-6 py-3 lg:py-4 text-sm font-bold text-right text-[#009668] hidden lg:table-cell">$0.00</td>
+                        <td className="px-4 lg:px-6 py-3 lg:py-4 text-sm font-medium text-right text-[#191c1e] hidden lg:table-cell">₦0.00</td>
+                        <td className="px-4 lg:px-6 py-3 lg:py-4 text-sm font-bold text-right text-[#009668] hidden lg:table-cell">₦0.00</td>
                         <td className="px-4 lg:px-6 py-3 lg:py-4 text-right">
                           <div className="flex items-center justify-end gap-1">
                             <Link

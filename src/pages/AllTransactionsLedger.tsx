@@ -111,13 +111,13 @@ export function AllTransactionsLedger() {
     try {
       const summary = await reportService.getSummary()
       setStats({
-        total_volume: summary.total_revenue || 0,
-        outstanding_balance: summary.pending_payments || 0,
-        success_rate: summary.total_transactions > 0 
-          ? Math.round((summary.total_transactions - summary.failed_payments) / summary.total_transactions * 100 * 10) / 10
+        total_volume: summary.payment_paid_total || 0,
+        outstanding_balance: summary.payment_pending_total || 0,
+        success_rate: summary.payments > 0 
+          ? Math.round((summary.payments - (summary.payment_failed_total > 0 ? 1 : 0)) / summary.payments * 100 * 10) / 10
           : 0,
-        today_collections: summary.today_revenue || 0,
-        today_count: summary.today_transactions || 0,
+        today_collections: summary.payment_paid_total || 0,
+        today_count: summary.payments || 0,
         volume_change: 0,
         balance_change: 0,
       })

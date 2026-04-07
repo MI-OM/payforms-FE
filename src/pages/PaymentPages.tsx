@@ -1255,8 +1255,8 @@ export function PaymentReminderEmailTemplate() {
         }
         
         const summary = await reportService.getSummary().catch(() => null)
-        if (summary?.pending_payments) {
-          setPendingAmount(summary.pending_payments)
+        if (summary?.payment_pending_total) {
+          setPendingAmount(summary.payment_pending_total)
         }
         
         const futureDate = new Date()

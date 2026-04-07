@@ -41,47 +41,29 @@ export function ReportsAnalytics() {
         start_date: dateRange.start_date,
         end_date: dateRange.end_date,
       }
-      
-      console.log('[DEBUG] Fetching reports with params:', params)
-      console.log('[DEBUG] API URL:', import.meta.env.VITE_API_URL)
-      
-      const groupParams = {
-        ...params,
-        form_id: undefined as string | undefined,
-      }
 
-      const [summaryData, analyticsData] = await Promise.all([
+      const [summaryData, analyticsData, formsData, groupsData] = await Promise.all([
         reportService.getSummary(params).catch(err => {
-          console.warn('[DEBUG] Summary error:', err)
-          console.warn('[DEBUG] Summary error status:', (err as any)?.status)
-          console.warn('[DEBUG] Summary error data:', (err as any)?.data)
+          console.warn('[Reports] Summary error:', err)
           errors.summary = true
           return null
         }),
         reportService.getAnalytics(params).catch(err => {
-          console.warn('[DEBUG] Analytics error:', err)
+          console.warn('[Reports] Analytics error:', err)
           errors.analytics = true
           return null
         }),
+        reportService.getFormsPerformance(params).catch(err => {
+          console.warn('[Reports] Forms performance error:', err)
+          errors.forms = true
+          return null
+        }),
+        reportService.getGroupContributions(params).catch(err => {
+          console.warn('[Reports] Group contributions error:', err)
+          errors.groups = true
+          return null
+        }),
       ])
-      
-      const formsData = await reportService.getFormsPerformance(params).catch(err => {
-        console.warn('[DEBUG] Forms performance error:', err)
-        console.warn('[DEBUG] Forms performance error status:', (err as any)?.status)
-        console.warn('[DEBUG] Forms performance error data:', (err as any)?.data)
-        errors.forms = true
-        return null
-      })
-      
-      const groupsData = await reportService.getGroupContributions(groupParams).catch(err => {
-        console.warn('[DEBUG] Group contributions error:', err)
-        console.warn('[DEBUG] Group contributions error status:', (err as any)?.status)
-        console.warn('[DEBUG] Group contributions error data:', (err as any)?.data)
-        errors.groups = true
-        return null
-      })
-      
-      console.log('[DEBUG] Results:', { summaryData, analyticsData, formsData, groupsData })
       
       setSummary(summaryData)
       setAnalytics(analyticsData)
@@ -89,7 +71,7 @@ export function ReportsAnalytics() {
       setGroupContributions(groupsData)
       setEndpointErrors(errors)
     } catch (err) {
-      console.error('[DEBUG] Failed to load reports', err)
+      console.error('[Reports] Failed to load reports', err)
     } finally {
       setLoading(false)
     }
@@ -125,7 +107,7 @@ export function ReportsAnalytics() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <Loader className="h-8 w-8 animate-spin text-blue-600" />
+        <Loader className="h-8 w-8 animate-spin text-[#006398]" />
       </div>
     )
   }
@@ -133,14 +115,7 @@ export function ReportsAnalytics() {
   const chartData = analytics?.revenue_by_day?.map(d => ({
     month: new Date(d.date).toLocaleDateString('en-US', { month: 'short' }),
     value: d.amount,
-  })) || [
-    { month: 'Jan', value: 0 },
-    { month: 'Feb', value: 0 },
-    { month: 'Mar', value: 0 },
-    { month: 'Apr', value: 0 },
-    { month: 'May', value: 0 },
-    { month: 'Jun', value: 0 },
-  ]
+  })) || []
 
   const maxValue = Math.max(...chartData.map(d => d.value), 1)
 
@@ -148,8 +123,8 @@ export function ReportsAnalytics() {
     <div className="max-w-7xl mx-auto">
       <div className="flex justify-between items-end mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Reports & Analytics</h1>
-          <p className="text-gray-500">Track your business performance</p>
+          <h1 className="text-2xl font-bold text-[#191c1e]">Reports & Analytics</h1>
+          <p className="text-[#45464d]">Track your business performance</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
@@ -159,7 +134,7 @@ export function ReportsAnalytics() {
               value={dateRange.start_date}
               onChange={(e) => setDateRange({ ...dateRange, start_date: e.target.value })}
             />
-            <span className="text-gray-400">to</span>
+            <span className="text-[#45464d]">to</span>
             <Input 
               type="date" 
               className="w-36"
@@ -179,8 +154,8 @@ export function ReportsAnalytics() {
           onClick={() => setActiveTab('overview')}
           className={`pb-3 px-1 text-sm font-medium transition-colors ${
             activeTab === 'overview'
-              ? 'text-blue-600 border-b-2 border-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
+              ? 'text-[#006398] border-b-2 border-[#006398]'
+              : 'text-[#45464d] hover:text-[#191c1e]'
           }`}
         >
           Overview
@@ -189,8 +164,8 @@ export function ReportsAnalytics() {
           onClick={() => setActiveTab('forms')}
           className={`pb-3 px-1 text-sm font-medium transition-colors flex items-center gap-1 ${
             activeTab === 'forms'
-              ? 'text-blue-600 border-b-2 border-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
+              ? 'text-[#006398] border-b-2 border-[#006398]'
+              : 'text-[#45464d] hover:text-[#191c1e]'
           }`}
         >
           <BarChart3 className="h-4 w-4" />
@@ -200,8 +175,8 @@ export function ReportsAnalytics() {
           onClick={() => setActiveTab('groups')}
           className={`pb-3 px-1 text-sm font-medium transition-colors flex items-center gap-1 ${
             activeTab === 'groups'
-              ? 'text-blue-600 border-b-2 border-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
+              ? 'text-[#006398] border-b-2 border-[#006398]'
+              : 'text-[#45464d] hover:text-[#191c1e]'
           }`}
         >
           <Users className="h-4 w-4" />
@@ -211,88 +186,94 @@ export function ReportsAnalytics() {
 
       {activeTab === 'overview' && (
         <>
-          <div className="grid grid-cols-4 gap-4 mb-6">
-            <div className="bg-white rounded-xl p-5 shadow-sm">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-[#c6c6cd]/10">
               <div className="flex items-center gap-2 mb-3">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <DollarSign className="h-4 w-4 text-green-600" />
+                <div className="p-2 bg-[#4edea3]/20 rounded-lg">
+                  <DollarSign className="h-4 w-4 text-[#009668]" />
                 </div>
               </div>
-              <p className="text-xs text-gray-500 font-medium mb-1">Total Revenue</p>
-              <p className="text-xl font-bold text-gray-900">
-                {summary ? formatCurrency(summary.total_revenue) : '$0'}
+              <p className="text-[10px] text-[#45464d] font-bold uppercase tracking-wider mb-1">Total Revenue</p>
+              <p className="text-xl font-extrabold text-[#191c1e]">
+                {summary ? formatCurrency(summary.payment_paid_total) : '₦0'}
               </p>
             </div>
 
-            <div className="bg-white rounded-xl p-5 shadow-sm">
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-[#c6c6cd]/10">
               <div className="flex items-center gap-2 mb-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <FileText className="h-4 w-4 text-blue-600" />
+                <div className="p-2 bg-[#006398]/10 rounded-lg">
+                  <FileText className="h-4 w-4 text-[#006398]" />
                 </div>
               </div>
-              <p className="text-xs text-gray-500 font-medium mb-1">Total Forms</p>
-              <p className="text-xl font-bold text-gray-900">
-                {summary?.total_forms || 0}
+              <p className="text-[10px] text-[#45464d] font-bold uppercase tracking-wider mb-1">Total Transactions</p>
+              <p className="text-xl font-extrabold text-[#191c1e]">
+                {formatNumber(summary?.payments || 0)}
               </p>
             </div>
 
-            <div className="bg-white rounded-xl p-5 shadow-sm">
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-[#c6c6cd]/10">
               <div className="flex items-center gap-2 mb-3">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <Users className="h-4 w-4 text-purple-600" />
+                <div className="p-2 bg-[#188ace]/10 rounded-lg">
+                  <Users className="h-4 w-4 text-[#188ace]" />
                 </div>
               </div>
-              <p className="text-xs text-gray-500 font-medium mb-1">Total Contacts</p>
-              <p className="text-xl font-bold text-gray-900">
-                {formatNumber(summary?.total_contacts || 0)}
+              <p className="text-[10px] text-[#45464d] font-bold uppercase tracking-wider mb-1">Total Contacts</p>
+              <p className="text-xl font-extrabold text-[#191c1e]">
+                {formatNumber(summary?.contacts || 0)}
               </p>
             </div>
 
-            <div className="bg-white rounded-xl p-5 shadow-sm">
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-[#c6c6cd]/10">
               <div className="flex items-center gap-2 mb-3">
-                <div className="p-2 bg-amber-100 rounded-lg">
-                  <CreditCard className="h-4 w-4 text-amber-600" />
+                <div className="p-2 bg-red-100 rounded-lg">
+                  <CreditCard className="h-4 w-4 text-red-600" />
                 </div>
-                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">
+                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-red-50 text-red-700">
                   <TrendingDown className="h-3 w-3 inline" />
                 </span>
               </div>
-              <p className="text-xs text-gray-500 font-medium mb-1">Failed Payments</p>
-              <p className="text-xl font-bold text-gray-900">
-                {summary?.failed_payments || 0}
+              <p className="text-[10px] text-[#45464d] font-bold uppercase tracking-wider mb-1">Failed Payments</p>
+              <p className="text-xl font-extrabold text-[#191c1e]">
+                {formatCurrency(summary?.payment_failed_total || 0)}
               </p>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl p-6 mb-6 shadow-sm">
-            <h3 className="text-lg font-bold mb-4 text-gray-900">Revenue Overview</h3>
-            <div className="h-48 flex items-end justify-between gap-2">
-              {chartData.map((data, index) => (
-                <div key={index} className="flex-1 flex flex-col items-center">
-                  <div 
-                    className="w-full bg-blue-500 rounded-t transition-all hover:bg-blue-600 cursor-pointer"
-                    style={{ height: `${(data.value / maxValue) * 100}%`, minHeight: data.value > 0 ? '4px' : '0' }}
-                  />
-                  <span className="text-xs text-gray-500 mt-2">{data.month}</span>
-                </div>
-              ))}
-            </div>
+          <div className="bg-white rounded-xl p-6 mb-6 shadow-sm border border-[#c6c6cd]/10">
+            <h3 className="text-lg font-bold mb-4 text-[#191c1e]">Revenue Overview</h3>
+            {chartData.length > 0 ? (
+              <div className="h-48 flex items-end justify-between gap-2">
+                {chartData.map((data, index) => (
+                  <div key={index} className="flex-1 flex flex-col items-center">
+                    <div 
+                      className="w-full bg-[#006398] rounded-t transition-all hover:bg-[#188ace] cursor-pointer"
+                      style={{ height: `${(data.value / maxValue) * 100}%`, minHeight: data.value > 0 ? '4px' : '0' }}
+                    />
+                    <span className="text-xs text-[#45464d] mt-2">{data.month}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="h-48 flex items-center justify-center text-[#45464d]">
+                <p className="text-sm">No revenue data available for this period</p>
+              </div>
+            )}
           </div>
 
-          <div className="bg-white rounded-xl p-6 shadow-sm">
-            <h3 className="text-lg font-bold mb-4 text-gray-900">Top Performing Forms</h3>
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-[#c6c6cd]/10">
+            <h3 className="text-lg font-bold mb-4 text-[#191c1e]">Top Performing Forms</h3>
             <div className="space-y-3">
               {analytics?.top_forms?.slice(0, 5).map((item) => (
-                <div key={item.form_id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={item.form_id} className="flex items-center justify-between p-3 bg-[#f2f4f6] rounded-lg">
                   <div>
-                    <p className="font-medium text-gray-900">{item.form_title}</p>
-                    <p className="text-xs text-gray-500">{item.count} submissions</p>
+                    <p className="font-bold text-[#191c1e]">{item.form_title}</p>
+                    <p className="text-xs text-[#45464d]">{item.count} submissions</p>
                   </div>
-                  <p className="font-bold text-gray-900">{formatCurrency(item.amount)}</p>
+                  <p className="font-extrabold text-[#191c1e]">{formatCurrency(item.amount)}</p>
                 </div>
               ))}
               {(!analytics?.top_forms || analytics.top_forms.length === 0) && (
-                <p className="text-center text-gray-500 py-4">No form data available</p>
+                <p className="text-center text-[#45464d] py-4">No form data available</p>
               )}
             </div>
           </div>
@@ -300,16 +281,16 @@ export function ReportsAnalytics() {
       )}
 
       {activeTab === 'forms' && (
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="p-4 border-b">
-            <h3 className="text-lg font-bold text-gray-900">Form Performance</h3>
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-[#c6c6cd]/10">
+          <div className="p-4 border-b border-[#eceef0]">
+            <h3 className="text-lg font-bold text-[#191c1e]">Form Performance</h3>
             {endpointErrors.forms ? (
               <p className="text-sm text-amber-600 mt-1 flex items-center gap-2">
-                <span className="px-2 py-0.5 bg-amber-100 rounded text-xs">Endpoint unavailable</span>
+                <span className="px-2 py-0.5 bg-amber-100 rounded text-[10px] font-bold">Endpoint unavailable</span>
                 This feature requires backend implementation
               </p>
             ) : formsPerformance?.totals && (
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-[#45464d] mt-1">
                 {formsPerformance.totals.submissions} submissions, {formsPerformance.totals.payments} payments, {formatCurrency(formsPerformance.totals.paid_amount_total)} collected
               </p>
             )}
@@ -317,44 +298,44 @@ export function ReportsAnalytics() {
           <div className="overflow-x-auto">
             {endpointErrors.forms ? (
               <div className="p-12 text-center">
-                <BarChart3 className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-                <p className="text-gray-500 mb-2">Form Performance API endpoint is not available</p>
-                <p className="text-sm text-gray-400">The backend needs to implement GET /reports/forms/performance</p>
+                <BarChart3 className="h-12 w-12 mx-auto text-[#e0e3e5] mb-4" />
+                <p className="text-[#45464d] mb-2">Form Performance API endpoint is not available</p>
+                <p className="text-sm text-[#76777d]">The backend needs to implement GET /reports/forms/performance</p>
               </div>
             ) : (
               <table className="w-full">
-                <thead className="bg-gray-50 border-b">
+                <thead className="bg-[#f2f4f6] border-b">
                   <tr>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Form</th>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Status</th>
-                    <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">Submissions</th>
-                    <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">Payments</th>
-                    <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">Collected</th>
-                    <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">Completion Rate</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-bold text-[#45464d] uppercase tracking-wider">Form</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-bold text-[#45464d] uppercase tracking-wider">Status</th>
+                    <th className="text-right px-4 py-3 text-[10px] font-bold text-[#45464d] uppercase tracking-wider">Submissions</th>
+                    <th className="text-right px-4 py-3 text-[10px] font-bold text-[#45464d] uppercase tracking-wider">Payments</th>
+                    <th className="text-right px-4 py-3 text-[10px] font-bold text-[#45464d] uppercase tracking-wider">Collected</th>
+                    <th className="text-right px-4 py-3 text-[10px] font-bold text-[#45464d] uppercase tracking-wider">Completion Rate</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-[#eceef0]">
                   {formsPerformance?.data?.map((form) => (
-                    <tr key={form.form_id} className="hover:bg-gray-50">
+                    <tr key={form.form_id} className="hover:bg-[#f2f4f6]/50">
                       <td className="px-4 py-3">
-                        <p className="font-medium text-gray-900">{form.title}</p>
-                        <p className="text-xs text-gray-500">{form.slug}</p>
+                        <p className="font-bold text-[#191c1e]">{form.title}</p>
+                        <p className="text-xs text-[#45464d]">{form.slug}</p>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-1 text-xs rounded-full ${
-                          form.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                        <span className={`px-2 py-1 text-[10px] font-bold rounded-full ${
+                          form.is_active ? 'bg-[#4edea3]/20 text-[#009668]' : 'bg-[#e0e3e5] text-[#45464d]'
                         }`}>
                           {form.is_active ? 'Active' : 'Inactive'}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right font-medium">{form.submissions}</td>
+                      <td className="px-4 py-3 text-right font-bold">{form.submissions}</td>
                       <td className="px-4 py-3 text-right">
-                        <span className="text-green-600 font-medium">{form.paid_payments}</span>
-                        <span className="text-gray-400"> / {form.payments}</span>
+                        <span className="text-[#009668] font-bold">{form.paid_payments}</span>
+                        <span className="text-[#76777d]"> / {form.payments}</span>
                       </td>
-                      <td className="px-4 py-3 text-right font-bold">{formatCurrency(form.paid_amount_total)}</td>
+                      <td className="px-4 py-3 text-right font-extrabold">{formatCurrency(form.paid_amount_total)}</td>
                       <td className="px-4 py-3 text-right">
-                        <span className={`font-medium ${form.completion_rate >= 50 ? 'text-green-600' : 'text-amber-600'}`}>
+                        <span className={`font-bold ${form.completion_rate >= 50 ? 'text-[#009668]' : 'text-amber-600'}`}>
                           {form.completion_rate.toFixed(1)}%
                         </span>
                       </td>
@@ -362,7 +343,7 @@ export function ReportsAnalytics() {
                   ))}
                   {(!formsPerformance?.data || formsPerformance.data.length === 0) && (
                     <tr>
-                      <td colSpan={6} className="px-4 py-8 text-center text-gray-500">No form performance data available</td>
+                      <td colSpan={6} className="px-4 py-8 text-center text-[#45464d]">No form performance data available</td>
                     </tr>
                   )}
                 </tbody>
@@ -373,16 +354,16 @@ export function ReportsAnalytics() {
       )}
 
       {activeTab === 'groups' && (
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="p-4 border-b">
-            <h3 className="text-lg font-bold text-gray-900">Group Contributions</h3>
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-[#c6c6cd]/10">
+          <div className="p-4 border-b border-[#eceef0]">
+            <h3 className="text-lg font-bold text-[#191c1e]">Group Contributions</h3>
             {endpointErrors.groups ? (
               <p className="text-sm text-amber-600 mt-1 flex items-center gap-2">
-                <span className="px-2 py-0.5 bg-amber-100 rounded text-xs">Endpoint unavailable</span>
+                <span className="px-2 py-0.5 bg-amber-100 rounded text-[10px] font-bold">Endpoint unavailable</span>
                 This feature requires backend implementation
               </p>
             ) : groupContributions?.totals && (
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-[#45464d] mt-1">
                 {groupContributions.totals.submissions} submissions, {formatCurrency(groupContributions.totals.paid_amount)} collected
               </p>
             )}
@@ -390,33 +371,33 @@ export function ReportsAnalytics() {
           <div className="overflow-x-auto">
             {endpointErrors.groups ? (
               <div className="p-12 text-center">
-                <Users className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-                <p className="text-gray-500 mb-2">Group Contributions API endpoint is not available</p>
-                <p className="text-sm text-gray-400">The backend needs to implement GET /reports/groups/contributions</p>
+                <Users className="h-12 w-12 mx-auto text-[#e0e3e5] mb-4" />
+                <p className="text-[#45464d] mb-2">Group Contributions API endpoint is not available</p>
+                <p className="text-sm text-[#76777d]">The backend needs to implement GET /reports/groups/contributions</p>
               </div>
             ) : (
               <table className="w-full">
-                <thead className="bg-gray-50 border-b">
+                <thead className="bg-[#f2f4f6] border-b">
                   <tr>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Group</th>
-                    <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">Contacts</th>
-                    <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">Submissions</th>
-                    <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">Payments</th>
-                    <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">Collected</th>
-                    <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">Collection Rate</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-bold text-[#45464d] uppercase tracking-wider">Group</th>
+                    <th className="text-right px-4 py-3 text-[10px] font-bold text-[#45464d] uppercase tracking-wider">Contacts</th>
+                    <th className="text-right px-4 py-3 text-[10px] font-bold text-[#45464d] uppercase tracking-wider">Submissions</th>
+                    <th className="text-right px-4 py-3 text-[10px] font-bold text-[#45464d] uppercase tracking-wider">Payments</th>
+                    <th className="text-right px-4 py-3 text-[10px] font-bold text-[#45464d] uppercase tracking-wider">Collected</th>
+                    <th className="text-right px-4 py-3 text-[10px] font-bold text-[#45464d] uppercase tracking-wider">Collection Rate</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-[#eceef0]">
                   {groupContributions?.data?.map((group) => (
-                    <tr key={group.group_id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium text-gray-900">{group.group_name}</td>
+                    <tr key={group.group_id} className="hover:bg-[#f2f4f6]/50">
+                      <td className="px-4 py-3 font-bold text-[#191c1e]">{group.group_name}</td>
                       <td className="px-4 py-3 text-right">{group.contact_count}</td>
                       <td className="px-4 py-3 text-right">{group.submissions}</td>
-                      <td className="px-4 py-3 text-right text-green-600 font-medium">{group.payments}</td>
-                      <td className="px-4 py-3 text-right font-bold">{formatCurrency(group.paid_amount)}</td>
+                      <td className="px-4 py-3 text-right text-[#009668] font-bold">{group.payments}</td>
+                      <td className="px-4 py-3 text-right font-extrabold">{formatCurrency(group.paid_amount)}</td>
                       <td className="px-4 py-3 text-right">
                         {group.collection_rate !== undefined ? (
-                          <span className={`font-medium ${group.collection_rate >= 50 ? 'text-green-600' : 'text-amber-600'}`}>
+                          <span className={`font-bold ${group.collection_rate >= 50 ? 'text-[#009668]' : 'text-amber-600'}`}>
                             {group.collection_rate.toFixed(1)}%
                           </span>
                         ) : '-'}
@@ -425,7 +406,7 @@ export function ReportsAnalytics() {
                   ))}
                   {(!groupContributions?.data || groupContributions.data.length === 0) && (
                     <tr>
-                      <td colSpan={6} className="px-4 py-8 text-center text-gray-500">No group contribution data available</td>
+                      <td colSpan={6} className="px-4 py-8 text-center text-[#45464d]">No group contribution data available</td>
                     </tr>
                   )}
                 </tbody>

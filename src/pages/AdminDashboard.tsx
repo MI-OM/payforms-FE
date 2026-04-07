@@ -242,10 +242,10 @@ function LiveDashboard({ summary, analytics, transactions, topForms, forms, form
           <div className="flex justify-between items-start mb-4">
             <span className="text-[10px] font-bold text-[#45464d] uppercase tracking-widest">Total Revenue</span>
             <span className="text-[#009668] bg-[#4edea3]/20 px-2 py-0.5 rounded text-[10px] font-bold">
-              {summary?.total_transactions || 0} txns
+              {summary?.payments || 0} txns
             </span>
           </div>
-          <p className="text-3xl font-extrabold tracking-tighter text-[#191c1e]">{formatCurrency(summary?.total_revenue || 0)}</p>
+          <p className="text-3xl font-extrabold tracking-tighter text-[#191c1e]">{formatCurrency(summary?.payment_paid_total || 0)}</p>
           <p className="text-[11px] text-[#45464d] mt-2 font-medium">Total collected</p>
         </div>
 
@@ -253,7 +253,7 @@ function LiveDashboard({ summary, analytics, transactions, topForms, forms, form
           <div className="flex justify-between items-start mb-4">
             <span className="text-[10px] font-bold text-[#45464d] uppercase tracking-widest">Total Transactions</span>
           </div>
-          <p className="text-3xl font-extrabold tracking-tighter text-[#191c1e]">{summary?.total_transactions || 0}</p>
+          <p className="text-3xl font-extrabold tracking-tighter text-[#191c1e]">{summary?.payments || 0}</p>
           <p className="text-[11px] text-[#45464d] mt-2 font-medium">Payment attempts</p>
         </div>
 
@@ -261,8 +261,8 @@ function LiveDashboard({ summary, analytics, transactions, topForms, forms, form
           <div className="flex justify-between items-start mb-4">
             <span className="text-[10px] font-bold text-[#45464d] uppercase tracking-widest">Active Forms</span>
           </div>
-          <p className="text-3xl font-extrabold tracking-tighter text-[#191c1e]">{forms.filter(f => f.is_active).length || summary?.total_forms || 0}</p>
-          <p className="text-[11px] text-[#45464d] mt-2 font-medium">Total forms: {forms.length || summary?.total_forms || 0}</p>
+          <p className="text-3xl font-extrabold tracking-tighter text-[#191c1e]">{forms.filter(f => f.is_active).length || summary?.forms || 0}</p>
+          <p className="text-[11px] text-[#45464d] mt-2 font-medium">Total forms: {forms.length || summary?.forms || 0}</p>
         </div>
 
         <div className="bg-black text-white p-6 rounded-xl shadow-lg relative overflow-hidden">
@@ -272,7 +272,7 @@ function LiveDashboard({ summary, analytics, transactions, topForms, forms, form
           <div className="flex justify-between items-start mb-4">
             <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Pending Collections</span>
           </div>
-          <p className="text-3xl font-extrabold tracking-tighter">{formatCurrency(summary?.pending_payments || 0)}</p>
+          <p className="text-3xl font-extrabold tracking-tighter">{formatCurrency(summary?.payment_pending_total || 0)}</p>
           <Link to="/transactions?status=PENDING">
             <button className="mt-4 text-[10px] font-bold bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded transition-colors uppercase tracking-wider">
               Review Pending
