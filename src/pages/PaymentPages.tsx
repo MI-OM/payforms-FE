@@ -8,6 +8,7 @@ import { contactService } from '@/services/contactService'
 import { organizationService } from '@/services/organizationService'
 import { reportService } from '@/services/reportService'
 import { Loader2 } from 'lucide-react'
+import { getCallbackUrl } from '@/utils/config'
 
 function MaterialIcon({ name, className = '', filled = false, style }: { name: string; className?: string; filled?: boolean; style?: React.CSSProperties }) {
   const iconStyle = filled ? { fontVariationSettings: "'FILL' 1", ...style } : style
@@ -160,6 +161,7 @@ export function PublicPaymentPage() {
         contact_email: emailField ? formFields[emailField.id] : undefined,
         contact_name: nameField ? formFields[nameField.id] : undefined,
         partial_amount: form.allow_partial && paymentType === 'partial' ? parseFloat(partialAmount) : undefined,
+        callback_url: getCallbackUrl(),
       })
       
       console.log('[Payment] Submission result:', result)
