@@ -5,7 +5,7 @@ import { reportService, type ReportSummary, type FormPerformance, type Analytics
 import { paymentService, type Transaction } from '@/services/paymentService'
 import { formService, type Form } from '@/services/formService'
 import { toast } from '@/components/ui/use-toast'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts'
 
 function MaterialIcon({ name, className = '', filled = false }: { name: string; className?: string; filled?: boolean }) {
   const iconStyle = filled ? { fontVariationSettings: "'FILL' 1" } : undefined
@@ -339,37 +339,54 @@ function LiveDashboard({ summary, analytics, transactions, topForms, forms, form
           <div className="flex justify-between items-center mb-8">
             <div>
               <h2 className="text-xl font-bold tracking-tighter">Revenue Performance</h2>
-              <p className="text-xs text-[#45464d]">Daily payments collected</p>
+              <p className="text-xs text-[#45464d]">Real-time metrics for the trailing 7 days</p>
+            </div>
+            <div className="flex gap-4">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-[#000000]"></span>
+                <span className="text-[10px] font-bold uppercase">Revenue</span>
+              </div>
             </div>
           </div>
 
           {chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={256}>
-              <BarChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
-                <XAxis 
-                  dataKey="day" 
-                  tick={{ fontSize: 12, fill: '#45464d' }}
-                  axisLine={{ stroke: '#e0e3e5' }}
-                  tickLine={false}
-                />
-                <YAxis 
-                  tickFormatter={(value) => `₦${(value / 1000).toFixed(0)}k`}
-                  tick={{ fontSize: 12, fill: '#45464d' }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <Tooltip 
-                  formatter={(value) => [`₦${Number(value).toLocaleString()}`, 'Amount']}
-                  contentStyle={{ 
-                    backgroundColor: '#fff', 
-                    border: '1px solid #e0e3e5', 
-                    borderRadius: '8px',
-                    fontSize: '12px'
-                  }}
-                />
-                <Bar dataKey="amount" fill="#188ace" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="h-64 w-full relative">
+              <ResponsiveContainer width="100%" height={256}>
+                <LineChart data={chartData} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f2f4f6" vertical={false} />
+                  <XAxis 
+                    dataKey="day" 
+                    tick={{ fontSize: 12, fill: '#45464d' }}
+                    axisLine={{ stroke: '#f2f4f6' }}
+                    tickLine={false}
+                  />
+                  <YAxis 
+                    tickFormatter={(value) => `₦${(Number(value) / 1000).toFixed(0)}k`}
+                    tick={{ fontSize: 12, fill: '#45464d' }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={50}
+                  />
+                  <Tooltip 
+                    formatter={(value) => [`₦${Number(value).toLocaleString()}`, 'Revenue']}
+                    contentStyle={{ 
+                      backgroundColor: '#fff', 
+                      border: '1px solid #e0e3e5', 
+                      borderRadius: '8px',
+                      fontSize: '12px'
+                    }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="amount" 
+                    stroke="#000000" 
+                    strokeWidth={3}
+                    dot={false}
+                    activeDot={{ r: 6, fill: '#000000' }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           ) : (
             <div className="flex items-center justify-center h-64 text-[#45464d]">
               <p className="text-sm">No revenue data available</p>
