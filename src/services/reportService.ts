@@ -18,9 +18,13 @@ export interface ReportSummary {
 }
 
 export interface AnalyticsData {
-  revenue_by_day: { date: string; amount: number }[]
-  transactions_by_status: { status: string; count: number }[]
-  top_forms: { form_id: string; form_title: string; count: number; amount: number }[]
+  range?: {
+    start: string
+    end: string
+  }
+  submissions_by_day: { day: string; count: number }[]
+  payments_by_day: { day: string; total: number; count: number }[]
+  payment_status_breakdown: { status: string; count: number; total_amount: number }[]
 }
 
 export interface FormPerformance {

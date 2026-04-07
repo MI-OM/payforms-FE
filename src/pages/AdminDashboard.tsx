@@ -232,8 +232,8 @@ interface LiveDashboardProps {
 }
 
 function LiveDashboard({ summary, analytics, transactions, topForms, forms, formatCurrency, formatDate, getFormName }: LiveDashboardProps) {
-  const revenueData = analytics?.revenue_by_day || []
-  const maxRevenue = Math.max(...revenueData.map(d => d.amount), 1)
+  const revenueData = analytics?.payments_by_day || []
+  const maxRevenue = Math.max(...revenueData.map(d => d.total), 1)
   
   return (
     <div className="max-w-[1600px] mx-auto px-6 py-4">
@@ -320,11 +320,11 @@ function LiveDashboard({ summary, analytics, transactions, topForms, forms, form
                   />
                 ))}
                 <path 
-                  d={`M${revenueData.map((d, i) => `${i * 120 + 60},${280 - (d.amount / maxRevenue) * 250}`).join(' L')} L${(revenueData.length - 1) * 120 + 60},280 L60,280 Z`}
+                  d={`M${revenueData.map((d, i) => `${i * 120 + 60},${280 - (d.total / maxRevenue) * 250}`).join(' L')} L${(revenueData.length - 1) * 120 + 60},280 L60,280 Z`}
                   fill="url(#revenueGradient)"
                 />
                 <path 
-                  d={`M${revenueData.map((d, i) => `${i * 120 + 60},${280 - (d.amount / maxRevenue) * 250}`).join(' L')}`}
+                  d={`M${revenueData.map((d, i) => `${i * 120 + 60},${280 - (d.total / maxRevenue) * 250}`).join(' L')}`}
                   fill="none"
                   stroke="#188ace"
                   strokeWidth="3"
@@ -335,7 +335,7 @@ function LiveDashboard({ summary, analytics, transactions, topForms, forms, form
                   <circle 
                     key={`dot-${i}`}
                     cx={i * 120 + 60} 
-                    cy={280 - (d.amount / maxRevenue) * 250} 
+                    cy={280 - (d.total / maxRevenue) * 250} 
                     fill="#188ace" 
                     r="5"
                   />
@@ -350,7 +350,7 @@ function LiveDashboard({ summary, analytics, transactions, topForms, forms, form
               {revenueData.length > 0 ? (
                 revenueData.map((d, i) => (
                   <span key={`label-${i}`}>
-                    {new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    {new Date(d.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   </span>
                 ))
               ) : (

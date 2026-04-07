@@ -112,9 +112,9 @@ export function ReportsAnalytics() {
     )
   }
 
-  const chartData = analytics?.revenue_by_day?.map(d => ({
-    month: new Date(d.date).toLocaleDateString('en-US', { month: 'short' }),
-    value: d.amount,
+  const chartData = analytics?.payments_by_day?.map(d => ({
+    month: new Date(d.day).toLocaleDateString('en-US', { month: 'short' }),
+    value: d.total,
   })) || []
 
   const maxValue = Math.max(...chartData.map(d => d.value), 1)
@@ -263,16 +263,16 @@ export function ReportsAnalytics() {
           <div className="bg-white rounded-xl p-6 shadow-sm border border-[#c6c6cd]/10">
             <h3 className="text-lg font-bold mb-4 text-[#191c1e]">Top Performing Forms</h3>
             <div className="space-y-3">
-              {analytics?.top_forms?.slice(0, 5).map((item) => (
+              {formsPerformance?.data?.slice(0, 5).map((item) => (
                 <div key={item.form_id} className="flex items-center justify-between p-3 bg-[#f2f4f6] rounded-lg">
                   <div>
-                    <p className="font-bold text-[#191c1e]">{item.form_title}</p>
-                    <p className="text-xs text-[#45464d]">{item.count} submissions</p>
+                    <p className="font-bold text-[#191c1e]">{item.title}</p>
+                    <p className="text-xs text-[#45464d]">{item.submissions} submissions</p>
                   </div>
-                  <p className="font-extrabold text-[#191c1e]">{formatCurrency(item.amount)}</p>
+                  <p className="font-extrabold text-[#191c1e]">{formatCurrency(item.paid_amount_total)}</p>
                 </div>
               ))}
-              {(!analytics?.top_forms || analytics.top_forms.length === 0) && (
+              {(!formsPerformance?.data || formsPerformance.data.length === 0) && (
                 <p className="text-center text-[#45464d] py-4">No form data available</p>
               )}
             </div>
