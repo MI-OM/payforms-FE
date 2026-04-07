@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { notificationService } from '@/services/notificationService'
 
 interface TopNavProps {
   user?: {
@@ -10,6 +11,8 @@ interface TopNavProps {
   }
   onLogout: () => void
   onToggleMobileMenu?: () => void
+  notificationCount?: number
+  onNotificationCountChange?: (count: number) => void
 }
 
 function MaterialIcon({ name, className = '' }: { name: string; className?: string }) {
@@ -33,10 +36,26 @@ function MaterialIcon({ name, className = '' }: { name: string; className?: stri
   )
 }
 
-export function TopNav({ user, onLogout, onToggleMobileMenu }: TopNavProps) {
+export function TopNav({ user, onLogout, onToggleMobileMenu, notificationCount = 0 }: TopNavProps) {
   const navigate = useNavigate()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const [badgeCount, setBadgeCount] = useState(notificationCount)
+
+  useEffect(() => {
+    const fetchNotificationCount = async () => {
+      try {
+        const response = await notificationService.getScheduledNotifications({ limit: 1 })
+        setBadgeCount(response.total || 0)
+      } catch (err) {
+        console.warn('Failed to fetch notification count:', err)
+      }
+    }
+    
+    fetchNotificationCount()
+    const interval = setInterval(fetchNotificationCount, 60000)
+    return () => clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -78,9 +97,14 @@ export function TopNav({ user, onLogout, onToggleMobileMenu }: TopNavProps) {
         <div className="flex items-center gap-3 text-slate-500">
           <button 
             onClick={() => navigate('/settings/notifications/scheduled')}
-            className="hover:text-slate-900 transition-opacity flex items-center"
+            className="hover:text-slate-900 transition-opacity flex items-center relative"
           >
             <MaterialIcon name="notifications" />
+            {badgeCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                {badgeCount > 9 ? '9+' : badgeCount}
+              </span>
+            )}
           </button>
           <button className="hover:text-slate-900 transition-opacity flex items-center">
             <MaterialIcon name="help_outline" />

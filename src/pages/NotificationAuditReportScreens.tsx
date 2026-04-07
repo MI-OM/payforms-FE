@@ -18,10 +18,10 @@ export function ScheduledNotifications() {
     body: '',
     scheduledDate: '',
     scheduledTime: '',
-    recipientType: 'all',
-    groups: [] as string[],
+    recipients: [] as string[],
   })
   const [isSending, setIsSending] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
 
   const fetchScheduled = useCallback(async () => {
     setLoading(true)
@@ -40,18 +40,30 @@ export function ScheduledNotifications() {
   }, [fetchScheduled])
 
   const handleCreate = async () => {
+    if (!newNotification.subject.trim()) {
+      toast({ title: 'Error', description: 'Subject is required', variant: 'destructive' })
+      return
+    }
+    if (!newNotification.body.trim()) {
+      toast({ title: 'Error', description: 'Message is required', variant: 'destructive' })
+      return
+    }
+    if (!newNotification.scheduledDate || !newNotification.scheduledTime) {
+      toast({ title: 'Error', description: 'Date and time are required', variant: 'destructive' })
+      return
+    }
+
     setIsSending(true)
     try {
-      const scheduledFor = newNotification.scheduledDate && newNotification.scheduledTime
-        ? `${newNotification.scheduledDate}T${newNotification.scheduledTime}:00Z`
-        : undefined
+      const scheduledFor = `${newNotification.scheduledDate}T${newNotification.scheduledTime}:00Z`
       await notificationService.sendScheduledNotification({
         subject: newNotification.subject,
         body: newNotification.body,
-        recipients: [],
+        recipients: newNotification.recipients.length > 0 ? newNotification.recipients : [],
       })
       setIsCreating(false)
-      setNewNotification({ subject: '', body: '', scheduledDate: '', scheduledTime: '', recipientType: 'all', groups: [] })
+      setNewNotification({ subject: '', body: '', scheduledDate: '', scheduledTime: '', recipients: [] })
+      toast({ title: 'Success', description: 'Notification scheduled successfully' })
       fetchScheduled()
     } catch (err) {
       toast({ title: 'Error', description: 'Failed to schedule notification', variant: 'destructive' })
@@ -66,136 +78,184 @@ export function ScheduledNotifications() {
     try {
       await notificationService.cancelScheduledNotification(id)
       setScheduled(scheduled.filter(n => n.id !== id))
+      toast({ title: 'Success', description: 'Notification cancelled' })
     } catch (err) {
       toast({ title: 'Error', description: 'Failed to cancel notification', variant: 'destructive' })
       console.error(err)
     }
   }
 
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'sent':
+        return 'bg-green-100 text-green-700'
+      case 'cancelled':
+        return 'bg-red-100 text-red-700'
+      default:
+        return 'bg-blue-100 text-blue-700'
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto p-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Scheduled Notifications</h1>
-            <p className="text-gray-500">Manage and create scheduled notifications</p>
-          </div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
+          <p className="text-sm text-gray-500">Schedule and manage notifications</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant={showHistory ? 'secondary' : 'default'} onClick={() => setShowHistory(false)}>
+            <Clock className="h-4 w-4 mr-2" />
+            Scheduled ({scheduled.length})
+          </Button>
+          <Button variant={showHistory ? 'default' : 'secondary'} onClick={() => setShowHistory(true)}>
+            <Send className="h-4 w-4 mr-2" />
+            History
+          </Button>
           <Button onClick={() => setIsCreating(true)}>
             <Plus className="h-4 w-4 mr-2" />
-            Schedule Notification
+            New Notification
           </Button>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm">
-          <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-            <h3 className="font-bold text-gray-900">Upcoming ({scheduled.length})</h3>
-          </div>
-
-          <div className="divide-y divide-gray-100">
-            {scheduled.map(notification => (
-              <div key={notification.id} className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                      <Clock className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">{notification.subject}</p>
-                      <p className="text-sm text-gray-500 line-clamp-1">{notification.body}</p>
-                      <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
-                        <span>{new Date(notification.scheduled_for).toLocaleString()}</span>
-                        <span>{notification.recipients?.length || 0} recipients</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
-                      Scheduled
-                    </span>
-                    <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50">
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {scheduled.length === 0 && (
-            <div className="p-8 text-center">
-              <Clock className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500">No scheduled notifications</p>
-            </div>
-          )}
         </div>
       </div>
 
+      {!showHistory ? (
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+            <h3 className="font-bold text-gray-900">Upcoming Notifications</h3>
+            <span className="text-sm text-gray-500">{scheduled.length} scheduled</span>
+          </div>
+
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            </div>
+          ) : scheduled.length === 0 ? (
+            <div className="p-12 text-center">
+              <Clock className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500 font-medium">No scheduled notifications</p>
+              <p className="text-sm text-gray-400 mt-1">Click "New Notification" to schedule one</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {scheduled.map(notification => (
+                <div key={notification.id} className="p-4 hover:bg-gray-50/50 transition-colors">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <Clock className="h-6 w-6 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900">{notification.subject}</p>
+                        <p className="text-sm text-gray-500 line-clamp-2 mt-1">{notification.body}</p>
+                        <div className="flex items-center gap-4 mt-3">
+                          <span className="flex items-center gap-1 text-xs text-gray-500">
+                            <Calendar className="h-3 w-3" />
+                            {new Date(notification.scheduled_for).toLocaleString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                          <span className="text-xs text-gray-400">
+                            {notification.recipients?.length || 0} recipients
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusBadge(notification.status)}`}>
+                        {notification.status.charAt(0).toUpperCase() + notification.status.slice(1)}
+                      </span>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-red-600 hover:bg-red-50"
+                        onClick={() => handleCancel(notification.id)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <NotificationHistory onClose={() => setShowHistory(false)} />
+      )}
+
       {isCreating && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-900">Schedule Notification</h3>
-              <button onClick={() => setIsCreating(false)} className="p-2 hover:bg-gray-100 rounded-lg">
-                <X className="h-5 w-5" />
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Schedule Notification</h3>
+                <p className="text-sm text-gray-500">Create a new scheduled notification</p>
+              </div>
+              <button onClick={() => setIsCreating(false)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                <X className="h-5 w-5 text-gray-500" />
               </button>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
                 <Input 
                   value={newNotification.subject}
                   onChange={(e) => setNewNotification({...newNotification, subject: e.target.value})}
-                  placeholder="Notification subject"
+                  placeholder="e.g., Payment Reminder"
+                  className="w-full"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Message</label>
                 <textarea 
                   value={newNotification.body}
                   onChange={(e) => setNewNotification({...newNotification, body: e.target.value})}
                   rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none"
-                  placeholder="Notification message"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
+                  placeholder="Enter your notification message..."
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
                   <Input 
                     type="date"
                     value={newNotification.scheduledDate}
                     onChange={(e) => setNewNotification({...newNotification, scheduledDate: e.target.value})}
+                    className="w-full"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Time</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Time</label>
                   <Input 
                     type="time"
                     value={newNotification.scheduledTime}
                     onChange={(e) => setNewNotification({...newNotification, scheduledTime: e.target.value})}
+                    className="w-full"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Recipients</label>
-                <select 
-                  value={newNotification.recipientType}
-                  onChange={(e) => setNewNotification({...newNotification, recipientType: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                >
-                  <option value="all">All Contacts</option>
-                  <option value="active">Active Contacts Only</option>
-                  <option value="groups">Specific Groups</option>
-                </select>
+              <div className="bg-blue-50 rounded-lg p-3 flex items-start gap-2">
+                <Clock className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-blue-700">
+                  The notification will be sent to all active contacts at the scheduled time.
+                </p>
               </div>
             </div>
 
-            <div className="flex gap-3 mt-6">
-              <Button variant="secondary" className="flex-1" onClick={() => setIsCreating(false)}>Cancel</Button>
+            <div className="flex gap-3 mt-6 pt-4 border-t border-gray-100">
+              <Button variant="secondary" className="flex-1" onClick={() => setIsCreating(false)}>
+                Cancel
+              </Button>
               <Button className="flex-1" onClick={handleCreate} disabled={isSending}>
                 {isSending ? (
                   <span className="flex items-center gap-2">
@@ -217,107 +277,127 @@ export function ScheduledNotifications() {
   )
 }
 
-export function NotificationHistory() {
-  const navigate = useNavigate()
+interface NotificationHistoryProps {
+  onClose?: () => void
+}
+
+export function NotificationHistory({ onClose }: NotificationHistoryProps) {
   const [history, setHistory] = useState<NotificationHistoryItem[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     setLoading(true)
-    notificationService.getScheduledNotifications({ limit: 50 }).then(response => {
-      setHistory(response.data.map(n => ({
-        id: n.id,
-        type: 'scheduled' as const,
-        subject: n.subject,
-        sent_at: n.scheduled_for,
-        recipient_count: n.recipients.length,
-        status: n.status === 'sent' ? 'sent' as const : n.status === 'cancelled' ? 'failed' as const : 'sent' as const,
-      })))
+    notificationService.getNotificationHistory({ limit: 50 }).then(response => {
+      setHistory(response.data)
     }).catch(err => {
       console.error('Failed to load notification history', err)
     }).finally(() => setLoading(false))
   }, [])
 
   const filteredHistory = history.filter(h => 
-    h.subject.toLowerCase().includes(searchQuery.toLowerCase())
+    h.subject?.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
+  const getTypeBadge = (type: string) => {
+    switch (type) {
+      case 'reminder':
+        return 'bg-amber-100 text-amber-700'
+      case 'scheduled':
+        return 'bg-blue-100 text-blue-700'
+      default:
+        return 'bg-gray-100 text-gray-700'
+    }
+  }
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'sent':
+        return 'bg-green-100 text-green-700'
+      case 'failed':
+        return 'bg-red-100 text-red-700'
+      case 'partial':
+        return 'bg-amber-100 text-amber-700'
+      default:
+        return 'bg-gray-100 text-gray-700'
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto p-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Notification History</h1>
-            <p className="text-gray-500">View sent notifications</p>
-          </div>
+    <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+      <div className="p-4 border-b border-gray-100 bg-gray-50/50">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold text-gray-900">Notification History</h3>
+          <span className="text-sm text-gray-500">{filteredHistory.length} notifications</span>
         </div>
-
-        <div className="bg-white rounded-xl shadow-sm">
-          <div className="p-4 border-b border-gray-100">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input 
-                placeholder="Search notifications..." 
-                className="pl-10"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-            </div>
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {filteredHistory.map(notification => (
-                <div key={notification.id} className="p-4 hover:bg-gray-50">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        notification.type === 'reminder' ? 'bg-amber-100 text-amber-600' :
-                        notification.type === 'scheduled' ? 'bg-blue-100 text-blue-600' :
-                        'bg-gray-100 text-gray-600'
-                      }`}>
-                        {notification.type === 'reminder' ? (
-                          <Clock className="h-5 w-5" />
-                        ) : notification.type === 'scheduled' ? (
-                          <Send className="h-5 w-5" />
-                        ) : (
-                          <Check className="h-5 w-5" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{notification.subject}</p>
-                        <div className="flex items-center gap-3 text-xs text-gray-500">
-                          <span>{new Date(notification.sent_at).toLocaleString()}</span>
-                          <span>{notification.recipient_count} recipients</span>
-                        </div>
-                      </div>
-                    </div>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      notification.status === 'sent' ? 'bg-green-100 text-green-700' :
-                      notification.status === 'failed' ? 'bg-red-100 text-red-700' :
-                      'bg-amber-100 text-amber-700'
-                    }`}>
-                      {notification.status}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {!loading && filteredHistory.length === 0 && (
-            <div className="p-8 text-center">
-              <Send className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500">No notifications found</p>
-            </div>
-          )}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input 
+            placeholder="Search notifications..." 
+            className="pl-10"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
       </div>
+
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        </div>
+      ) : filteredHistory.length === 0 ? (
+        <div className="p-12 text-center">
+          <Send className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+          <p className="text-gray-500 font-medium">No notifications yet</p>
+          <p className="text-sm text-gray-400 mt-1">Sent notifications will appear here</p>
+        </div>
+      ) : (
+        <div className="divide-y divide-gray-100 max-h-[500px] overflow-y-auto">
+          {filteredHistory.map(notification => (
+            <div key={notification.id} className="p-4 hover:bg-gray-50/50 transition-colors">
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-4">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    notification.type === 'reminder' ? 'bg-amber-100 text-amber-600' :
+                    notification.type === 'scheduled' ? 'bg-blue-100 text-blue-600' :
+                    'bg-gray-100 text-gray-600'
+                  }`}>
+                    {notification.type === 'reminder' ? (
+                      <Clock className="h-5 w-5" />
+                    ) : notification.type === 'scheduled' ? (
+                      <Send className="h-5 w-5" />
+                    ) : (
+                      <Check className="h-5 w-5" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900">{notification.subject}</p>
+                    <div className="flex items-center gap-3 mt-1">
+                      <span className={`px-2 py-0.5 text-[10px] font-semibold rounded-full ${getTypeBadge(notification.type)}`}>
+                        {notification.type?.toUpperCase()}
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        {new Date(notification.sent_at).toLocaleString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        {notification.recipient_count} recipients
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusBadge(notification.status)}`}>
+                  {notification.status?.charAt(0).toUpperCase() + notification.status?.slice(1)}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

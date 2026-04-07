@@ -4,6 +4,7 @@ import { Download, TrendingUp, TrendingDown, DollarSign, Users, FileText, Credit
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { reportService, type ReportSummary, type AnalyticsData, type FormsPerformanceResponse, type GroupContributionsResponse } from '@/services/reportService'
+import { paymentService } from '@/services/paymentService'
 import { toast } from '@/components/ui/use-toast'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, Legend } from 'recharts'
 
@@ -23,6 +24,7 @@ export function ReportsAnalytics() {
   const [groupContributions, setGroupContributions] = useState<GroupContributionsResponse | null>(null)
   const [exporting, setExporting] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'forms' | 'groups'>('overview')
+  const [transactionStats, setTransactionStats] = useState<{ paid: number; pending: number; failed: number; partial: number; total: number }>({ paid: 0, pending: 0, failed: 0, partial: 0, total: 0 })
   const [dateRange, setDateRange] = useState(() => {
     const now = new Date()
     const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -43,7 +45,7 @@ export function ReportsAnalytics() {
         end_date: dateRange.end_date,
       }
 
-      const [summaryData, analyticsData, formsData, groupsData] = await Promise.all([
+      const [summaryData, analyticsData, formsData, groupsData, transactionsData] = await Promise.all([
         reportService.getSummary(params).catch(err => {
           console.warn('[Reports] Summary error:', err)
           errors.summary = true
@@ -64,7 +66,55 @@ export function ReportsAnalytics() {
           errors.groups = true
           return null
         }),
+        paymentService.getTransactions({ limit: 1000, ...params }).catch(() => null),
       ])
+      
+      if (transactionsData?.data) {
+        const stats = {
+          paid: 0,
+          pending: 0,
+          failed: 0,
+          partial: 0,
+          total: 0,
+          paidAmount: 0,
+          pendingAmount: 0,
+          failedAmount: 0,
+          partialAmount: 0,
+        }
+        transactionsData.data.forEach((txn: any) => {
+          const amount = parseFloat(txn.amount_paid || txn.amount || 0)
+          stats.total++
+          switch (txn.status?.toUpperCase()) {
+            case 'PAID':
+              stats.paid++
+              stats.paidAmount += amount
+              break
+            case 'PENDING':
+              stats.pending++
+              stats.pendingAmount += amount
+              break
+            case 'FAILED':
+              stats.failed++
+              stats.failedAmount += amount
+              break
+            case 'PARTIAL':
+              stats.partial++
+              stats.partialAmount += amount
+              break
+          }
+        })
+        setTransactionStats({
+          paid: stats.paid,
+          pending: stats.pending,
+          failed: stats.failed,
+          partial: stats.partial,
+          total: stats.total,
+          paidAmount: stats.paidAmount,
+          pendingAmount: stats.pendingAmount,
+          failedAmount: stats.failedAmount,
+          partialAmount: stats.partialAmount,
+        })
+      }
       
       setSummary(summaryData)
       setAnalytics(analyticsData)
@@ -120,26 +170,42 @@ export function ReportsAnalytics() {
   })) || []
 
   const getStatusCount = (status: string) => {
-    return analytics?.payment_status_breakdown?.find(s => s.status === status)?.count || 0
+    const normalizedStatus = status.toUpperCase()
+    const breakdown = analytics?.payment_status_breakdown?.find(s => s.status.toUpperCase() === normalizedStatus)
+    return breakdown?.count || 0
   }
 
   const getStatusAmount = (status: string) => {
-    return analytics?.payment_status_breakdown?.find(s => s.status === status)?.total_amount || 0
+    const normalizedStatus = status.toUpperCase()
+    const breakdown = analytics?.payment_status_breakdown?.find(s => s.status.toUpperCase() === normalizedStatus)
+    return breakdown?.total_amount || 0
   }
 
-  const paidCount = getStatusCount('PAID')
-  const pendingCount = getStatusCount('PENDING')
-  const failedCount = getStatusCount('FAILED')
-  const partialCount = getStatusCount('PARTIAL')
-  const totalTransactions = paidCount + pendingCount + failedCount + partialCount
+  const paidCount = transactionStats.paid || summary?.payments || getStatusCount('PAID')
+  const pendingCount = transactionStats.pending || getStatusCount('PENDING')
+  const failedCount = transactionStats.failed || getStatusCount('FAILED')
+  const partialCount = transactionStats.partial || getStatusCount('PARTIAL')
+  const totalTransactions = transactionStats.total || summary?.payments || (paidCount + pendingCount + failedCount + partialCount)
   const successRate = totalTransactions > 0 ? Math.round((paidCount / totalTransactions) * 100 * 10) / 10 : 0
+  
+  const collectedAmount = transactionStats.paidAmount || 
+    summary?.payment_paid_total || 
+    getStatusAmount('PAID') ||
+    (formsPerformance?.totals?.paid_amount_total) ||
+    0
+  const pendingAmount = transactionStats.pendingAmount || summary?.payment_pending_total || getStatusAmount('PENDING') || 0
+  const failedAmount = transactionStats.failedAmount || summary?.payment_failed_total || getStatusAmount('FAILED') || 0
+  const partialAmount = transactionStats.partialAmount || summary?.payment_partial_total || getStatusAmount('PARTIAL') || 0
+  const totalPaymentVolume = collectedAmount + pendingAmount + failedAmount + partialAmount || summary?.payment_total || 0
+  const outstandingAmount = pendingAmount + partialAmount
 
   const COLORS = ['#009668', '#188ace', '#e0e3e5', '#ba1a1a']
+  
   const statusData = [
-    { name: 'Paid', value: paidCount, amount: getStatusAmount('PAID') },
-    { name: 'Pending', value: pendingCount, amount: getStatusAmount('PENDING') },
-    { name: 'Partial', value: partialCount, amount: getStatusAmount('PARTIAL') },
-    { name: 'Failed', value: failedCount, amount: getStatusAmount('FAILED') },
+    { name: 'Paid', value: paidCount, amount: collectedAmount },
+    { name: 'Pending', value: pendingCount, amount: pendingAmount },
+    { name: 'Partial', value: partialCount, amount: partialAmount },
+    { name: 'Failed', value: failedCount, amount: failedAmount },
   ].filter(d => d.value > 0)
 
   return (
@@ -217,10 +283,23 @@ export function ReportsAnalytics() {
                 </div>
               </div>
               <p className="text-[10px] text-[#45464d] font-bold uppercase tracking-wider mb-1">Collected</p>
-              <p className="text-xl font-extrabold text-[#191c1e]">
-                {formatCurrency(getStatusAmount('PAID'))}
+              <p className="text-xl font-extrabold text-[#009668]">
+                {formatCurrency(collectedAmount)}
               </p>
-              <p className="text-[10px] text-[#76777d] mt-1">{paidCount} payments</p>
+              <p className="text-[10px] text-[#76777d] mt-1">{paidCount} paid payments</p>
+            </div>
+
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-[#c6c6cd]/10">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-2 bg-amber-100 rounded-lg">
+                  <DollarSign className="h-4 w-4 text-amber-600" />
+                </div>
+              </div>
+              <p className="text-[10px] text-[#45464d] font-bold uppercase tracking-wider mb-1">Outstanding</p>
+              <p className="text-xl font-extrabold text-amber-600">
+                {formatCurrency(outstandingAmount)}
+              </p>
+              <p className="text-[10px] text-[#76777d] mt-1">{pendingCount + partialCount} pending payments</p>
             </div>
 
             <div className="bg-white rounded-xl p-5 shadow-sm border border-[#c6c6cd]/10">
@@ -229,24 +308,11 @@ export function ReportsAnalytics() {
                   <FileText className="h-4 w-4 text-[#006398]" />
                 </div>
               </div>
-              <p className="text-[10px] text-[#45464d] font-bold uppercase tracking-wider mb-1">Total Transactions</p>
+              <p className="text-[10px] text-[#45464d] font-bold uppercase tracking-wider mb-1">Total Volume</p>
               <p className="text-xl font-extrabold text-[#191c1e]">
-                {formatNumber(totalTransactions)}
+                {formatCurrency(totalPaymentVolume)}
               </p>
-              <p className="text-[10px] text-[#76777d] mt-1">Payment attempts</p>
-            </div>
-
-            <div className="bg-white rounded-xl p-5 shadow-sm border border-[#c6c6cd]/10">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="p-2 bg-[#188ace]/10 rounded-lg">
-                  <Users className="h-4 w-4 text-[#188ace]" />
-                </div>
-              </div>
-              <p className="text-[10px] text-[#45464d] font-bold uppercase tracking-wider mb-1">Success Rate</p>
-              <p className="text-xl font-extrabold text-[#009668]">
-                {successRate}%
-              </p>
-              <p className="text-[10px] text-[#76777d] mt-1">{paidCount} paid / {pendingCount} pending / {failedCount} failed</p>
+              <p className="text-[10px] text-[#76777d] mt-1">{totalTransactions} transactions</p>
             </div>
 
             <div className="bg-white rounded-xl p-5 shadow-sm border border-[#c6c6cd]/10">
@@ -255,9 +321,9 @@ export function ReportsAnalytics() {
                   <CreditCard className="h-4 w-4 text-red-600" />
                 </div>
               </div>
-              <p className="text-[10px] text-[#45464d] font-bold uppercase tracking-wider mb-1">Failed Payments</p>
-              <p className="text-xl font-extrabold text-[#191c1e]">
-                {formatCurrency(getStatusAmount('FAILED'))}
+              <p className="text-[10px] text-[#45464d] font-bold uppercase tracking-wider mb-1">Failed</p>
+              <p className="text-xl font-extrabold text-red-600">
+                {formatCurrency(failedAmount)}
               </p>
               <p className="text-[10px] text-[#76777d] mt-1">{failedCount} failed payments</p>
             </div>
@@ -376,7 +442,9 @@ export function ReportsAnalytics() {
                     <p className="font-bold text-[#191c1e]">{item.title}</p>
                     <p className="text-xs text-[#45464d]">{item.submissions} submissions</p>
                   </div>
-                  <p className="font-extrabold text-[#191c1e]">{formatCurrency(item.paid_amount_total)}</p>
+                  <p className="font-extrabold text-[#191c1e]">
+                    {formatCurrency(item.paid_amount_total || item.paid_amount || 0)}
+                  </p>
                 </div>
               ))}
               {(!formsPerformance?.data || formsPerformance.data.length === 0) && (
@@ -398,7 +466,7 @@ export function ReportsAnalytics() {
               </p>
             ) : formsPerformance?.totals && (
               <p className="text-sm text-[#45464d] mt-1">
-                {formsPerformance.totals.submissions} submissions, {formsPerformance.totals.payments} payments, {formatCurrency(formsPerformance.totals.paid_amount_total)} collected
+                {formsPerformance.totals.submissions} submissions, {formsPerformance.totals.payments} payments, {formatCurrency(formsPerformance.totals.paid_amount_total || 0)} collected
               </p>
             )}
           </div>
@@ -440,7 +508,9 @@ export function ReportsAnalytics() {
                         <span className="text-[#009668] font-bold">{form.paid_payments}</span>
                         <span className="text-[#76777d]"> / {form.payments}</span>
                       </td>
-                      <td className="px-4 py-3 text-right font-extrabold">{formatCurrency(form.paid_amount_total)}</td>
+                      <td className="px-4 py-3 text-right font-extrabold">
+                        {formatCurrency(form.paid_amount_total || form.paid_amount || 0)}
+                      </td>
                       <td className="px-4 py-3 text-right">
                         <span className={`font-bold ${form.completion_rate >= 50 ? 'text-[#009668]' : 'text-amber-600'}`}>
                           {form.completion_rate.toFixed(1)}%

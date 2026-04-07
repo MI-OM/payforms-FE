@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronRight, ChevronDown, Plus, Search, Users, X, Check, Folder, FolderOpen, UserPlus, UserMinus, Loader2 } from 'lucide-react'
+import { ChevronRight, ChevronDown, Plus, Search, Users, X, Check, Folder, FolderOpen, UserPlus, UserMinus, Loader2, RefreshCw, Send, DollarSign, Edit2, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { groupService, type GroupTreeNode, type Contact } from '@/services/groupService'
+import { groupService, type GroupTreeNode } from '@/services/groupService'
+import { contactService } from '@/services/contactService'
 import { toast } from '@/components/ui/use-toast'
 
 interface GroupNode {
@@ -12,12 +13,14 @@ interface GroupNode {
   contactCount: number
   children?: GroupNode[]
   expanded?: boolean
+  description?: string
 }
 
 interface LocalContact {
   id: string
   name: string
   email: string
+  phone?: string
   selected: boolean
 }
 
@@ -28,6 +31,7 @@ export function GroupTreeView() {
   const [error, setError] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [selectedGroup, setSelectedGroup] = useState<GroupNode | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
 
   const fetchTree = useCallback(async () => {
     setLoading(true)
@@ -65,9 +69,26 @@ export function GroupTreeView() {
     return nodes.map(node => ({
       id: node.id,
       name: node.name,
+      description: node.description,
       contactCount: node.contact_count || 0,
       children: node.children ? flattenTree(node.children) : undefined,
     }))
+  }
+
+  const filterTree = (nodes: GroupNode[], query: string): GroupNode[] => {
+    if (!query) return nodes
+    const lowerQuery = query.toLowerCase()
+    return nodes.reduce((acc: GroupNode[], node) => {
+      const matches = node.name.toLowerCase().includes(lowerQuery)
+      const filteredChildren = node.children ? filterTree(node.children, query) : undefined
+      if (matches || (filteredChildren && filteredChildren.length > 0)) {
+        acc.push({
+          ...node,
+          children: filteredChildren,
+        })
+      }
+      return acc
+    }, [])
   }
 
   const renderNode = (node: GroupNode, level: number = 0) => {
@@ -78,8 +99,8 @@ export function GroupTreeView() {
     return (
       <div key={node.id}>
         <div 
-          className={`flex items-center gap-2 py-2 px-3 hover:bg-gray-50 cursor-pointer rounded-lg group ${
-            selectedGroup?.id === node.id ? 'bg-blue-50' : ''
+          className={`flex items-center gap-2 py-2 px-3 hover:bg-gray-50 cursor-pointer rounded-lg group transition-colors ${
+            selectedGroup?.id === node.id ? 'bg-blue-50 border-l-2 border-blue-500' : ''
           }`}
           style={{ paddingLeft }}
           onClick={() => setSelectedGroup(node)}
@@ -98,30 +119,24 @@ export function GroupTreeView() {
           ) : (
             <span className="w-6" />
           )}
-          {isExpanded && hasChildren ? (
-            <FolderOpen className="h-5 w-5 text-blue-500" />
-          ) : (
-            <Folder className="h-5 w-5 text-gray-400" />
-          )}
-          <span className="flex-1 font-medium text-gray-900">{node.name}</span>
-          <span className="text-sm text-gray-500">{node.contactCount}</span>
+          <Folder className={`h-5 w-5 ${isExpanded && hasChildren ? 'text-blue-500' : 'text-gray-400'}`} />
+          <span className="flex-1 font-medium text-gray-900 truncate">{node.name}</span>
+          <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{node.contactCount}</span>
           <div className="opacity-0 group-hover:opacity-100 flex gap-1">
             <button 
               onClick={(e) => { e.stopPropagation(); navigate(`/groups/${node.id}`) }}
-              className="p-1 hover:bg-gray-200 rounded text-gray-500"
+              className="p-1.5 hover:bg-gray-200 rounded text-gray-500"
               title="Edit group"
             >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-              </svg>
+              <Edit2 className="h-3.5 w-3.5" />
             </button>
             {hasChildren && (
               <button 
                 onClick={(e) => { e.stopPropagation(); navigate(`/groups/${node.id}/subgroups`) }}
-                className="p-1 hover:bg-gray-200 rounded text-gray-500"
+                className="p-1.5 hover:bg-gray-200 rounded text-gray-500"
                 title="Manage subgroups"
               >
-                <Users className="h-4 w-4" />
+                <Users className="h-3.5 w-3.5" />
               </button>
             )}
           </div>
@@ -136,103 +151,162 @@ export function GroupTreeView() {
   }
 
   const flattenedTree = flattenTree(tree)
+  const filteredTree = filterTree(flattenedTree, searchQuery)
   const totalContacts = flattenedTree.reduce((sum, node) => sum + node.contactCount, 0)
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex items-center justify-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto p-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Groups</h1>
-            <p className="text-gray-500">Manage your contact groups</p>
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Groups</h1>
+          <p className="text-sm text-gray-500">Manage your contact groups</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={fetchTree} size="sm">
+            <RefreshCw className="h-4 w-4 mr-1" />
+            Refresh
+          </Button>
+          <Button onClick={() => navigate('/groups/new')} size="sm">
+            <Plus className="h-4 w-4 mr-1" />
+            New Group
+          </Button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          {error}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="p-4 border-b border-gray-100">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input 
+                placeholder="Search groups..." 
+                className="pl-10" 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
           </div>
-          <div className="flex gap-3">
-            <Button variant="secondary" onClick={() => navigate('/contacts')}>
-              <Users className="h-4 w-4 mr-2" />
-              All Contacts
-            </Button>
-            <Button onClick={() => navigate('/groups/new')}>
-              <Plus className="h-4 w-4 mr-2" />
-              New Group
-            </Button>
+          <div className="p-2 max-h-[500px] overflow-y-auto">
+            {filteredTree.length > 0 ? (
+              filteredTree.map(node => renderNode(node))
+            ) : (
+              <div className="text-center py-12 text-gray-500">
+                <Folder className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                <p className="font-medium">
+                  {searchQuery ? 'No groups match your search' : 'No groups yet'}
+                </p>
+                <p className="text-sm mt-1">
+                  {searchQuery ? 'Try a different search term' : 'Create your first group to get started'}
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
-        {error && <div className="text-red-600 mb-4">{error}</div>}
-
-        <div className="grid grid-cols-3 gap-6">
-          <div className="col-span-2 bg-white rounded-xl shadow-sm">
-            <div className="p-4 border-b border-gray-100">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input placeholder="Search groups..." className="pl-10" />
-              </div>
-            </div>
-            <div className="p-4">
-              {flattenedTree.map(node => renderNode(node))}
-              {!loading && flattenedTree.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  No groups yet. Create your first group to get started.
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            {selectedGroup ? (
-              <div className="bg-white rounded-xl shadow-sm p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-gray-900">{selectedGroup.name}</h3>
-                  <button onClick={() => setSelectedGroup(null)} className="p-1 hover:bg-gray-100 rounded">
-                    <X className="h-4 w-4" />
+        <div className="space-y-4">
+          {selectedGroup ? (
+            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+              <div className="p-4 bg-gradient-to-r from-blue-500 to-blue-600">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                      <Folder className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="truncate">
+                      <h3 className="font-bold text-white truncate">{selectedGroup.name}</h3>
+                      {selectedGroup.description && (
+                        <p className="text-xs text-white/80 truncate">{selectedGroup.description}</p>
+                      )}
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setSelectedGroup(null)} 
+                    className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
+                  >
+                    <X className="h-4 w-4 text-white" />
                   </button>
                 </div>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-500">Total Contacts</span>
-                    <span className="font-medium">{selectedGroup.contactCount}</span>
+              </div>
+              <div className="p-4">
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="bg-gray-50 rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-gray-900">{selectedGroup.contactCount}</p>
+                    <p className="text-xs text-gray-500">Contacts</p>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-500">Subgroups</span>
-                    <span className="font-medium">{selectedGroup.children?.length || 0}</span>
-                  </div>
-                  <div className="flex gap-2 mt-4">
-                    <Button variant="secondary" className="flex-1" onClick={() => navigate(`/groups/${selectedGroup.id}`)}>
-                      View Details
-                    </Button>
-                    <Button className="flex-1" onClick={() => navigate(`/groups/${selectedGroup.id}/contacts`)}>
-                      <UserPlus className="h-4 w-4 mr-2" />
-                      Add Contacts
-                    </Button>
+                  <div className="bg-gray-50 rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-gray-900">{selectedGroup.children?.length || 0}</p>
+                    <p className="text-xs text-gray-500">Subgroups</p>
                   </div>
                 </div>
+                <div className="space-y-2">
+                  <Button 
+                    variant="secondary" 
+                    className="w-full justify-start" 
+                    onClick={() => navigate(`/groups/${selectedGroup.id}`)}
+                  >
+                    <Edit2 className="h-4 w-4 mr-2" />
+                    Edit Group
+                  </Button>
+                  <Button 
+                    className="w-full justify-start" 
+                    onClick={() => navigate(`/groups/${selectedGroup.id}/contacts`)}
+                  >
+                    <Users className="h-4 w-4 mr-2" />
+                    Manage Contacts
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start" 
+                    onClick={() => navigate(`/groups/new?parent=${selectedGroup.id}`)}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Subgroup
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start text-blue-600 border-blue-200 hover:bg-blue-50"
+                    onClick={() => navigate(`/contacts/reminder?group=${selectedGroup.id}`)}
+                  >
+                    <Send className="h-4 w-4 mr-2" />
+                    Send Reminder
+                  </Button>
+                </div>
               </div>
-            ) : (
-              <div className="bg-white rounded-xl shadow-sm p-4 text-center">
-                <Folder className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500 text-sm">Select a group to view details</p>
-              </div>
-            )}
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl shadow-sm p-8 text-center">
+              <Folder className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500 text-sm">Select a group to view details</p>
+            </div>
+          )}
 
-            <div className="bg-blue-50 rounded-xl p-4">
-              <h4 className="font-bold text-blue-900 mb-2">Quick Stats</h4>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-blue-700">Total Groups</span>
-                  <span className="font-medium text-blue-900">{flattenedTree.length}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-blue-700">Total Contacts</span>
-                  <span className="font-medium text-blue-900">{totalContacts}</span>
-                </div>
+          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white">
+            <h4 className="font-bold mb-3 flex items-center gap-2">
+              <DollarSign className="h-4 w-4" />
+              Quick Stats
+            </h4>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-blue-100 text-sm">Total Groups</span>
+                <span className="font-bold">{flattenedTree.length}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-blue-100 text-sm">Total Contacts</span>
+                <span className="font-bold">{totalContacts}</span>
               </div>
             </div>
           </div>
@@ -251,6 +325,8 @@ export function GroupContactsManagement() {
   const [isAddMode, setIsAddMode] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [groupName, setGroupName] = useState('Group')
+  const [showAllContacts, setShowAllContacts] = useState(false)
+  const [allContacts, setAllContacts] = useState<LocalContact[]>([])
 
   const fetchGroupContacts = useCallback(async () => {
     if (!id) return
@@ -258,7 +334,7 @@ export function GroupContactsManagement() {
     try {
       const [group, contactsData] = await Promise.all([
         groupService.getGroup(id),
-        groupService.getGroupContacts(id, { limit: 100 })
+        groupService.getGroupContacts(id, { limit: 500 })
       ])
       setGroupName(group.name)
       setContacts(contactsData.data.map(c => ({ ...c, selected: false })))
@@ -269,12 +345,33 @@ export function GroupContactsManagement() {
     }
   }, [id])
 
+  const fetchAllContacts = useCallback(async () => {
+    try {
+      const response = await contactService.getContacts({ limit: 500 })
+      setAllContacts(response.data.map(c => ({ 
+        id: c.id, 
+        name: `${c.first_name || ''} ${c.last_name || ''}`.trim() || c.email, 
+        email: c.email,
+        phone: c.phone,
+        selected: false 
+      })))
+    } catch (err) {
+      console.error('Failed to load all contacts', err)
+    }
+  }, [])
+
   useEffect(() => {
     fetchGroupContacts()
   }, [fetchGroupContacts])
 
-  const toggleContact = (contactId: string) => {
-    setContacts(contacts.map(c => 
+  useEffect(() => {
+    if (showAllContacts && allContacts.length === 0) {
+      fetchAllContacts()
+    }
+  }, [showAllContacts, fetchAllContacts])
+
+  const toggleContact = (contactId: string, contactList: LocalContact[], setContacts: React.Dispatch<React.SetStateAction<LocalContact[]>>) => {
+    setContacts(contactList.map(c => 
       c.id === contactId ? { ...c, selected: !c.selected } : c
     ))
   }
@@ -285,22 +382,27 @@ export function GroupContactsManagement() {
     try {
       await Promise.all(selectedIds.map(contactId => groupService.removeContactFromGroup(id, contactId)))
       setContacts(contacts.filter(c => !c.selected))
+      toast({ title: 'Success', description: `Removed ${selectedIds.length} contact(s)` })
     } catch (err) {
       toast({ title: 'Error', description: 'Failed to remove contacts', variant: 'destructive' })
       console.error(err)
     }
   }
 
-  const handleSave = async () => {
+  const handleAddContacts = async () => {
     if (!id) return
+    const selectedToAdd = allContacts.filter(c => c.selected)
+    if (selectedToAdd.length === 0) {
+      toast({ title: 'Error', description: 'Please select contacts to add', variant: 'destructive' })
+      return
+    }
     setIsSaving(true)
     try {
-      const selectedIds = contacts.filter(c => c.selected).map(c => c.id)
-      if (selectedIds.length > 0) {
-        await groupService.addContactsToGroup(id, selectedIds)
-      }
-      setIsAddMode(false)
-      setContacts(contacts.map(c => ({ ...c, selected: false })))
+      await groupService.addContactsToGroup(id, selectedToAdd.map(c => c.id))
+      toast({ title: 'Success', description: `Added ${selectedToAdd.length} contact(s) to group` })
+      setAllContacts(allContacts.map(c => ({ ...c, selected: false })))
+      setShowAllContacts(false)
+      fetchGroupContacts()
     } catch (err) {
       toast({ title: 'Error', description: 'Failed to add contacts', variant: 'destructive' })
       console.error(err)
@@ -309,47 +411,119 @@ export function GroupContactsManagement() {
     }
   }
 
-  const filteredContacts = contacts.filter(c => 
+  const filteredGroupContacts = contacts.filter(c => 
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.email.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const selectedCount = contacts.filter(c => c.selected).length
+  const filteredAllContacts = allContacts.filter(c => 
+    !contacts.some(gc => gc.id === c.id) &&
+    (c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    c.email.toLowerCase().includes(searchQuery.toLowerCase()))
+  )
+
+  const selectedGroupCount = contacts.filter(c => c.selected).length
+  const selectedAddCount = allContacts.filter(c => c.selected).length
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex items-center justify-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto p-8">
-        <div className="flex items-center gap-4 mb-8">
-          <button onClick={() => navigate('/groups')} className="p-2 hover:bg-gray-100 rounded-lg">
-            <svg className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold text-gray-900">{groupName} Contacts</h1>
-            <p className="text-gray-500">{contacts.length} contacts in this group</p>
-          </div>
-          <Button variant="secondary" onClick={() => setIsAddMode(!isAddMode)}>
-            {isAddMode ? 'Done Adding' : (
-              <>
-                <UserPlus className="h-4 w-4 mr-2" />
-                Add Contacts
-              </>
-            )}
-          </Button>
+    <div className="p-6 space-y-6">
+      <div className="flex items-center gap-4">
+        <button 
+          onClick={() => navigate('/groups')} 
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+        >
+          <svg className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <div className="flex-1">
+          <h1 className="text-2xl font-bold text-gray-900">{groupName}</h1>
+          <p className="text-sm text-gray-500">{contacts.length} contacts in this group</p>
         </div>
+        <div className="flex gap-2">
+          {!showAllContacts ? (
+            <Button variant="secondary" onClick={() => setShowAllContacts(true)}>
+              <UserPlus className="h-4 w-4 mr-2" />
+              Add Contacts
+            </Button>
+          ) : (
+            <>
+              <Button variant="secondary" onClick={() => { setShowAllContacts(false); setAllContacts([]); }}>
+                Cancel
+              </Button>
+              <Button onClick={handleAddContacts} disabled={isSaving || selectedAddCount === 0}>
+                {isSaving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    Add {selectedAddCount > 0 ? `(${selectedAddCount})` : ''}
+                  </>
+                )}
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
 
-        <div className="bg-white rounded-xl shadow-sm">
+      {showAllContacts ? (
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="p-4 border-b border-gray-100 flex gap-4">
             <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input 
+                placeholder="Search contacts to add..." 
+                className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="max-h-[500px] overflow-y-auto">
+            {filteredAllContacts.length > 0 ? (
+              filteredAllContacts.map(contact => (
+                <div 
+                  key={contact.id}
+                  className="flex items-center gap-4 p-4 hover:bg-gray-50 cursor-pointer border-b border-gray-50"
+                  onClick={() => toggleContact(contact.id, allContacts, setAllContacts)}
+                >
+                  <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                    contact.selected 
+                      ? 'bg-blue-500 border-blue-500' 
+                      : 'border-gray-300'
+                  }`}>
+                    {contact.selected && <Check className="h-3 w-3 text-white" />}
+                  </div>
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    <span className="text-blue-600 font-bold text-sm">
+                      {contact.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                    </span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">{contact.name}</p>
+                    <p className="text-sm text-gray-500">{contact.email}</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="p-8 text-center">
+                <Users className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500">No contacts available to add</p>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="p-4 border-b border-gray-100">
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input 
                 placeholder="Search contacts..." 
@@ -358,70 +532,71 @@ export function GroupContactsManagement() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            {isAddMode && selectedCount > 0 && (
-              <Button variant="ghost" onClick={handleRemoveSelected}>
-                <UserMinus className="h-4 w-4 mr-2" />
-                Remove ({selectedCount})
-              </Button>
-            )}
           </div>
 
-          <div className="divide-y divide-gray-100">
-            {filteredContacts.map(contact => (
+          <div className="divide-y divide-gray-100 max-h-[500px] overflow-y-auto">
+            {filteredGroupContacts.map(contact => (
               <div 
                 key={contact.id}
-                className={`flex items-center gap-4 p-4 hover:bg-gray-50 ${
-                  isAddMode ? 'cursor-pointer' : ''
-                }`}
-                onClick={() => isAddMode && toggleContact(contact.id)}
+                className="flex items-center gap-4 p-4 hover:bg-gray-50"
               >
-                {isAddMode && (
-                  <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-                    contact.selected 
-                      ? 'bg-red-500 border-red-500' 
-                      : 'border-gray-300'
-                  }`}>
-                    {contact.selected && <Check className="h-3 w-3 text-white" />}
-                  </div>
-                )}
                 <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                   <span className="text-blue-600 font-bold text-sm">
-                    {contact.name.split(' ').map(n => n[0]).join('')}
+                    {contact.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                   </span>
                 </div>
                 <div className="flex-1">
                   <p className="font-medium text-gray-900">{contact.name}</p>
                   <p className="text-sm text-gray-500">{contact.email}</p>
                 </div>
-                {!isAddMode && (
-                  <Button variant="ghost" size="sm" onClick={() => navigate(`/contacts/${contact.id}`)}>
-                    View
-                  </Button>
-                )}
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                  onClick={() => {
+                    setContacts(contacts.map(c => c.id === contact.id ? { ...c, selected: true } : c))
+                  }}
+                >
+                  <UserMinus className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => navigate(`/contacts/${contact.id}`)}>
+                  View
+                </Button>
               </div>
             ))}
           </div>
 
-          {filteredContacts.length === 0 && (
+          {filteredGroupContacts.length === 0 && (
             <div className="p-8 text-center">
               <Users className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500">No contacts found</p>
+              <p className="text-gray-500">No contacts in this group</p>
+              <Button 
+                variant="secondary" 
+                className="mt-4"
+                onClick={() => setShowAllContacts(true)}
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Add Contacts
+              </Button>
             </div>
           )}
         </div>
+      )}
 
-        {isAddMode && contacts.some(c => c.selected) && (
-          <div className="flex justify-end mt-4 gap-3">
-            <Button variant="ghost" onClick={handleRemoveSelected}>
-              <UserMinus className="h-4 w-4 mr-2" />
-              Remove {selectedCount} Contact{selectedCount > 1 ? 's' : ''}
-            </Button>
-            <Button onClick={handleSave} disabled={isSaving}>
-              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save Changes'}
-            </Button>
-          </div>
-        )}
-      </div>
+      {contacts.some(c => c.selected) && (
+        <div className="fixed bottom-6 right-6 bg-white rounded-xl shadow-lg p-4 flex items-center gap-4 border border-gray-200">
+          <span className="text-sm text-gray-600">
+            {selectedGroupCount} contact{selectedGroupCount > 1 ? 's' : ''} selected
+          </span>
+          <Button variant="destructive" size="sm" onClick={handleRemoveSelected}>
+            <UserMinus className="h-4 w-4 mr-2" />
+            Remove Selected
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setContacts(contacts.map(c => ({ ...c, selected: false })))}>
+            Cancel
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

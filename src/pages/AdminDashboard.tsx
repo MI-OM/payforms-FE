@@ -265,10 +265,31 @@ function LiveDashboard({ summary, analytics, transactions, topForms, forms, form
     return analytics?.payment_status_breakdown?.find(s => s.status === status)?.total_amount || 0
   }
 
-  const paidCount = getStatusCount('PAID')
-  const pendingCount = getStatusCount('PENDING')
-  const failedCount = getStatusCount('FAILED')
-  const partialCount = getStatusCount('PARTIAL')
+  let paidCount = 0, pendingCount = 0, failedCount = 0, partialCount = 0
+  let paidAmount = 0, pendingAmount = 0, failedAmount = 0, partialAmount = 0
+  
+  transactions.forEach((txn: any) => {
+    const amount = parseFloat(txn.amount_paid || txn.amount || 0)
+    switch (txn.status?.toUpperCase()) {
+      case 'PAID':
+        paidCount++
+        paidAmount += amount
+        break
+      case 'PENDING':
+        pendingCount++
+        pendingAmount += amount
+        break
+      case 'FAILED':
+        failedCount++
+        failedAmount += amount
+        break
+      case 'PARTIAL':
+        partialCount++
+        partialAmount += amount
+        break
+    }
+  })
+  
   const totalTransactions = paidCount + pendingCount + failedCount + partialCount
 
   const successRate = totalTransactions > 0 ? Math.round(((paidCount + partialCount) / totalTransactions) * 100 * 10) / 10 : 0
@@ -290,7 +311,7 @@ function LiveDashboard({ summary, analytics, transactions, topForms, forms, form
               {paidCount} txns
             </span>
           </div>
-          <p className="text-3xl font-extrabold tracking-tighter text-[#191c1e]">{formatCurrency(getStatusAmount('PAID'))}</p>
+          <p className="text-3xl font-extrabold tracking-tighter text-[#191c1e]">{formatCurrency(paidAmount)}</p>
           <p className="text-[11px] text-[#45464d] mt-2 font-medium">Collected</p>
         </div>
 
@@ -333,7 +354,7 @@ function LiveDashboard({ summary, analytics, transactions, topForms, forms, form
           <div className="flex justify-between items-start mb-4">
             <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Pending Collections</span>
           </div>
-          <p className="text-3xl font-extrabold tracking-tighter">{formatCurrency(getStatusAmount('PENDING'))}</p>
+          <p className="text-3xl font-extrabold tracking-tighter">{formatCurrency(pendingAmount)}</p>
           <p className="text-[11px] opacity-60 mt-1">{pendingCount} pending payments</p>
           <Link to="/transactions?status=PENDING">
             <button className="mt-4 text-[10px] font-bold bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded transition-colors uppercase tracking-wider">

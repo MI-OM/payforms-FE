@@ -157,7 +157,11 @@ export function AllTransactionsLedger() {
   const [statusFilter, setStatusFilter] = useState('')
   const [stats, setStats] = useState<SummaryStats | null>(null)
   const [loadingStats, setLoadingStats] = useState(true)
-  const [dateRange, setDateRange] = useState({ from: '', to: '' })
+  const [dateRange, setDateRange] = useState(() => {
+    const today = new Date().toISOString().split('T')[0]
+    return { from: today, to: today }
+  })
+  const [showDateFilter, setShowDateFilter] = useState(false)
   const [contacts, setContacts] = useState<Contact[]>([])
   const [forms, setForms] = useState<Form[]>([])
   const [loadingLookupData, setLoadingLookupData] = useState(true)
@@ -189,8 +193,12 @@ export function AllTransactionsLedger() {
       const params: Record<string, string | number | undefined> = { page, limit: 20 }
       if (searchQuery) params.reference = searchQuery
       if (statusFilter) params.status = statusFilter
-      if (dateRange.from) params.start_date = dateRange.from
-      if (dateRange.to) params.end_date = dateRange.to
+      if (showDateFilter && dateRange.from) params.start_date = dateRange.from
+      if (showDateFilter && dateRange.to) {
+        const endDate = new Date(dateRange.to)
+        endDate.setDate(endDate.getDate() + 1)
+        params.end_date = endDate.toISOString().split('T')[0]
+      }
       const response = await paymentService.getTransactions(params)
       setTransactions(response.data as unknown as TransactionData[])
       setTotalPages(response.totalPages)
@@ -201,35 +209,48 @@ export function AllTransactionsLedger() {
     } finally {
       setLoading(false)
     }
-  }, [page, searchQuery, statusFilter, dateRange])
+  }, [page, searchQuery, statusFilter, dateRange, showDateFilter])
 
   const fetchStats = useCallback(async () => {
     setLoadingStats(true)
     try {
-      const [summary, analytics] = await Promise.all([
-        reportService.getSummary(),
-        reportService.getAnalytics().catch(() => null)
-      ])
+      const transactionsData = await paymentService.getTransactions({ limit: 1000 }).catch(() => null)
       
-      const getStatusCount = (status: string) => {
-        return analytics?.payment_status_breakdown?.find(s => s.status === status)?.count || 0
+      let paidCount = 0, pendingCount = 0, failedCount = 0, partialCount = 0
+      let paidAmount = 0, pendingAmount = 0, failedAmount = 0, partialAmount = 0
+      
+      if (transactionsData?.data) {
+        transactionsData.data.forEach((txn: any) => {
+          const amount = parseFloat(txn.amount_paid || txn.amount || 0)
+          switch (txn.status?.toUpperCase()) {
+            case 'PAID':
+              paidCount++
+              paidAmount += amount
+              break
+            case 'PENDING':
+              pendingCount++
+              pendingAmount += amount
+              break
+            case 'FAILED':
+              failedCount++
+              failedAmount += amount
+              break
+            case 'PARTIAL':
+              partialCount++
+              partialAmount += amount
+              break
+          }
+        })
       }
-      const getStatusAmount = (status: string) => {
-        return analytics?.payment_status_breakdown?.find(s => s.status === status)?.total_amount || 0
-      }
-
-      const paidCount = getStatusCount('PAID')
-      const pendingCount = getStatusCount('PENDING')
-      const failedCount = getStatusCount('FAILED')
-      const partialCount = getStatusCount('PARTIAL')
+      
       const totalTransactions = paidCount + pendingCount + failedCount + partialCount
       const successRate = totalTransactions > 0 ? Math.round((paidCount / totalTransactions) * 100 * 10) / 10 : 0
 
       setStats({
-        total_volume: getStatusAmount('PAID'),
-        outstanding_balance: getStatusAmount('PENDING'),
+        total_volume: paidAmount,
+        outstanding_balance: pendingAmount + partialAmount,
         success_rate: successRate,
-        today_collections: getStatusAmount('PAID'),
+        today_collections: paidAmount,
         today_count: totalTransactions,
         volume_change: 0,
         balance_change: 0,
@@ -288,7 +309,9 @@ export function AllTransactionsLedger() {
   const handleClearFilters = () => {
     setSearchQuery('')
     setStatusFilter('')
-    setDateRange({ from: '', to: '' })
+    setShowDateFilter(false)
+    const today = new Date().toISOString().split('T')[0]
+    setDateRange({ from: today, to: today })
     setPage(1)
   }
 
@@ -449,23 +472,36 @@ export function AllTransactionsLedger() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-[#76777d]" />
-            <input 
-              type="date"
-              className="px-3 py-2 bg-white border border-[#c6c6cd]/15 rounded-md text-sm"
-              value={dateRange.from}
-              onChange={(e) => { setDateRange(prev => ({ ...prev, from: e.target.value })); setPage(1); }}
-            />
-            <span className="text-[#76777d]">-</span>
-            <input 
-              type="date"
-              className="px-3 py-2 bg-white border border-[#c6c6cd]/15 rounded-md text-sm"
-              value={dateRange.to}
-              onChange={(e) => { setDateRange(prev => ({ ...prev, to: e.target.value })); setPage(1); }}
-            />
+            <Button 
+              variant={showDateFilter ? "default" : "outline"} 
+              size="sm"
+              onClick={() => setShowDateFilter(!showDateFilter)}
+              className="flex items-center gap-1"
+            >
+              <Calendar className="h-4 w-4" />
+              {showDateFilter ? 'Date Filter On' : 'Filter by Date'}
+            </Button>
+            
+            {showDateFilter && (
+              <>
+                <input 
+                  type="date"
+                  className="px-3 py-2 bg-white border border-[#c6c6cd]/15 rounded-md text-sm"
+                  value={dateRange.from}
+                  onChange={(e) => { setDateRange(prev => ({ ...prev, from: e.target.value })); setPage(1); }}
+                />
+                <span className="text-[#76777d]">-</span>
+                <input 
+                  type="date"
+                  className="px-3 py-2 bg-white border border-[#c6c6cd]/15 rounded-md text-sm"
+                  value={dateRange.to}
+                  onChange={(e) => { setDateRange(prev => ({ ...prev, to: e.target.value })); setPage(1); }}
+                />
+              </>
+            )}
           </div>
 
-          {(searchQuery || statusFilter || dateRange.from || dateRange.to) && (
+          {(searchQuery || statusFilter || (showDateFilter && (dateRange.from || dateRange.to))) && (
             <Button 
               variant="ghost" 
               size="sm"

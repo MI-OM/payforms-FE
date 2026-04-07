@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Link, useParams, useNavigate } from 'react-router-dom'
-import { Search, Plus, Edit, ChevronRight, UserPlus, Trash2, Loader2 } from 'lucide-react'
+import { Link, useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { Search, Plus, Edit, ChevronRight, UserPlus, Trash2, Loader2, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { groupService, type Group, type Contact } from '@/services/groupService'
@@ -95,15 +95,26 @@ export function ContactsGroupsManagement() {
 
 export function GroupEditorView() {
   const { id } = useParams<{ id: string }>()
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [group, setGroup] = useState<Group | null>(null)
   const [members, setMembers] = useState<Contact[]>([])
+  const [parentGroup, setParentGroup] = useState<Group | null>(null)
   const [form, setForm] = useState({ name: '', description: '' })
+
+  const parentGroupId = searchParams.get('parent')
 
   useEffect(() => {
     if (!id) {
+      if (parentGroupId) {
+        groupService.getGroup(parentGroupId).then(parent => {
+          setParentGroup(parent)
+        }).catch(err => {
+          console.error('Failed to load parent group', err)
+        })
+      }
       setLoading(false)
       return
     }
@@ -118,7 +129,7 @@ export function GroupEditorView() {
     }).catch(err => {
       console.error('Failed to load group', err)
     }).finally(() => setLoading(false))
-  }, [id])
+  }, [id, parentGroupId])
 
   const handleSave = async () => {
     if (!form.name.trim()) {
@@ -130,9 +141,12 @@ export function GroupEditorView() {
       if (id) {
         await groupService.updateGroup(id, form)
       } else {
-        await groupService.createGroup(form)
+        const createData = parentGroupId 
+          ? { ...form, parent_group_id: parentGroupId }
+          : form
+        await groupService.createGroup(createData)
       }
-      navigate('/groups')
+      navigate(parentGroupId ? `/groups/${parentGroupId}/subgroups` : '/groups')
       toast({ title: 'Success', description: `Group ${id ? 'updated' : 'created'} successfully` })
     } catch (err) {
       toast({ title: 'Error', description: 'Failed to save group', variant: 'destructive' })
@@ -161,24 +175,54 @@ export function GroupEditorView() {
     )
   }
 
+  const isSubgroup = !id && parentGroupId
+
   return (
     <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tighter text-gray-900">{id ? 'Edit' : 'Create'} Group</h1>
-            <p className="text-gray-500">Update group details and members</p>
+            {isSubgroup && parentGroup && (
+              <button 
+                onClick={() => navigate(`/groups/${parentGroupId}`)}
+                className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 mb-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to {parentGroup.name}
+              </button>
+            )}
+            <h1 className="text-3xl font-extrabold tracking-tighter text-gray-900">
+              {id ? 'Edit' : isSubgroup ? 'Create Subgroup' : 'Create'} Group
+            </h1>
+            <p className="text-gray-500">
+              {id ? 'Update group details and members' : isSubgroup ? `Add a subgroup under ${parentGroup?.name || 'parent group'}` : 'Create a new contact group'}
+            </p>
           </div>
           {id && <Button variant="secondary" onClick={handleDelete}>Delete Group</Button>}
         </div>
 
         <div className="bg-white rounded-xl p-8 mb-6 shadow-sm">
+          {isSubgroup && parentGroup && (
+            <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                  <span className="text-sm font-bold text-blue-600">{parentGroup.name.charAt(0).toUpperCase()}</span>
+                </div>
+                <div>
+                  <p className="text-xs text-blue-600 font-medium uppercase">Parent Group</p>
+                  <p className="font-bold text-gray-900">{parentGroup.name}</p>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold block">Group Name</label>
+              <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold block">
+                {isSubgroup ? 'Subgroup' : 'Group'} Name
+              </label>
               <Input 
                 value={form.name} 
                 onChange={(e) => setForm({ ...form, name: e.target.value })} 
-                placeholder="Enter group name"
+                placeholder={isSubgroup ? "Enter subgroup name" : "Enter group name"}
               />
             </div>
             <div className="space-y-2">
@@ -221,9 +265,11 @@ export function GroupEditorView() {
         )}
 
         <div className="flex justify-end gap-3 mt-6">
-          <Button variant="secondary" onClick={() => navigate('/groups')}>Cancel</Button>
+          <Button variant="secondary" onClick={() => navigate(isSubgroup && parentGroupId ? `/groups/${parentGroupId}/subgroups` : '/groups')}>
+            Cancel
+          </Button>
           <Button onClick={handleSave} disabled={saving || !form.name}>
-            {saving ? 'Saving...' : 'Save Changes'}
+            {saving ? 'Saving...' : id ? 'Save Changes' : isSubgroup ? 'Create Subgroup' : 'Create Group'}
           </Button>
         </div>
       </div>
