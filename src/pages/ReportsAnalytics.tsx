@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Calendar, BarChart3 } from 'lucide-react'
 import { Download, TrendingUp, TrendingDown, DollarSign, Users, FileText, CreditCard, Loader, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { reportService, type ReportSummary, type AnalyticsData, type FormsPerformanceResponse, type GroupContributionsResponse } from '@/services/reportService'
 import { toast } from '@/components/ui/use-toast'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(amount)
@@ -113,11 +114,33 @@ export function ReportsAnalytics() {
   }
 
   const chartData = analytics?.payments_by_day?.map(d => ({
-    month: new Date(d.day).toLocaleDateString('en-US', { month: 'short' }),
-    value: d.total,
+    day: new Date(d.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    amount: d.total,
+    count: d.count
   })) || []
 
-  const maxValue = Math.max(...chartData.map(d => d.value), 1)
+  const getStatusCount = (status: string) => {
+    return analytics?.payment_status_breakdown?.find(s => s.status === status)?.count || 0
+  }
+
+  const getStatusAmount = (status: string) => {
+    return analytics?.payment_status_breakdown?.find(s => s.status === status)?.total_amount || 0
+  }
+
+  const paidCount = getStatusCount('PAID')
+  const pendingCount = getStatusCount('PENDING')
+  const failedCount = getStatusCount('FAILED')
+  const partialCount = getStatusCount('PARTIAL')
+  const totalTransactions = paidCount + pendingCount + failedCount + partialCount
+  const successRate = totalTransactions > 0 ? Math.round((paidCount / totalTransactions) * 100 * 10) / 10 : 0
+
+  const COLORS = ['#009668', '#188ace', '#e0e3e5', '#ba1a1a']
+  const statusData = [
+    { name: 'Paid', value: paidCount, amount: getStatusAmount('PAID') },
+    { name: 'Pending', value: pendingCount, amount: getStatusAmount('PENDING') },
+    { name: 'Partial', value: partialCount, amount: getStatusAmount('PARTIAL') },
+    { name: 'Failed', value: failedCount, amount: getStatusAmount('FAILED') },
+  ].filter(d => d.value > 0)
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -193,10 +216,11 @@ export function ReportsAnalytics() {
                   <DollarSign className="h-4 w-4 text-[#009668]" />
                 </div>
               </div>
-              <p className="text-[10px] text-[#45464d] font-bold uppercase tracking-wider mb-1">Total Revenue</p>
+              <p className="text-[10px] text-[#45464d] font-bold uppercase tracking-wider mb-1">Collected</p>
               <p className="text-xl font-extrabold text-[#191c1e]">
-                {summary ? formatCurrency(summary.payment_paid_total) : '₦0'}
+                {formatCurrency(getStatusAmount('PAID'))}
               </p>
+              <p className="text-[10px] text-[#76777d] mt-1">{paidCount} payments</p>
             </div>
 
             <div className="bg-white rounded-xl p-5 shadow-sm border border-[#c6c6cd]/10">
@@ -207,8 +231,9 @@ export function ReportsAnalytics() {
               </div>
               <p className="text-[10px] text-[#45464d] font-bold uppercase tracking-wider mb-1">Total Transactions</p>
               <p className="text-xl font-extrabold text-[#191c1e]">
-                {formatNumber(summary?.payments || 0)}
+                {formatNumber(totalTransactions)}
               </p>
+              <p className="text-[10px] text-[#76777d] mt-1">Payment attempts</p>
             </div>
 
             <div className="bg-white rounded-xl p-5 shadow-sm border border-[#c6c6cd]/10">
@@ -217,10 +242,11 @@ export function ReportsAnalytics() {
                   <Users className="h-4 w-4 text-[#188ace]" />
                 </div>
               </div>
-              <p className="text-[10px] text-[#45464d] font-bold uppercase tracking-wider mb-1">Total Contacts</p>
-              <p className="text-xl font-extrabold text-[#191c1e]">
-                {formatNumber(summary?.contacts || 0)}
+              <p className="text-[10px] text-[#45464d] font-bold uppercase tracking-wider mb-1">Success Rate</p>
+              <p className="text-xl font-extrabold text-[#009668]">
+                {successRate}%
               </p>
+              <p className="text-[10px] text-[#76777d] mt-1">{paidCount} paid / {pendingCount} pending / {failedCount} failed</p>
             </div>
 
             <div className="bg-white rounded-xl p-5 shadow-sm border border-[#c6c6cd]/10">
@@ -228,36 +254,100 @@ export function ReportsAnalytics() {
                 <div className="p-2 bg-red-100 rounded-lg">
                   <CreditCard className="h-4 w-4 text-red-600" />
                 </div>
-                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-red-50 text-red-700">
-                  <TrendingDown className="h-3 w-3 inline" />
-                </span>
               </div>
               <p className="text-[10px] text-[#45464d] font-bold uppercase tracking-wider mb-1">Failed Payments</p>
               <p className="text-xl font-extrabold text-[#191c1e]">
-                {formatCurrency(summary?.payment_failed_total || 0)}
+                {formatCurrency(getStatusAmount('FAILED'))}
               </p>
+              <p className="text-[10px] text-[#76777d] mt-1">{failedCount} failed payments</p>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl p-6 mb-6 shadow-sm border border-[#c6c6cd]/10">
-            <h3 className="text-lg font-bold mb-4 text-[#191c1e]">Revenue Overview</h3>
-            {chartData.length > 0 ? (
-              <div className="h-48 flex items-end justify-between gap-2">
-                {chartData.map((data, index) => (
-                  <div key={index} className="flex-1 flex flex-col items-center">
-                    <div 
-                      className="w-full bg-[#006398] rounded-t transition-all hover:bg-[#188ace] cursor-pointer"
-                      style={{ height: `${(data.value / maxValue) * 100}%`, minHeight: data.value > 0 ? '4px' : '0' }}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <div className="lg:col-span-2 bg-white rounded-xl p-6 shadow-sm border border-[#c6c6cd]/10">
+              <h3 className="text-lg font-bold mb-4 text-[#191c1e]">Daily Revenue</h3>
+              {chartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={256}>
+                  <BarChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
+                    <XAxis 
+                      dataKey="day" 
+                      tick={{ fontSize: 12, fill: '#45464d' }}
+                      axisLine={{ stroke: '#e0e3e5' }}
+                      tickLine={false}
                     />
-                    <span className="text-xs text-[#45464d] mt-2">{data.month}</span>
+                    <YAxis 
+                      tickFormatter={(value) => `₦${(value / 1000).toFixed(0)}k`}
+                      tick={{ fontSize: 12, fill: '#45464d' }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip 
+                      formatter={(value) => [`₦${Number(value).toLocaleString()}`, 'Amount']}
+                      contentStyle={{ 
+                        backgroundColor: '#fff', 
+                        border: '1px solid #e0e3e5', 
+                        borderRadius: '8px',
+                        fontSize: '12px'
+                      }}
+                    />
+                    <Bar dataKey="amount" fill="#188ace" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-64 text-[#45464d]">
+                  <p className="text-sm">No revenue data available</p>
+                </div>
+              )}
+            </div>
+
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-[#c6c6cd]/10">
+              <h3 className="text-lg font-bold mb-4 text-[#191c1e]">Payment Status</h3>
+              {statusData.length > 0 ? (
+                <>
+                  <ResponsiveContainer width="100%" height={180}>
+                    <PieChart>
+                      <Pie
+                        data={statusData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={70}
+                        paddingAngle={2}
+                        dataKey="value"
+                      >
+                        {statusData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        formatter={(value, name) => [`${value} payments`, String(name)]}
+                        contentStyle={{ 
+                          backgroundColor: '#fff', 
+                          border: '1px solid #e0e3e5', 
+                          borderRadius: '8px',
+                          fontSize: '12px'
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="space-y-2 mt-4">
+                    {statusData.map((item, index) => (
+                      <div key={item.name} className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></span>
+                          <span className="text-[#45464d]">{item.name}</span>
+                        </div>
+                        <span className="font-bold text-[#191c1e]">{item.value}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="h-48 flex items-center justify-center text-[#45464d]">
-                <p className="text-sm">No revenue data available for this period</p>
-              </div>
-            )}
+                </>
+              ) : (
+                <div className="flex items-center justify-center h-64 text-[#45464d]">
+                  <p className="text-sm">No payment data available</p>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="bg-white rounded-xl p-6 shadow-sm border border-[#c6c6cd]/10">

@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { reportService, type ReportSummary, type FormPerformance, type AnalyticsData } from '@/services/reportService'
 import { paymentService, type Transaction } from '@/services/paymentService'
 import { formService, type Form } from '@/services/formService'
 import { toast } from '@/components/ui/use-toast'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 
 function MaterialIcon({ name, className = '', filled = false }: { name: string; className?: string; filled?: boolean }) {
   const iconStyle = filled ? { fontVariationSettings: "'FILL' 1" } : undefined
@@ -90,6 +91,30 @@ export function AdminDashboardContent() {
     const form = forms.find(f => f.id === formId)
     return form?.title || 'Unknown Form'
   }
+
+  const getStatusCount = (status: string) => {
+    return analytics?.payment_status_breakdown?.find(s => s.status === status)?.count || 0
+  }
+
+  const getStatusAmount = (status: string) => {
+    return analytics?.payment_status_breakdown?.find(s => s.status === status)?.total_amount || 0
+  }
+
+  const getSuccessRate = () => {
+    const paidCount = getStatusCount('PAID')
+    const partialCount = getStatusCount('PARTIAL')
+    const totalCount = paidCount + partialCount + getStatusCount('PENDING') + getStatusCount('FAILED')
+    if (totalCount === 0) return 0
+    return Math.round((paidCount / totalCount) * 100 * 10) / 10
+  }
+
+  const chartData = useMemo(() => {
+    return analytics?.payments_by_day?.map(d => ({
+      day: new Date(d.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      amount: d.total,
+      count: d.count
+    })) || []
+  }, [analytics?.payments_by_day])
 
   const hasNoData = !summary && transactions.length === 0 && forms.length === 0
 
@@ -226,15 +251,34 @@ interface LiveDashboardProps {
   transactions: Transaction[]
   topForms: FormPerformance[]
   forms: Form[]
-  formatCurrency: (amount: number) => string
+  formatCurrency: (amount: number | string) => string
   formatDate: (date: string) => string
-  getFormName: (formId: string) => string
+  getFormName: (formId: string | undefined) => string
 }
 
 function LiveDashboard({ summary, analytics, transactions, topForms, forms, formatCurrency, formatDate, getFormName }: LiveDashboardProps) {
-  const revenueData = analytics?.payments_by_day || []
-  const maxRevenue = Math.max(...revenueData.map(d => d.total), 1)
-  
+  const getStatusCount = (status: string) => {
+    return analytics?.payment_status_breakdown?.find(s => s.status === status)?.count || 0
+  }
+
+  const getStatusAmount = (status: string) => {
+    return analytics?.payment_status_breakdown?.find(s => s.status === status)?.total_amount || 0
+  }
+
+  const paidCount = getStatusCount('PAID')
+  const pendingCount = getStatusCount('PENDING')
+  const failedCount = getStatusCount('FAILED')
+  const partialCount = getStatusCount('PARTIAL')
+  const totalTransactions = paidCount + pendingCount + failedCount + partialCount
+
+  const successRate = totalTransactions > 0 ? Math.round((paidCount / totalTransactions) * 100 * 10) / 10 : 0
+
+  const chartData = analytics?.payments_by_day?.map(d => ({
+    day: new Date(d.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    amount: d.total,
+    count: d.count
+  })) || []
+
   return (
     <div className="max-w-[1600px] mx-auto px-6 py-4">
       {/* KPI Metrics Grid */}
@@ -243,27 +287,32 @@ function LiveDashboard({ summary, analytics, transactions, topForms, forms, form
           <div className="flex justify-between items-start mb-4">
             <span className="text-[10px] font-bold text-[#45464d] uppercase tracking-widest">Total Revenue</span>
             <span className="text-[#009668] bg-[#4edea3]/20 px-2 py-0.5 rounded text-[10px] font-bold">
-              {summary?.payments || 0} txns
+              {paidCount} txns
             </span>
           </div>
-          <p className="text-3xl font-extrabold tracking-tighter text-[#191c1e]">{formatCurrency(summary?.payment_paid_total || 0)}</p>
-          <p className="text-[11px] text-[#45464d] mt-2 font-medium">Total collected</p>
+          <p className="text-3xl font-extrabold tracking-tighter text-[#191c1e]">{formatCurrency(getStatusAmount('PAID'))}</p>
+          <p className="text-[11px] text-[#45464d] mt-2 font-medium">Collected</p>
         </div>
 
         <div className="bg-[#ffffff] p-6 rounded-xl shadow-sm hover:shadow-md transition-all">
           <div className="flex justify-between items-start mb-4">
             <span className="text-[10px] font-bold text-[#45464d] uppercase tracking-widest">Total Transactions</span>
           </div>
-          <p className="text-3xl font-extrabold tracking-tighter text-[#191c1e]">{summary?.payments || 0}</p>
+          <p className="text-3xl font-extrabold tracking-tighter text-[#191c1e]">{totalTransactions}</p>
           <p className="text-[11px] text-[#45464d] mt-2 font-medium">Payment attempts</p>
         </div>
 
         <div className="bg-[#ffffff] p-6 rounded-xl shadow-sm hover:shadow-md transition-all">
           <div className="flex justify-between items-start mb-4">
-            <span className="text-[10px] font-bold text-[#45464d] uppercase tracking-widest">Active Forms</span>
+            <span className="text-[10px] font-bold text-[#45464d] uppercase tracking-widest">Success Rate</span>
+            <span className="text-[10px] font-bold text-[#009668]">{successRate}%</span>
           </div>
-          <p className="text-3xl font-extrabold tracking-tighter text-[#191c1e]">{forms.filter(f => f.is_active).length || summary?.forms || 0}</p>
-          <p className="text-[11px] text-[#45464d] mt-2 font-medium">Total forms: {forms.length || summary?.forms || 0}</p>
+          <div className="w-full bg-[#e0e3e5] rounded-full h-2 mb-2">
+            <div className="bg-[#009668] h-2 rounded-full transition-all" style={{ width: `${successRate}%` }}></div>
+          </div>
+          <p className="text-[11px] text-[#45464d] font-medium">
+            {paidCount} paid / {pendingCount} pending / {failedCount} failed
+          </p>
         </div>
 
         <div className="bg-black text-white p-6 rounded-xl shadow-lg relative overflow-hidden">
@@ -273,7 +322,8 @@ function LiveDashboard({ summary, analytics, transactions, topForms, forms, form
           <div className="flex justify-between items-start mb-4">
             <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Pending Collections</span>
           </div>
-          <p className="text-3xl font-extrabold tracking-tighter">{formatCurrency(summary?.payment_pending_total || 0)}</p>
+          <p className="text-3xl font-extrabold tracking-tighter">{formatCurrency(getStatusAmount('PENDING'))}</p>
+          <p className="text-[11px] opacity-60 mt-1">{pendingCount} pending payments</p>
           <Link to="/transactions?status=PENDING">
             <button className="mt-4 text-[10px] font-bold bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded transition-colors uppercase tracking-wider">
               Review Pending
@@ -289,83 +339,42 @@ function LiveDashboard({ summary, analytics, transactions, topForms, forms, form
           <div className="flex justify-between items-center mb-8">
             <div>
               <h2 className="text-xl font-bold tracking-tighter">Revenue Performance</h2>
-              <p className="text-xs text-[#45464d]">Real-time metrics for the trailing 7 days</p>
-            </div>
-            <div className="flex gap-4">
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-black"></span>
-                <span className="text-[10px] font-bold uppercase">Revenue</span>
-              </div>
+              <p className="text-xs text-[#45464d]">Daily payments collected</p>
             </div>
           </div>
 
-          <div className="h-64 w-full relative">
-            {revenueData.length > 0 ? (
-              <svg className="w-full h-full" viewBox={`0 0 ${revenueData.length * 120} 300`} preserveAspectRatio="none">
-                <defs>
-                  <linearGradient id="revenueGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="#188ace" stopOpacity="0.3" />
-                    <stop offset="100%" stopColor="#188ace" stopOpacity="0" />
-                  </linearGradient>
-                </defs>
-                {revenueData.map((_, i) => (
-                  <line 
-                    key={`grid-${i}`} 
-                    stroke="#f2f4f6" 
-                    strokeWidth="1" 
-                    x1={i * 120 + 60} 
-                    x2={i * 120 + 60} 
-                    y1="0" 
-                    y2="280"
-                  />
-                ))}
-                <path 
-                  d={`M${revenueData.map((d, i) => `${i * 120 + 60},${280 - (d.total / maxRevenue) * 250}`).join(' L')} L${(revenueData.length - 1) * 120 + 60},280 L60,280 Z`}
-                  fill="url(#revenueGradient)"
+          {chartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={256}>
+              <BarChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
+                <XAxis 
+                  dataKey="day" 
+                  tick={{ fontSize: 12, fill: '#45464d' }}
+                  axisLine={{ stroke: '#e0e3e5' }}
+                  tickLine={false}
                 />
-                <path 
-                  d={`M${revenueData.map((d, i) => `${i * 120 + 60},${280 - (d.total / maxRevenue) * 250}`).join(' L')}`}
-                  fill="none"
-                  stroke="#188ace"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+                <YAxis 
+                  tickFormatter={(value) => `₦${(value / 1000).toFixed(0)}k`}
+                  tick={{ fontSize: 12, fill: '#45464d' }}
+                  axisLine={false}
+                  tickLine={false}
                 />
-                {revenueData.map((d, i) => (
-                  <circle 
-                    key={`dot-${i}`}
-                    cx={i * 120 + 60} 
-                    cy={280 - (d.total / maxRevenue) * 250} 
-                    fill="#188ace" 
-                    r="5"
-                  />
-                ))}
-              </svg>
-            ) : (
-              <div className="flex items-center justify-center h-full text-[#45464d]">
-                <p className="text-sm">No revenue data available</p>
-              </div>
-            )}
-            <div className="absolute bottom-0 left-0 right-0 flex justify-between px-2 text-[10px] font-bold text-[#45464d] uppercase py-4">
-              {revenueData.length > 0 ? (
-                revenueData.map((d, i) => (
-                  <span key={`label-${i}`}>
-                    {new Date(d.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                  </span>
-                ))
-              ) : (
-                <>
-                  <span>Day 1</span>
-                  <span>Day 2</span>
-                  <span>Day 3</span>
-                  <span>Day 4</span>
-                  <span>Day 5</span>
-                  <span>Day 6</span>
-                  <span>Day 7</span>
-                </>
-              )}
+                <Tooltip 
+                  formatter={(value) => [`₦${Number(value).toLocaleString()}`, 'Amount']}
+                  contentStyle={{ 
+                    backgroundColor: '#fff', 
+                    border: '1px solid #e0e3e5', 
+                    borderRadius: '8px',
+                    fontSize: '12px'
+                  }}
+                />
+                <Bar dataKey="amount" fill="#188ace" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-64 text-[#45464d]">
+              <p className="text-sm">No revenue data available</p>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Recent Activity Timeline */}

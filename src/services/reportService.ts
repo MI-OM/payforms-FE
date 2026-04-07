@@ -27,6 +27,12 @@ export interface AnalyticsData {
   payment_status_breakdown: { status: string; count: number; total_amount: number }[]
 }
 
+export interface PaymentStatusBreakdown {
+  status: string
+  count: number
+  total_amount: number
+}
+
 export interface FormPerformance {
   form_id: string
   title: string

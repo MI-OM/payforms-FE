@@ -109,15 +109,31 @@ export function AllTransactionsLedger() {
   const fetchStats = useCallback(async () => {
     setLoadingStats(true)
     try {
-      const summary = await reportService.getSummary()
+      const [summary, analytics] = await Promise.all([
+        reportService.getSummary(),
+        reportService.getAnalytics().catch(() => null)
+      ])
+      
+      const getStatusCount = (status: string) => {
+        return analytics?.payment_status_breakdown?.find(s => s.status === status)?.count || 0
+      }
+      const getStatusAmount = (status: string) => {
+        return analytics?.payment_status_breakdown?.find(s => s.status === status)?.total_amount || 0
+      }
+
+      const paidCount = getStatusCount('PAID')
+      const pendingCount = getStatusCount('PENDING')
+      const failedCount = getStatusCount('FAILED')
+      const partialCount = getStatusCount('PARTIAL')
+      const totalTransactions = paidCount + pendingCount + failedCount + partialCount
+      const successRate = totalTransactions > 0 ? Math.round((paidCount / totalTransactions) * 100 * 10) / 10 : 0
+
       setStats({
-        total_volume: summary.payment_paid_total || 0,
-        outstanding_balance: summary.payment_pending_total || 0,
-        success_rate: summary.payments > 0 
-          ? Math.round((summary.payments - (summary.payment_failed_total > 0 ? 1 : 0)) / summary.payments * 100 * 10) / 10
-          : 0,
-        today_collections: summary.payment_paid_total || 0,
-        today_count: summary.payments || 0,
+        total_volume: getStatusAmount('PAID'),
+        outstanding_balance: getStatusAmount('PENDING'),
+        success_rate: successRate,
+        today_collections: getStatusAmount('PAID'),
+        today_count: totalTransactions,
         volume_change: 0,
         balance_change: 0,
       })
