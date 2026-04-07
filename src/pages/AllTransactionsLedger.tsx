@@ -1,17 +1,41 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Search, Download, MoreVertical, CheckCircle, Clock, XCircle, Loader2, TrendingUp, TrendingDown, Filter, Calendar, Eye } from 'lucide-react'
+import { Search, Download, MoreVertical, CheckCircle, Clock, XCircle, Loader2, TrendingUp, TrendingDown, Filter, Calendar, Eye, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { paymentService, type Transaction } from '@/services/paymentService'
+import { paymentService } from '@/services/paymentService'
 import { reportService } from '@/services/reportService'
+import { contactService, type Contact } from '@/services/contactService'
+import { formService, type Form } from '@/services/formService'
 
 function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount)
+  return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(amount)
 }
 
 function formatDate(dateString: string): string {
   return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+interface Submission {
+  id: string
+  form_id: string
+  contact_id?: string
+  organization_id: string
+}
+
+interface TransactionData {
+  id: string
+  submission_id: string
+  organization_id: string
+  reference: string
+  amount: string
+  total_amount: string
+  amount_paid: string
+  balance_due: string
+  status: string
+  paid_at: string | null
+  created_at: string
+  submission: Submission
 }
 
 interface SummaryStats {
@@ -26,7 +50,7 @@ interface SummaryStats {
 
 export function AllTransactionsLedger() {
   const navigate = useNavigate()
-  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [transactions, setTransactions] = useState<TransactionData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -37,18 +61,41 @@ export function AllTransactionsLedger() {
   const [stats, setStats] = useState<SummaryStats | null>(null)
   const [loadingStats, setLoadingStats] = useState(true)
   const [dateRange, setDateRange] = useState({ from: '', to: '' })
+  const [contacts, setContacts] = useState<Contact[]>([])
+  const [forms, setForms] = useState<Form[]>([])
+  const [loadingLookupData, setLoadingLookupData] = useState(true)
+
+  const fetchContacts = useCallback(async () => {
+    try {
+      const response = await contactService.getContacts({ limit: 1000 })
+      setContacts(response.data || [])
+    } catch (err) {
+      console.error('Failed to load contacts:', err)
+      setContacts([])
+    }
+  }, [])
+
+  const fetchForms = useCallback(async () => {
+    try {
+      const response = await formService.getForms({ limit: 1000 })
+      setForms(response.data || [])
+    } catch (err) {
+      console.error('Failed to load forms:', err)
+      setForms([])
+    }
+  }, [])
 
   const fetchTransactions = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
       const params: Record<string, string | number | undefined> = { page, limit: 20 }
-      if (searchQuery) params.search = searchQuery
+      if (searchQuery) params.reference = searchQuery
       if (statusFilter) params.status = statusFilter
       if (dateRange.from) params.start_date = dateRange.from
       if (dateRange.to) params.end_date = dateRange.to
       const response = await paymentService.getTransactions(params)
-      setTransactions(response.data)
+      setTransactions(response.data as unknown as TransactionData[])
       setTotalPages(response.totalPages)
       setTotal(response.total)
     } catch (err) {
@@ -66,27 +113,38 @@ export function AllTransactionsLedger() {
       setStats({
         total_volume: summary.total_revenue || 0,
         outstanding_balance: summary.pending_payments || 0,
-        success_rate: 98.4,
+        success_rate: summary.total_transactions > 0 
+          ? Math.round((summary.total_transactions - summary.failed_payments) / summary.total_transactions * 100 * 10) / 10
+          : 0,
         today_collections: summary.today_revenue || 0,
         today_count: summary.today_transactions || 0,
-        volume_change: 12,
-        balance_change: 8,
+        volume_change: 0,
+        balance_change: 0,
       })
     } catch (err) {
       console.error('Failed to load stats:', err)
       setStats({
-        total_volume: 1284500,
-        outstanding_balance: 42350.20,
-        success_rate: 98.4,
-        today_collections: 18402,
-        today_count: 24,
-        volume_change: 12,
-        balance_change: 8,
+        total_volume: 0,
+        outstanding_balance: 0,
+        success_rate: 0,
+        today_collections: 0,
+        today_count: 0,
+        volume_change: 0,
+        balance_change: 0,
       })
     } finally {
       setLoadingStats(false)
     }
   }, [])
+
+  useEffect(() => {
+    Promise.all([fetchContacts(), fetchForms()]).then(() => {
+      setLoadingLookupData(false)
+    }).catch((err) => {
+      console.error('Error loading lookup data:', err)
+      setLoadingLookupData(false)
+    })
+  }, [fetchContacts, fetchForms])
 
   useEffect(() => {
     fetchStats()
@@ -101,6 +159,21 @@ export function AllTransactionsLedger() {
     setStatusFilter('')
     setDateRange({ from: '', to: '' })
     setPage(1)
+  }
+
+  const getContactName = (contactId: string | undefined) => {
+    if (!contactId) return 'Unknown'
+    const contact = contacts.find(c => c.id === contactId)
+    if (contact) {
+      return `${contact.first_name || ''} ${contact.last_name || ''}`.trim() || contact.email
+    }
+    return contactId.slice(0, 8) + '...'
+  }
+
+  const getFormName = (formId: string | undefined) => {
+    if (!formId) return 'Unknown'
+    const form = forms.find(f => f.id === formId)
+    return form?.title || formId.slice(0, 8) + '...'
   }
 
   const getStatusBadge = (status: string) => {
@@ -128,14 +201,26 @@ export function AllTransactionsLedger() {
             <h1 className="text-3xl lg:text-4xl font-extrabold tracking-tighter text-[#191c1e] mb-2">All Transactions</h1>
             <p className="text-[#45464d]">Centralized ledger for all organization payments.</p>
           </div>
-          <Button 
-            variant="secondary" 
-            className="flex items-center gap-2 bg-white border border-[#c6c6cd] text-[#191c1e] font-semibold px-5 py-2.5 rounded-md hover:bg-[#f2f4f6]"
-            onClick={() => navigate('/transactions/export')}
-          >
-            <Download className="h-4 w-4" />
-            Export CSV
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="secondary" 
+              size="sm"
+              className="flex items-center gap-2 bg-white border border-[#c6c6cd] text-[#191c1e] font-semibold px-4 py-2 rounded-md hover:bg-[#f2f4f6]"
+              onClick={() => { fetchTransactions(); fetchStats(); }}
+            >
+              <RefreshCw className="h-4 w-4" />
+              Refresh
+            </Button>
+            <Button 
+              variant="secondary" 
+              size="sm"
+              className="flex items-center gap-2 bg-white border border-[#c6c6cd] text-[#191c1e] font-semibold px-4 py-2 rounded-md hover:bg-[#f2f4f6]"
+              onClick={() => navigate('/transactions/export')}
+            >
+              <Download className="h-4 w-4" />
+              Export CSV
+            </Button>
+          </div>
         </div>
 
         {/* KPI Summary Cards */}
@@ -179,12 +264,12 @@ export function AllTransactionsLedger() {
               <div className="h-9 bg-[#f2f4f6] rounded animate-pulse"></div>
             ) : (
               <h3 className="text-2xl lg:text-3xl font-extrabold tracking-tight text-[#191c1e]">
-                {stats?.success_rate?.toFixed(1) || '0'}%
+                {(stats?.success_rate ?? 0) > 0 ? `${stats?.success_rate}%` : 'N/A'}
               </h3>
             )}
             <div className="mt-3 flex items-center gap-1 text-[#009668] text-xs font-semibold">
               <CheckCircle className="h-3 w-3" />
-              <span>Stable performance</span>
+              <span>Based on transactions</span>
             </div>
           </div>
 
@@ -277,7 +362,7 @@ export function AllTransactionsLedger() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#c6c6cd]/10">
-                {loading && (
+                {(loading || loadingLookupData) && (
                   <tr>
                     <td colSpan={7} className="px-6 py-12 text-center">
                       <Loader2 className="h-8 w-8 animate-spin text-[#006398] mx-auto" />
@@ -285,13 +370,13 @@ export function AllTransactionsLedger() {
                   </tr>
                 )}
                 
-                {!loading && error && (
+                {!loading && !loadingLookupData && error && (
                   <tr>
                     <td colSpan={7} className="px-6 py-12 text-center text-[#ba1a1a]">{error}</td>
                   </tr>
                 )}
                 
-                {!loading && !error && transactions.length === 0 && (
+                {!loading && !loadingLookupData && !error && transactions.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-6 py-12 text-center text-[#45464d]">
                       No transactions found. Try adjusting your filters.
@@ -299,15 +384,22 @@ export function AllTransactionsLedger() {
                   </tr>
                 )}
                 
-                {!loading && !error && transactions.map((txn) => (
+                {!loading && !loadingLookupData && !error && transactions.map((txn) => {
+                  return (
                   <tr key={txn.id} className="hover:bg-[#f2f4f6]/50 transition-colors">
-                    <td className="px-6 py-5 font-mono text-xs text-[#5c647a]">#{txn.id.slice(0, 8).toUpperCase()}</td>
+                    <td className="px-6 py-5 font-mono text-xs text-[#5c647a]">
+                      <p className="font-semibold">{txn.reference?.slice(0, 12) || txn.id.slice(0, 8).toUpperCase()}</p>
+                      <p className="text-[10px] text-[#76777d]">ID: {txn.id.slice(0, 8)}</p>
+                    </td>
                     <td className="px-6 py-5 text-sm text-[#45464d]">{formatDate(txn.created_at)}</td>
                     <td className="px-6 py-5">
-                      <p className="text-sm font-bold text-[#191c1e]">{txn.contact_id || 'Unknown'}</p>
+                      <p className="text-sm font-bold text-[#191c1e]">{getContactName(txn.submission?.contact_id)}</p>
+                      <p className="text-[10px] text-[#76777d]">ID: {txn.submission?.contact_id?.slice(0, 8) || 'N/A'}</p>
                     </td>
-                    <td className="px-6 py-5 text-sm text-[#45464d]">{txn.form_id || '-'}</td>
-                    <td className="px-6 py-5 text-sm font-bold text-[#191c1e] text-right">{formatCurrency(txn.amount)}</td>
+                    <td className="px-6 py-5">
+                      <p className="text-sm text-[#45464d]">{getFormName(txn.submission?.form_id)}</p>
+                    </td>
+                    <td className="px-6 py-5 text-sm font-bold text-[#191c1e] text-right">{formatCurrency(parseFloat(txn.amount))}</td>
                     <td className="px-6 py-5 text-center">
                       <span className={getStatusBadge(txn.status)}>
                         {txn.status}
@@ -323,7 +415,8 @@ export function AllTransactionsLedger() {
                       </Link>
                     </td>
                   </tr>
-                ))}
+                );
+                })}
               </tbody>
             </table>
           </div>
