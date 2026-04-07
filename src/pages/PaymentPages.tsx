@@ -978,6 +978,7 @@ export function OfficialPaymentReceipt() {
   const [transaction, setTransaction] = useState<Transaction | null>(null)
   const [contact, setContact] = useState<{ first_name?: string; last_name?: string; email: string; student_id?: string } | null>(null)
   const [organization, setOrganization] = useState<{ name: string } | null>(null)
+  const [formTitle, setFormTitle] = useState<string>('')
 
   useEffect(() => {
     const fetchData = async () => {
@@ -1001,6 +1002,18 @@ export function OfficialPaymentReceipt() {
             setContact(null)
           }
         }
+        
+        if (txnData?.submission?.form_id) {
+          try {
+            const { publicFormService } = await import('@/services/formService')
+            const formData = await publicFormService.getForm(txnData.submission.form_id)
+            setFormTitle(formData.title || 'Payment')
+          } catch {
+            setFormTitle(txnData.form_title || 'Payment')
+          }
+        } else {
+          setFormTitle(txnData?.form_title || 'Payment')
+        }
       } catch (err) {
         console.error('Failed to load receipt data:', err)
       } finally {
@@ -1012,15 +1025,22 @@ export function OfficialPaymentReceipt() {
 
   const contactName = contact 
     ? `${contact.first_name || ''} ${contact.last_name || ''}`.trim() || 'Customer'
-    : 'Customer'
-  const contactEmail = contact?.email || ''
-  const studentRef = contact?.student_id || id?.slice(0, 12).toUpperCase() || ''
-  const organizationName = organization?.name || 'Payforms'
+    : transaction?.customer_name || 'Customer'
+  const contactEmail = contact?.email || transaction?.customer_email || ''
+  const studentRef = contact?.student_id || transaction?.student_id || id?.slice(0, 12).toUpperCase() || ''
+  const organizationName = organization?.name || transaction?.organization_name || 'Payforms'
   const reference = transaction?.reference || id || ''
-  const amount = transaction?.amount ? parseFloat(transaction.amount) : 0
-  const date = transaction?.created_at 
-    ? new Date(transaction.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  const amount = transaction?.amount ? parseFloat(transaction.amount) : transaction?.amount_paid ? parseFloat(transaction.amount_paid) : 0
+  const date = transaction?.paid_at || transaction?.created_at
+    ? new Date(transaction.paid_at || transaction.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     : new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+
+  const handleDownloadPDF = () => {
+    window.print()
+    setTimeout(() => {
+      navigate('/')
+    }, 1000)
+  }
 
   const handlePrint = () => window.print()
 
@@ -1051,7 +1071,10 @@ export function OfficialPaymentReceipt() {
               <MaterialIcon name="share" className="w-8 h-8" />
               <span className="text-xs font-['Inter'] uppercase tracking-widest">share</span>
             </button>
-            <button className="flex items-center gap-2 text-[#191c1e] font-bold hover:bg-[#e0e3e5] transition-colors px-3 py-1.5 rounded-lg scale-95 transition-transform duration-150">
+            <button 
+              onClick={handleDownloadPDF}
+              className="flex items-center gap-2 text-[#191c1e] font-bold hover:bg-[#e0e3e5] transition-colors px-3 py-1.5 rounded-lg scale-95 transition-transform duration-150 cursor-pointer"
+            >
               <MaterialIcon name="download" className="w-8 h-8" />
               <span className="text-xs font-['Inter'] uppercase tracking-widest">download</span>
             </button>
@@ -1125,24 +1148,10 @@ export function OfficialPaymentReceipt() {
               <tbody className="divide-y divide-[#c6c6cd]/5">
                 <tr className="hover:bg-[#f2f4f6] transition-colors group">
                   <td className="px-6 py-6">
-                    <p className="font-['Manrope'] font-semibold text-[#191c1e]">Tuition Deposit</p>
-                    <p className="text-xs text-[#45464d] mt-1">Fall Semester 2024 - Academic Program</p>
+                    <p className="font-['Manrope'] font-semibold text-[#191c1e]">{formTitle}</p>
+                    <p className="text-xs text-[#45464d] mt-1">Payment for {formTitle} - Reference: {reference}</p>
                   </td>
-                  <td className="px-6 py-6 text-right font-['Manrope'] font-bold text-[#191c1e]">₦1,250.00</td>
-                </tr>
-                <tr className="hover:bg-[#f2f4f6] transition-colors group">
-                  <td className="px-6 py-6">
-                    <p className="font-['Manrope'] font-semibold text-[#191c1e]">Lab Fees</p>
-                    <p className="text-xs text-[#45464d] mt-1">Materials and Academic Studio Access</p>
-                  </td>
-                  <td className="px-6 py-6 text-right font-['Manrope'] font-bold text-[#191c1e]">₦45.00</td>
-                </tr>
-                <tr className="hover:bg-[#f2f4f6] transition-colors group">
-                  <td className="px-6 py-6">
-                    <p className="font-['Manrope'] font-semibold text-[#191c1e]">Processing Fee</p>
-                    <p className="text-xs text-[#45464d] mt-1">Digital Transaction Ledger Fee</p>
-                  </td>
-                  <td className="px-6 py-6 text-right font-['Manrope'] font-bold text-[#191c1e]">₦5.00</td>
+                  <td className="px-6 py-6 text-right font-['Manrope'] font-bold text-[#191c1e]">₦{amount.toLocaleString()}</td>
                 </tr>
               </tbody>
             </table>
@@ -1200,9 +1209,9 @@ export function OfficialPaymentReceipt() {
       
       <button
         className="no-print fixed bottom-8 right-8 w-16 h-16 bg-[#000] text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-105 transition-transform active:scale-95 z-[60]"
-        onClick={handlePrint}
+        onClick={handleDownloadPDF}
       >
-        <MaterialIcon name="print" className="w-8 h-8" />
+        <MaterialIcon name="download" className="w-8 h-8" />
       </button>
     </div>
   )

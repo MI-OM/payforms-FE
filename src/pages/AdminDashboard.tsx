@@ -37,6 +37,7 @@ export function AdminDashboardContent() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [topForms, setTopForms] = useState<FormPerformance[]>([])
   const [forms, setForms] = useState<Form[]>([])
+  const [pendingStats, setPendingStats] = useState<{ count: number; amount: number }>({ count: 0, amount: 0 })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -51,7 +52,8 @@ export function AdminDashboardContent() {
           reportService.getAnalytics().catch(() => null),
           paymentService.getTransactions({ limit: 10 }).catch(() => ({ data: [] })),
           reportService.getFormsPerformance().catch(() => ({ data: [] })),
-          formService.getForms({ limit: 100 }).catch(() => ({ data: [], total: 0, page: 1, limit: 100, totalPages: 0 }))
+          formService.getForms({ limit: 100 }).catch(() => ({ data: [], total: 0, page: 1, limit: 100, totalPages: 0 })),
+          paymentService.getTransactions({ limit: 1000, status: 'PENDING' }).catch(() => ({ data: [] }))
         ])
         
         setSummary(summaryData)
@@ -59,6 +61,22 @@ export function AdminDashboardContent() {
         setTransactions(txnData.data || [])
         setTopForms(performanceData.data || [])
         setForms(formsData.data || [])
+        
+        // Calculate pending stats from analytics or fetched pending transactions
+        const pendingFromAnalytics = analyticsData?.payment_status_breakdown?.find(s => s.status === 'PENDING')
+        if (pendingFromAnalytics) {
+          setPendingStats({
+            count: pendingFromAnalytics.count,
+            amount: pendingFromAnalytics.total_amount
+          })
+        } else {
+          // Fallback: calculate from fetched pending transactions
+          const pendingTxns = txnData.data || []
+          const pendingCount = pendingTxns.filter((t: any) => t.status?.toUpperCase() === 'PENDING').length
+          const pendingAmount = pendingTxns.filter((t: any) => t.status?.toUpperCase() === 'PENDING')
+            .reduce((sum: number, t: any) => sum + parseFloat(t.amount_paid || t.amount || 0), 0)
+          setPendingStats({ count: pendingCount, amount: pendingAmount })
+        }
       } catch (err) {
         setError('Failed to load dashboard data')
         toast({ title: 'Error', description: 'Failed to load dashboard data', variant: 'destructive' })
@@ -141,6 +159,7 @@ export function AdminDashboardContent() {
           transactions={transactions}
           topForms={topForms}
           forms={forms}
+          pendingStats={pendingStats}
           formatCurrency={formatCurrency}
           formatDate={formatDate}
           getFormName={getFormName}
@@ -251,12 +270,13 @@ interface LiveDashboardProps {
   transactions: Transaction[]
   topForms: FormPerformance[]
   forms: Form[]
+  pendingStats: { count: number; amount: number }
   formatCurrency: (amount: number | string) => string
   formatDate: (date: string) => string
   getFormName: (formId: string | undefined) => string
 }
 
-function LiveDashboard({ summary, analytics, transactions, topForms, forms, formatCurrency, formatDate, getFormName }: LiveDashboardProps) {
+function LiveDashboard({ summary, analytics, transactions, topForms, forms, pendingStats, formatCurrency, formatDate, getFormName }: LiveDashboardProps) {
   const getStatusCount = (status: string) => {
     return analytics?.payment_status_breakdown?.find(s => s.status === status)?.count || 0
   }
@@ -290,14 +310,20 @@ function LiveDashboard({ summary, analytics, transactions, topForms, forms, form
     }
   })
   
+  // Use pendingStats from analytics if available, otherwise use calculated values
+  const displayPendingCount = pendingStats?.count ?? pendingCount
+  const displayPendingAmount = pendingStats?.amount ?? pendingAmount
+  
   const totalTransactions = paidCount + pendingCount + failedCount + partialCount
 
   const successRate = totalTransactions > 0 ? Math.round(((paidCount + partialCount) / totalTransactions) * 100 * 10) / 10 : 0
 
   const chartData = analytics?.payments_by_day?.map(d => ({
     day: new Date(d.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    amount: d.total,
-    count: d.count
+    paid: d.paid?.total || 0,
+    pending: d.pending?.total || 0,
+    failed: d.failed?.total || 0,
+    partial: d.partial?.total || 0,
   })) || []
 
   return (
@@ -354,9 +380,9 @@ function LiveDashboard({ summary, analytics, transactions, topForms, forms, form
           <div className="flex justify-between items-start mb-4">
             <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Pending Collections</span>
           </div>
-          <p className="text-3xl font-extrabold tracking-tighter">{formatCurrency(pendingAmount)}</p>
-          <p className="text-[11px] opacity-60 mt-1">{pendingCount} pending payments</p>
-          <Link to="/transactions?status=PENDING">
+          <p className="text-3xl font-extrabold tracking-tighter">{formatCurrency(displayPendingAmount)}</p>
+          <p className="text-[11px] opacity-60 mt-1">{displayPendingCount} pending payments</p>
+          <Link to="/pending-transactions">
             <button className="mt-4 text-[10px] font-bold bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded transition-colors uppercase tracking-wider">
               Review Pending
             </button>
@@ -370,13 +396,21 @@ function LiveDashboard({ summary, analytics, transactions, topForms, forms, form
         <div className="lg:col-span-2 bg-[#ffffff] rounded-xl p-8 shadow-sm">
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h2 className="text-xl font-bold tracking-tighter">Revenue Performance</h2>
-              <p className="text-xs text-[#45464d]">Real-time metrics for the trailing 7 days</p>
+              <h2 className="text-xl font-bold tracking-tighter">Payment Trends</h2>
+              <p className="text-xs text-[#45464d]">Revenue by status for the trailing 7 days</p>
             </div>
             <div className="flex gap-4">
               <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-[#000000]"></span>
-                <span className="text-[10px] font-bold uppercase">Revenue</span>
+                <span className="w-3 h-3 rounded-full bg-[#009668]"></span>
+                <span className="text-[10px] font-bold uppercase">Paid</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-[#188ace]"></span>
+                <span className="text-[10px] font-bold uppercase">Pending</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-[#ba1a1a]"></span>
+                <span className="text-[10px] font-bold uppercase">Failed</span>
               </div>
             </div>
           </div>
@@ -400,7 +434,10 @@ function LiveDashboard({ summary, analytics, transactions, topForms, forms, form
                     width={50}
                   />
                   <Tooltip 
-                    formatter={(value) => [`₦${Number(value).toLocaleString()}`, 'Revenue']}
+                    formatter={(value, name) => {
+                      const label = typeof name === 'string' ? name.charAt(0).toUpperCase() + name.slice(1) : String(name)
+                      return [`₦${Number(value).toLocaleString()}`, label]
+                    }}
                     contentStyle={{ 
                       backgroundColor: '#fff', 
                       border: '1px solid #e0e3e5', 
@@ -410,18 +447,34 @@ function LiveDashboard({ summary, analytics, transactions, topForms, forms, form
                   />
                   <Line 
                     type="monotone" 
-                    dataKey="amount" 
-                    stroke="#000000" 
+                    dataKey="paid" 
+                    stroke="#009668" 
                     strokeWidth={3}
                     dot={false}
-                    activeDot={{ r: 6, fill: '#000000' }}
+                    activeDot={{ r: 6, fill: '#009668' }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="pending" 
+                    stroke="#188ace" 
+                    strokeWidth={3}
+                    dot={false}
+                    activeDot={{ r: 6, fill: '#188ace' }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="failed" 
+                    stroke="#ba1a1a" 
+                    strokeWidth={3}
+                    dot={false}
+                    activeDot={{ r: 6, fill: '#ba1a1a' }}
                   />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           ) : (
             <div className="flex items-center justify-center h-64 text-[#45464d]">
-              <p className="text-sm">No revenue data available</p>
+              <p className="text-sm">No payment data available</p>
             </div>
           )}
         </div>

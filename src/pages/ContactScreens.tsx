@@ -380,15 +380,17 @@ export function ContactDetailsView() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto p-8">
-        <div className="flex items-center gap-4 mb-8">
-          <button onClick={() => navigate('/contacts')} className="p-2 hover:bg-gray-100 rounded-lg">
-            <ArrowLeft className="h-5 w-5 text-gray-600" />
-          </button>
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold text-gray-900">
-              {fullName}
-            </h1>
-            <p className="text-gray-500">{contact.email}</p>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <button onClick={() => navigate('/contacts')} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+              <ArrowLeft className="h-5 w-5 text-gray-600" />
+            </button>
+            <div className="flex-1">
+              <h1 className="text-2xl font-bold text-gray-900">
+                {fullName}
+              </h1>
+              <p className="text-gray-500">{contact.email}</p>
+            </div>
           </div>
           <Button variant="secondary" onClick={() => navigate(`/contacts/${id}/edit`)}>
             Edit Contact
@@ -740,13 +742,15 @@ export function ImportValidationReview() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto p-8">
-        <div className="flex items-center gap-4 mb-8">
-          <button onClick={() => navigate('/import')} className="p-2 hover:bg-gray-100 rounded-lg">
-            <ArrowLeft className="h-5 w-5 text-gray-600" />
-          </button>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Review Import</h1>
-            <p className="text-gray-500">Validate and commit your contact import</p>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <button onClick={() => navigate('/import')} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+              <ArrowLeft className="h-5 w-5 text-gray-600" />
+            </button>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Review Import</h1>
+              <p className="text-gray-500">Validate and commit your contact import</p>
+            </div>
           </div>
         </div>
 

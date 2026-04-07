@@ -23,7 +23,15 @@ export interface AnalyticsData {
     end: string
   }
   submissions_by_day: { day: string; count: number }[]
-  payments_by_day: { day: string; total: number; count: number }[]
+  payments_by_day: {
+    day: string
+    paid?: { count: number; total: number }
+    pending?: { count: number; total: number }
+    failed?: { count: number; total: number }
+    partial?: { count: number; total: number }
+    total?: number
+    count?: number
+  }[]
   payment_status_breakdown: { status: string; count: number; total_amount: number }[]
 }
 

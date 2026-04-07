@@ -29,6 +29,11 @@ export interface Transaction {
     contact_id?: string
     organization_id: string
   }
+  customer_name?: string
+  customer_email?: string
+  student_id?: string
+  form_title?: string
+  organization_name?: string
 }
 
 export interface TransactionHistory {

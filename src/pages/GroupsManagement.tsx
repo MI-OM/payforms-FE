@@ -179,23 +179,31 @@ export function GroupEditorView() {
 
   return (
     <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            {isSubgroup && parentGroup && (
-              <button 
-                onClick={() => navigate(`/groups/${parentGroupId}`)}
-                className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 mb-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back to {parentGroup.name}
-              </button>
-            )}
-            <h1 className="text-3xl font-extrabold tracking-tighter text-gray-900">
-              {id ? 'Edit' : isSubgroup ? 'Create Subgroup' : 'Create'} Group
-            </h1>
-            <p className="text-gray-500">
-              {id ? 'Update group details and members' : isSubgroup ? `Add a subgroup under ${parentGroup?.name || 'parent group'}` : 'Create a new contact group'}
-            </p>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => navigate(id ? `/groups/${id}` : (isSubgroup && parentGroupId ? `/groups/${parentGroupId}/subgroups` : '/groups'))}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <ArrowLeft className="h-5 w-5 text-gray-600" />
+            </button>
+            <div>
+              {isSubgroup && parentGroup && (
+                <button 
+                  onClick={() => navigate(`/groups/${parentGroupId}`)}
+                  className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 mb-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to {parentGroup.name}
+                </button>
+              )}
+              <h1 className="text-3xl font-extrabold tracking-tighter text-gray-900">
+                {id ? 'Edit' : isSubgroup ? 'Create Subgroup' : 'Create'} Group
+              </h1>
+              <p className="text-gray-500">
+                {id ? 'Update group details and members' : isSubgroup ? `Add a subgroup under ${parentGroup?.name || 'parent group'}` : 'Create a new contact group'}
+              </p>
+            </div>
           </div>
           {id && <Button variant="secondary" onClick={handleDelete}>Delete Group</Button>}
         </div>
@@ -305,10 +313,18 @@ export function SubgroupManagementView() {
 
   return (
     <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tighter text-gray-900">Subgroups</h1>
-            <p className="text-gray-500">Manage subgroups within {parentGroup?.name || 'Group'}</p>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => navigate(`/groups/${id}`)}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <ArrowLeft className="h-5 w-5 text-gray-600" />
+            </button>
+            <div>
+              <h1 className="text-3xl font-extrabold tracking-tighter text-gray-900">Subgroups</h1>
+              <p className="text-gray-500">Manage subgroups within {parentGroup?.name || 'Group'}</p>
+            </div>
           </div>
           <Button className="flex items-center gap-2" onClick={() => navigate(`/groups/new?parent=${id}`)}>
             <Plus className="h-4 w-4" />

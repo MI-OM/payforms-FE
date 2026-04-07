@@ -7,7 +7,8 @@ export interface Group {
   note?: string
   parent_group_id?: string
   contact_count?: number
-  created_at: string
+  contactCount?: number
+  created_at?: string
 }
 
 export interface GroupTreeNode extends Group {

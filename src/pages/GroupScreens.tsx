@@ -32,15 +32,49 @@ export function GroupTreeView() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [selectedGroup, setSelectedGroup] = useState<GroupNode | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [totalContacts, setTotalContacts] = useState(0)
+  const [totalGroups, setTotalGroups] = useState(0)
 
   const fetchTree = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
       const data = await groupService.getGroupTree()
-      setTree(data)
-      const rootIds = new Set(data.map(g => g.id))
+      
+      // Clean the tree data - fix escaped quotes in names and ensure proper hierarchy
+      const cleanTree = (nodes: GroupTreeNode[]): GroupTreeNode[] => {
+        return nodes.map(node => ({
+          ...node,
+          name: (node.name || 'Unnamed')
+            .replace(/^["\\]+|["\\]+$/g, '') // Remove leading/trailing quotes and backslashes
+            .replace(/\\"/g, '"')              // Unescape quotes
+            .trim(),
+          contact_count: node.contact_count ?? 0,
+          children: node.children ? cleanTree(node.children) : []
+        }))
+      }
+      
+      const cleanedData = cleanTree(data)
+      console.log('[Groups] Cleaned data:', cleanedData)
+      setTree(cleanedData)
+      const rootIds = new Set(cleanedData.map(g => g.id))
       setExpanded(rootIds)
+      
+      // Count total groups and contacts from the tree
+      const countTreeData = (nodes: GroupTreeNode[]): { groups: number; contacts: number } => {
+        return nodes.reduce((acc, node) => {
+          const childCounts = node.children ? countTreeData(node.children) : { groups: 0, contacts: 0 }
+          return {
+            groups: acc.groups + 1 + childCounts.groups,
+            contacts: acc.contacts + (node.contact_count || 0) + childCounts.contacts
+          }
+        }, { groups: 0, contacts: 0 })
+      }
+      
+      const counts = countTreeData(cleanedData)
+      console.log('[Groups] Counts:', counts)
+      setTotalGroups(counts.groups)
+      setTotalContacts(counts.contacts)
     } catch (err) {
       setError('Failed to load groups')
       console.error(err)
@@ -152,7 +186,6 @@ export function GroupTreeView() {
 
   const flattenedTree = flattenTree(tree)
   const filteredTree = filterTree(flattenedTree, searchQuery)
-  const totalContacts = flattenedTree.reduce((sum, node) => sum + node.contactCount, 0)
 
   if (loading) {
     return (
@@ -302,7 +335,7 @@ export function GroupTreeView() {
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-blue-100 text-sm">Total Groups</span>
-                <span className="font-bold">{flattenedTree.length}</span>
+                <span className="font-bold">{totalGroups}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-blue-100 text-sm">Total Contacts</span>

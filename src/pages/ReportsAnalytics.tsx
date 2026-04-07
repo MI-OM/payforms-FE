@@ -24,7 +24,7 @@ export function ReportsAnalytics() {
   const [groupContributions, setGroupContributions] = useState<GroupContributionsResponse | null>(null)
   const [exporting, setExporting] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'forms' | 'groups'>('overview')
-  const [transactionStats, setTransactionStats] = useState<{ paid: number; pending: number; failed: number; partial: number; total: number }>({ paid: 0, pending: 0, failed: 0, partial: 0, total: 0 })
+  const [transactionStats, setTransactionStats] = useState<{ paid: number; pending: number; failed: number; partial: number; total: number; paidAmount: number; pendingAmount: number; failedAmount: number; partialAmount: number }>({ paid: 0, pending: 0, failed: 0, partial: 0, total: 0, paidAmount: 0, pendingAmount: 0, failedAmount: 0, partialAmount: 0 })
   const [dateRange, setDateRange] = useState(() => {
     const now = new Date()
     const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -165,8 +165,10 @@ export function ReportsAnalytics() {
 
   const chartData = analytics?.payments_by_day?.map(d => ({
     day: new Date(d.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    amount: d.total,
-    count: d.count
+    paid: d.paid?.total || 0,
+    pending: d.pending?.total || 0,
+    failed: d.failed?.total || 0,
+    partial: d.partial?.total || 0,
   })) || []
 
   const getStatusCount = (status: string) => {
@@ -332,11 +334,19 @@ export function ReportsAnalytics() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
             <div className="lg:col-span-2 bg-white rounded-xl p-6 shadow-sm border border-[#c6c6cd]/10">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold text-[#191c1e]">Daily Revenue</h3>
+                <h3 className="text-lg font-bold text-[#191c1e]">Payment Trends</h3>
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-[#000000]"></span>
-                    <span className="text-[10px] font-bold uppercase">Revenue</span>
+                    <span className="w-3 h-3 rounded-full bg-[#009668]"></span>
+                    <span className="text-[10px] font-bold uppercase">Paid</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-[#188ace]"></span>
+                    <span className="text-[10px] font-bold uppercase">Pending</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-[#ba1a1a]"></span>
+                    <span className="text-[10px] font-bold uppercase">Failed</span>
                   </div>
                 </div>
               </div>
@@ -358,7 +368,10 @@ export function ReportsAnalytics() {
                       width={50}
                     />
                     <Tooltip 
-                      formatter={(value) => [`₦${Number(value).toLocaleString()}`, 'Revenue']}
+                      formatter={(value, name) => {
+                        const label = typeof name === 'string' ? name.charAt(0).toUpperCase() + name.slice(1) : String(name)
+                        return [`₦${Number(value).toLocaleString()}`, label]
+                      }}
                       contentStyle={{ 
                         backgroundColor: '#fff', 
                         border: '1px solid #e0e3e5', 
@@ -368,17 +381,33 @@ export function ReportsAnalytics() {
                     />
                     <Line 
                       type="monotone" 
-                      dataKey="amount" 
-                      stroke="#000000" 
+                      dataKey="paid" 
+                      stroke="#009668" 
                       strokeWidth={3}
                       dot={false}
-                      activeDot={{ r: 6, fill: '#000000' }}
+                      activeDot={{ r: 6, fill: '#009668' }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="pending" 
+                      stroke="#188ace" 
+                      strokeWidth={3}
+                      dot={false}
+                      activeDot={{ r: 6, fill: '#188ace' }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="failed" 
+                      stroke="#ba1a1a" 
+                      strokeWidth={3}
+                      dot={false}
+                      activeDot={{ r: 6, fill: '#ba1a1a' }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
               ) : (
                 <div className="flex items-center justify-center h-64 text-[#45464d]">
-                  <p className="text-sm">No revenue data available</p>
+                  <p className="text-sm">No payment data available</p>
                 </div>
               )}
             </div>
@@ -443,7 +472,7 @@ export function ReportsAnalytics() {
                     <p className="text-xs text-[#45464d]">{item.submissions} submissions</p>
                   </div>
                   <p className="font-extrabold text-[#191c1e]">
-                    {formatCurrency(item.paid_amount_total || item.paid_amount || 0)}
+                    {formatCurrency(item.paid_amount_total || 0)}
                   </p>
                 </div>
               ))}
@@ -509,7 +538,7 @@ export function ReportsAnalytics() {
                         <span className="text-[#76777d]"> / {form.payments}</span>
                       </td>
                       <td className="px-4 py-3 text-right font-extrabold">
-                        {formatCurrency(form.paid_amount_total || form.paid_amount || 0)}
+                        {formatCurrency(form.paid_amount_total || 0)}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <span className={`font-bold ${form.completion_rate >= 50 ? 'text-[#009668]' : 'text-amber-600'}`}>

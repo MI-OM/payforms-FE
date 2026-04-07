@@ -27,6 +27,7 @@ import { SubgroupManagementView } from '@/pages/GroupsManagement'
 import { MoveContactToGroupView } from '@/pages/MoveContact'
 import { MoveContactSuccessFailureStates } from '@/pages/MoveContact'
 import { AllTransactionsLedger } from '@/pages/AllTransactionsLedger'
+import { PendingTransactions } from '@/pages/PendingTransactions'
 import { IndividualTransactionDetail } from '@/pages/TransactionDetail'
 import { ConfirmPaymentCheckout } from '@/pages/PaymentPages'
 import { PaymentSuccessState } from '@/pages/PaymentPages'
@@ -209,6 +210,9 @@ function App() {
           <Route path="/transactions/export" element={<TransactionExport />} />
           <Route path="/transactions/:id" element={<IndividualTransactionDetail />} />
           <Route path="/transactions/:id/history" element={<TransactionHistory />} />
+          
+          {/* Pending Transactions */}
+          <Route path="/pending-transactions" element={<PendingTransactions />} />
 
           {/* Payments alias for /transactions */}
           <Route path="/payments" element={<AllTransactionsLedger />} />

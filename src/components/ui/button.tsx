@@ -13,6 +13,7 @@ const buttonVariants = cva(
         outline: "border border-error/20 text-error hover:bg-error-container/50",
         ghost: "hover:bg-surface-container-low text-on-surface",
         link: "text-on-primary-container underline-offset-4 hover:underline",
+        destructive: "bg-red-600 text-white hover:bg-red-700",
       },
       size: {
         default: "h-10 px-4 py-2",
