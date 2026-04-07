@@ -1,8 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Search, Download, ChevronDown, Upload, Shield, Edit, Settings, Loader2, Filter, X } from 'lucide-react'
+import { Search, Download, ChevronDown, Upload, Shield, Edit, Settings, Loader2, Filter, X, User, FileText, Users, CreditCard, Building, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { auditService, type AuditLog } from '@/services/auditService'
+import { contactService } from '@/services/contactService'
+import { formService } from '@/services/formService'
+import { paymentService } from '@/services/paymentService'
+import { organizationService } from '@/services/organizationService'
 import { toast } from '@/components/ui/use-toast'
 
 const iconMap: Record<string, React.ElementType> = {
@@ -11,6 +15,24 @@ const iconMap: Record<string, React.ElementType> = {
   'create': Edit,
   'update': Settings,
   'delete': Settings,
+  'view': Eye,
+  'submit': Upload,
+  'payment': CreditCard,
+  'default': Settings,
+}
+
+const entityIconMap: Record<string, React.ElementType> = {
+  'contact': User,
+  'form': FileText,
+  'payment': CreditCard,
+  'transaction': CreditCard,
+  'group': Users,
+  'organization': Building,
+  'user': User,
+  'audit_log': Settings,
+  'audit': Settings,
+  'authentication': Shield,
+  'report': FileText,
   'default': Settings,
 }
 
@@ -81,6 +103,16 @@ function isInternalApiRequest(log: AuditLog): boolean {
   )
 }
 
+interface EntityInfo {
+  name: string
+  subtitle?: string
+  icon: React.ElementType
+}
+
+interface EntityCache {
+  [key: string]: EntityInfo
+}
+
 export function AllActivityLogs() {
   const [logs, setLogs] = useState<AuditLog[]>([])
   const [loading, setLoading] = useState(true)
@@ -93,8 +125,139 @@ export function AllActivityLogs() {
   const [toDate, setToDate] = useState('')
   const [exporting, setExporting] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
+  const [entityCache, setEntityCache] = useState<EntityCache>({})
+  const [loadingEntities, setLoadingEntities] = useState(false)
 
   const hasActiveFilters = actionFilter || entityTypeFilter || fromDate || toDate
+
+  const fetchEntityInfo = useCallback(async (entityType: string, entityId: string): Promise<EntityInfo | null> => {
+    const cacheKey = `${entityType}-${entityId}`
+    
+    if (entityCache[cacheKey]) {
+      return entityCache[cacheKey]
+    }
+
+    try {
+      let entityInfo: EntityInfo | null = null
+      const normalizedType = entityType.toLowerCase()
+      
+      const cleanEntityId = entityId.replace(/^(payment|contact|form|group|transaction|user|organization)/i, '').replace(/^e/i, 'e')
+
+      switch (normalizedType) {
+        case 'contact':
+          try {
+            const contact = await contactService.getContact(entityId)
+            entityInfo = {
+              name: `${contact.first_name || ''} ${contact.last_name || ''}`.trim() || 'Unknown Contact',
+              subtitle: contact.email || undefined,
+              icon: User
+            }
+          } catch {
+            entityInfo = { name: 'Unknown Contact', icon: User }
+          }
+          break
+
+        case 'form':
+          try {
+            const form = await formService.getForm(entityId)
+            entityInfo = {
+              name: form.title || 'Unknown Form',
+              subtitle: form.slug || undefined,
+              icon: FileText
+            }
+          } catch {
+            entityInfo = { name: 'Unknown Form', icon: FileText }
+          }
+          break
+
+        case 'payment':
+        case 'transaction':
+          try {
+            const txn = await paymentService.getTransaction(entityId)
+            entityInfo = {
+              name: txn.reference?.slice(0, 16) || entityId.slice(0, 8),
+              subtitle: `₦${parseFloat(txn.amount).toLocaleString()}`,
+              icon: CreditCard
+            }
+          } catch {
+            entityInfo = { name: entityId.slice(0, 12), icon: CreditCard }
+          }
+          break
+
+        case 'group':
+          entityInfo = { name: 'Group', subtitle: entityId.slice(0, 8), icon: Users }
+          break
+
+        case 'organization':
+          try {
+            const org = await organizationService.getOrganization()
+            entityInfo = {
+              name: org.name || 'Organization',
+              icon: Building
+            }
+          } catch {
+            entityInfo = { name: 'Organization', icon: Building }
+          }
+          break
+
+        case 'user':
+          entityInfo = { name: 'User', subtitle: entityId.slice(0, 8), icon: User }
+          break
+
+        case 'audit':
+        case 'audit_log':
+          entityInfo = { name: 'Audit Log', icon: Settings }
+          break
+
+        case 'authentication':
+          entityInfo = { name: 'Authentication', icon: Shield }
+          break
+
+        case 'report':
+          entityInfo = { name: 'Report', icon: FileText }
+          break
+
+        default:
+          entityInfo = { name: entityType, subtitle: entityId.slice(0, 8), icon: Settings }
+      }
+
+      if (entityInfo) {
+        setEntityCache(prev => ({ ...prev, [cacheKey]: entityInfo! }))
+      }
+
+      return entityInfo
+    } catch (err) {
+      console.error(`Failed to fetch ${entityType} info:`, err)
+      return null
+    }
+  }, [entityCache])
+
+  const fetchEntitiesForLogs = useCallback(async (logs: AuditLog[]) => {
+    const uniqueEntities = new Map<string, { type: string; id: string }>()
+    
+    logs.forEach(log => {
+      if (log.entity_type && log.entity_id) {
+        const key = `${log.entity_type}-${log.entity_id}`
+        if (!uniqueEntities.has(key)) {
+          uniqueEntities.set(key, { type: log.entity_type, id: log.entity_id })
+        }
+      }
+    })
+
+    if (uniqueEntities.size === 0) return
+
+    setLoadingEntities(true)
+    
+    try {
+      await Promise.all(
+        Array.from(uniqueEntities.values()).map(({ type, id }) =>
+          fetchEntityInfo(type, id)
+        )
+      )
+    } finally {
+      setLoadingEntities(false)
+    }
+  }, [fetchEntityInfo])
 
   const fetchLogs = useCallback(async () => {
     setLoading(true)
@@ -120,6 +283,12 @@ export function AllActivityLogs() {
   useEffect(() => {
     fetchLogs()
   }, [fetchLogs])
+
+  useEffect(() => {
+    if (logs.length > 0) {
+      fetchEntitiesForLogs(logs)
+    }
+  }, [logs, fetchEntitiesForLogs])
 
   const clearFilters = () => {
     setActionFilter('')
@@ -285,21 +454,51 @@ export function AllActivityLogs() {
                 {logs
                   .filter(log => !isInternalApiRequest(log))
                   .map((log) => {
-                    const IconComponent = iconMap[log.action?.toLowerCase() || 'default'] || iconMap['default']
+                    const ActionIcon = iconMap[log.action?.toLowerCase() || 'default'] || iconMap['default']
+                    const entityKey = log.entity_type?.toLowerCase() || ''
+                    const EntityIcon = entityIconMap[entityKey] || entityIconMap['default']
                     return (
                       <div key={log.id} className="p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
-                        <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500">
-                          <IconComponent className="h-5 w-5" />
+                        <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+                          <EntityIcon className="h-5 w-5" />
                         </div>
                         <div className="flex-1">
                           <div className="flex justify-between items-center mb-1">
                             <span className="font-bold text-sm text-gray-900">{formatAction(log.action)}</span>
                             <span className="text-[10px] font-mono text-gray-400 uppercase">ID: {log.id?.slice(0, 8) || 'N/A'}</span>
                           </div>
-                          <p className="text-xs text-gray-500">
-                            {log.entity_type} {log.entity_id && `#${log.entity_id.slice(0, 8)}`}
-                            {log.user_email && ` by ${log.user_email}`}
-                          </p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-bold uppercase rounded">
+                              {log.entity_type}
+                            </span>
+                            {log.entity_type && log.entity_id ? (
+                              (() => {
+                                const cacheKey = `${log.entity_type}-${log.entity_id}`
+                                const entityInfo = entityCache[cacheKey]
+                                if (entityInfo) {
+                                  return (
+                                    <span className="flex items-center gap-1.5">
+                                      <span className="text-xs font-semibold text-gray-700">{entityInfo.name}</span>
+                                      {entityInfo.subtitle && (
+                                        <span className="text-[10px] text-gray-400">({entityInfo.subtitle})</span>
+                                      )}
+                                    </span>
+                                  )
+                                }
+                                return (
+                                  <span className="text-xs text-gray-500 font-mono">
+                                    {log.entity_id.slice(0, 8)}...
+                                  </span>
+                                )
+                              })()
+                            ) : null}
+                            {(log.user_email && log.user_email.toLowerCase() !== 'system') && (
+                              <span className="text-[10px] text-gray-400">by {log.user_email}</span>
+                            )}
+                            {log.user_email?.toLowerCase() === 'system' && (
+                              <span className="text-[10px] text-gray-400 italic">(System action)</span>
+                            )}
+                          </div>
                         </div>
                         <div className="text-right">
                           <div className="text-xs font-bold text-gray-700">{formatTime(log.timestamp)}</div>

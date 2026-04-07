@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Search, Download, MoreVertical, CheckCircle, Clock, XCircle, Loader2, TrendingUp, TrendingDown, Filter, Calendar, Eye, RefreshCw } from 'lucide-react'
+import { Search, Download, MoreVertical, CheckCircle, Clock, XCircle, Loader2, TrendingUp, TrendingDown, Filter, Calendar, Eye, RefreshCw, Edit2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { paymentService } from '@/services/paymentService'
@@ -14,6 +14,103 @@ function formatCurrency(amount: number): string {
 
 function formatDate(dateString: string): string {
   return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+interface EditStatusButtonProps {
+  transactionId: string
+  currentStatus: string
+  onStatusUpdate: (transactionId: string, newStatus: string) => Promise<void>
+}
+
+function EditStatusButton({ transactionId, currentStatus, onStatusUpdate }: EditStatusButtonProps) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [selectedStatus, setSelectedStatus] = useState(currentStatus)
+  const [isUpdating, setIsUpdating] = useState(false)
+  const [showSuccess, setShowSuccess] = useState(false)
+
+  const statuses = ['PENDING', 'PAID', 'PARTIAL', 'FAILED']
+
+  const handleStatusChange = async (newStatus: string) => {
+    if (newStatus === currentStatus) {
+      setIsOpen(false)
+      return
+    }
+    
+    setIsUpdating(true)
+    try {
+      await onStatusUpdate(transactionId, newStatus)
+      setSelectedStatus(newStatus)
+      setIsOpen(false)
+      setShowSuccess(true)
+      setTimeout(() => setShowSuccess(false), 2000)
+    } catch (err) {
+      console.error('Failed to update status:', err)
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  if (showSuccess) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[#009668] text-sm font-medium">
+        <CheckCircle className="h-4 w-4" />
+        Updated
+      </span>
+    )
+  }
+
+  return (
+    <div className="relative inline-block">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="inline-flex items-center gap-1 text-[#006398] hover:text-[#004a73] transition-colors text-sm font-medium disabled:opacity-50"
+        disabled={isUpdating}
+      >
+        {isUpdating ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <>
+            <Edit2 className="h-4 w-4" />
+            Edit
+          </>
+        )}
+      </button>
+      
+      {isOpen && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
+          <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-[#e0e3e5] z-20 overflow-hidden">
+            <div className="p-2 border-b border-[#e0e3e5] bg-[#f2f4f6]">
+              <p className="text-[10px] font-bold text-[#45464d] uppercase tracking-wider">Change Status</p>
+            </div>
+            <div className="py-1">
+              {statuses.map((status) => (
+                <button
+                  key={status}
+                  onClick={() => handleStatusChange(status)}
+                  className={`w-full px-3 py-2 text-left text-sm hover:bg-[#f2f4f6] transition-colors flex items-center justify-between ${
+                    status === selectedStatus ? 'bg-[#f2f4f6] font-semibold' : ''
+                  }`}
+                >
+                  <span className={status === currentStatus ? 'text-[#76777d]' : 'text-[#191c1e]'}>{status}</span>
+                  {status === currentStatus && <span className="text-[10px] text-[#76777d]">Current</span>}
+                </button>
+              ))}
+            </div>
+            <div className="p-2 border-t border-[#e0e3e5]">
+              <button
+                onClick={() => setIsOpen(false)}
+                className="w-full flex items-center justify-center gap-1 px-3 py-1.5 text-xs text-[#45464d] hover:bg-[#f2f4f6] rounded transition-colors"
+              >
+                <X className="h-3 w-3" />
+                Cancel
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )
 }
 
 interface Submission {
@@ -152,6 +249,24 @@ export function AllTransactionsLedger() {
       setLoadingStats(false)
     }
   }, [])
+
+  const handleStatusUpdate = async (transactionId: string, newStatus: string) => {
+    try {
+      await paymentService.updatePaymentStatus(transactionId, { 
+        status: newStatus as 'PENDING' | 'PAID' | 'PARTIAL' | 'FAILED',
+        paid_at: newStatus === 'PAID' ? new Date().toISOString() : undefined
+      })
+      
+      setTransactions(prev => prev.map(txn => 
+        txn.id === transactionId ? { ...txn, status: newStatus } : txn
+      ))
+      
+      await fetchStats()
+    } catch (err) {
+      console.error('Failed to update transaction status:', err)
+      throw err
+    }
+  }
 
   useEffect(() => {
     Promise.all([fetchContacts(), fetchForms()]).then(() => {
@@ -405,12 +520,10 @@ export function AllTransactionsLedger() {
                   <tr key={txn.id} className="hover:bg-[#f2f4f6]/50 transition-colors">
                     <td className="px-6 py-5 font-mono text-xs text-[#5c647a]">
                       <p className="font-semibold">{txn.reference?.slice(0, 12) || txn.id.slice(0, 8).toUpperCase()}</p>
-                      <p className="text-[10px] text-[#76777d]">ID: {txn.id.slice(0, 8)}</p>
                     </td>
                     <td className="px-6 py-5 text-sm text-[#45464d]">{formatDate(txn.created_at)}</td>
                     <td className="px-6 py-5">
                       <p className="text-sm font-bold text-[#191c1e]">{getContactName(txn.submission?.contact_id)}</p>
-                      <p className="text-[10px] text-[#76777d]">ID: {txn.submission?.contact_id?.slice(0, 8) || 'N/A'}</p>
                     </td>
                     <td className="px-6 py-5">
                       <p className="text-sm text-[#45464d]">{getFormName(txn.submission?.form_id)}</p>
@@ -422,13 +535,16 @@ export function AllTransactionsLedger() {
                       </span>
                     </td>
                     <td className="px-6 py-5 text-right">
-                      <Link 
-                        to={`/transactions/${txn.id}`}
-                        className="inline-flex items-center gap-1 text-[#45464d] hover:text-[#006398] transition-colors text-sm font-medium"
-                      >
-                        <Eye className="h-4 w-4" />
-                        View
-                      </Link>
+                      <div className="flex items-center justify-end gap-3">
+                        <EditStatusButton transactionId={txn.id} currentStatus={txn.status} onStatusUpdate={handleStatusUpdate} />
+                        <Link 
+                          to={`/transactions/${txn.id}`}
+                          className="inline-flex items-center gap-1 text-[#45464d] hover:text-[#006398] transition-colors text-sm font-medium"
+                        >
+                          <Eye className="h-4 w-4" />
+                          View
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 );

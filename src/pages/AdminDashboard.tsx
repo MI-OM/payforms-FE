@@ -271,7 +271,7 @@ function LiveDashboard({ summary, analytics, transactions, topForms, forms, form
   const partialCount = getStatusCount('PARTIAL')
   const totalTransactions = paidCount + pendingCount + failedCount + partialCount
 
-  const successRate = totalTransactions > 0 ? Math.round((paidCount / totalTransactions) * 100 * 10) / 10 : 0
+  const successRate = totalTransactions > 0 ? Math.round(((paidCount + partialCount) / totalTransactions) * 100 * 10) / 10 : 0
 
   const chartData = analytics?.payments_by_day?.map(d => ({
     day: new Date(d.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
@@ -307,11 +307,22 @@ function LiveDashboard({ summary, analytics, transactions, topForms, forms, form
             <span className="text-[10px] font-bold text-[#45464d] uppercase tracking-widest">Success Rate</span>
             <span className="text-[10px] font-bold text-[#009668]">{successRate}%</span>
           </div>
-          <div className="w-full bg-[#e0e3e5] rounded-full h-2 mb-2">
-            <div className="bg-[#009668] h-2 rounded-full transition-all" style={{ width: `${successRate}%` }}></div>
+          <div className="w-full bg-[#e0e3e5] rounded-full h-2 mb-2 overflow-hidden flex">
+            {paidCount > 0 && (
+              <div 
+                className="bg-[#009668] h-2 transition-all" 
+                style={{ width: `${totalTransactions > 0 ? (paidCount / totalTransactions) * 100 : 0}%` }}
+              />
+            )}
+            {partialCount > 0 && (
+              <div 
+                className="bg-[#188ace] h-2 transition-all" 
+                style={{ width: `${totalTransactions > 0 ? (partialCount / totalTransactions) * 100 : 0}%` }}
+              />
+            )}
           </div>
           <p className="text-[11px] text-[#45464d] font-medium">
-            {paidCount} paid / {pendingCount} pending / {failedCount} failed
+            {paidCount} paid / {partialCount} partial / {pendingCount} pending / {failedCount} failed
           </p>
         </div>
 

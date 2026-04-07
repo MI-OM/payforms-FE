@@ -151,6 +151,7 @@ function App() {
         
         {/* Payment Flows */}
         <Route path="/payment/success" element={<PaymentSuccessState />} />
+        <Route path="/paystack/callback" element={<PaymentSuccessState />} />
         <Route path="/payment/failure" element={<PaymentFailureState />} />
         <Route path="/payment/receipt/:id" element={<OfficialPaymentReceipt />} />
         <Route path="/email-template/reminder" element={<PaymentReminderEmailTemplate />} />
