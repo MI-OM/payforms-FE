@@ -6,8 +6,10 @@ import { Input } from '@/components/ui/input'
 import { formService, publicFormService, type Form, type PublicForm } from '@/services/formService'
 import { toast } from '@/components/ui/use-toast'
 
-function formatRelativeTime(dateString: string): string {
+function formatRelativeTime(dateString: string | undefined | null): string {
+  if (!dateString) return 'Unknown'
   const date = new Date(dateString)
+  if (isNaN(date.getTime())) return 'Unknown'
   const now = new Date()
   const diffMs = now.getTime() - date.getTime()
   const diffMins = Math.floor(diffMs / 60000)

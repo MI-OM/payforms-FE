@@ -312,28 +312,28 @@ function LiveDashboard({ summary, analytics, transactions, topForms, forms, audi
   return (
     <div className="max-w-[1600px] mx-auto px-6 py-4">
       {/* KPI Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-[#ffffff] p-6 rounded-xl border-l-4 border-black shadow-sm group hover:shadow-md transition-all">
-          <div className="flex justify-between items-start mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+        <div className="bg-[#ffffff] p-4 sm:p-6 rounded-xl border-l-4 border-black shadow-sm group hover:shadow-md transition-all">
+          <div className="flex flex-wrap justify-between items-start gap-2 mb-4">
             <span className="text-[10px] font-bold text-[#45464d] uppercase tracking-widest">Total Revenue</span>
             <span className="text-[#009668] bg-[#4edea3]/20 px-2 py-0.5 rounded text-[10px] font-bold">
               {paidCount} txns
             </span>
           </div>
-          <p className="text-3xl font-extrabold tracking-tighter text-[#191c1e]">{formatCurrency(paidAmount)}</p>
+          <p className="text-2xl sm:text-3xl font-extrabold tracking-tighter text-[#191c1e] truncate">{formatCurrency(paidAmount)}</p>
           <p className="text-[11px] text-[#45464d] mt-2 font-medium">Collected</p>
         </div>
 
-        <div className="bg-[#ffffff] p-6 rounded-xl shadow-sm hover:shadow-md transition-all">
-          <div className="flex justify-between items-start mb-4">
+        <div className="bg-[#ffffff] p-4 sm:p-6 rounded-xl shadow-sm hover:shadow-md transition-all">
+          <div className="flex flex-wrap justify-between items-start gap-2 mb-4">
             <span className="text-[10px] font-bold text-[#45464d] uppercase tracking-widest">Total Transactions</span>
           </div>
-          <p className="text-3xl font-extrabold tracking-tighter text-[#191c1e]">{totalTransactions}</p>
+          <p className="text-2xl sm:text-3xl font-extrabold tracking-tighter text-[#191c1e]">{totalTransactions}</p>
           <p className="text-[11px] text-[#45464d] mt-2 font-medium">Payment attempts</p>
         </div>
 
-        <div className="bg-[#ffffff] p-6 rounded-xl shadow-sm hover:shadow-md transition-all">
-          <div className="flex justify-between items-start mb-4">
+        <div className="bg-[#ffffff] p-4 sm:p-6 rounded-xl shadow-sm hover:shadow-md transition-all">
+          <div className="flex flex-wrap justify-between items-start gap-2 mb-4">
             <span className="text-[10px] font-bold text-[#45464d] uppercase tracking-widest">Success Rate</span>
             <span className="text-[10px] font-bold text-[#009668]">{successRate}%</span>
           </div>
@@ -356,14 +356,14 @@ function LiveDashboard({ summary, analytics, transactions, topForms, forms, audi
           </p>
         </div>
 
-        <div className="bg-black text-white p-6 rounded-xl shadow-lg relative overflow-hidden">
+        <div className="bg-black text-white p-4 sm:p-6 rounded-xl shadow-lg relative overflow-hidden">
           <div className="absolute top-0 right-0 p-3 opacity-20">
             <MaterialIcon name="priority_high" className="text-4xl" filled />
           </div>
           <div className="flex justify-between items-start mb-4">
             <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Pending Collections</span>
           </div>
-          <p className="text-3xl font-extrabold tracking-tighter">{formatCurrency(displayPendingAmount)}</p>
+          <p className="text-2xl sm:text-3xl font-extrabold tracking-tighter truncate">{formatCurrency(displayPendingAmount)}</p>
           <p className="text-[11px] opacity-60 mt-1">{displayPendingCount} pending payments</p>
           <Link to="/pending-transactions">
             <button className="mt-4 text-[10px] font-bold bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded transition-colors uppercase tracking-wider">

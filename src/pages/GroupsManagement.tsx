@@ -32,8 +32,14 @@ export function ContactsGroupsManagement() {
 
   return (
     <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-end mb-8">
-          <div>
+        <div className="flex items-center gap-4 mb-8">
+          <button 
+            onClick={() => navigate('/contacts')}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5 text-gray-600" />
+          </button>
+          <div className="flex-1">
             <h1 className="text-4xl font-extrabold tracking-tighter text-gray-900 mb-2">Groups</h1>
             <p className="text-gray-500">Organize your contacts into groups.</p>
           </div>

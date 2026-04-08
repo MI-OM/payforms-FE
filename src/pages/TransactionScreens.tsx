@@ -119,8 +119,11 @@ export function TransactionExport() {
 
   const checkEstimate = useCallback(async () => {
     try {
+      const cleanFilters = Object.fromEntries(
+        Object.entries(filters).filter(([_, v]) => v !== '' && v !== undefined)
+      )
       const response = await paymentService.getTransactions({
-        ...filters,
+        ...cleanFilters,
         limit: 1,
       })
       setEstimatedCount(response.total)
@@ -138,7 +141,7 @@ export function TransactionExport() {
     setIsExporting(true)
     try {
       const cleanFilters = Object.fromEntries(
-        Object.entries(filters).filter(([_, v]) => v !== '')
+        Object.entries(filters).filter(([_, v]) => v !== '' && v !== undefined)
       )
       const blob = await paymentService.exportTransactions(cleanFilters)
       const url = window.URL.createObjectURL(blob)
@@ -147,9 +150,11 @@ export function TransactionExport() {
       a.download = `transactions-${new Date().toISOString().split('T')[0]}.csv`
       a.click()
       window.URL.revokeObjectURL(url)
-    } catch (err) {
-      toast({ title: 'Error', description: 'Failed to export transactions', variant: 'destructive' })
-      console.error(err)
+      toast({ title: 'Success', description: 'Transactions exported successfully' })
+    } catch (err: any) {
+      const message = err?.message || 'Failed to export transactions. Please try again.'
+      toast({ title: 'Export Failed', description: message, variant: 'destructive' })
+      console.error('Export error:', err)
     } finally {
       setIsExporting(false)
     }

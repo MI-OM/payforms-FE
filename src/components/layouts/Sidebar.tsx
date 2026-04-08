@@ -119,7 +119,7 @@ export function Sidebar({
         {/* Scrollable Navigation */}
         <nav className="flex-1 overflow-y-auto p-4 space-y-1">
           {visibleNavItems.map((item) => {
-            const isActive = location.pathname === item.path
+            const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/')
             return (
               <Link
                 key={item.path}

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Search, RefreshCw, Loader2, TrendingUp, CheckCircle, X, Edit2, Eye, AlertCircle } from 'lucide-react'
+import { Search, RefreshCw, Loader2, TrendingUp, CheckCircle, X, Edit2, Eye, AlertCircle, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { paymentService } from '@/services/paymentService'
@@ -271,6 +271,12 @@ export function PendingTransactions() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 lg:mb-8 gap-4">
           <div>
             <div className="flex items-center gap-3 mb-2">
+              <button 
+                onClick={() => navigate('/dashboard')}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <ArrowLeft className="h-5 w-5 text-gray-600" />
+              </button>
               <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center">
                 <AlertCircle className="h-5 w-5 text-white" />
               </div>
