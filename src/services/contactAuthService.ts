@@ -89,9 +89,22 @@ const contactApi = createContactApiClient()
 
 export const contactAuthService = {
   login: async (data: ContactLoginRequest): Promise<ContactLoginResponse> => {
+    const hostname = window.location.hostname
+    
+    let organization_subdomain = data.organization_subdomain
+    
+    if (!organization_subdomain) {
+      if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+        const parts = hostname.split('.')
+        if (parts.length >= 2) {
+          organization_subdomain = parts[0]
+        }
+      }
+    }
+    
     const loginData = {
       ...data,
-      organization_domain: window.location.hostname !== 'localhost' ? window.location.hostname : undefined,
+      organization_subdomain: organization_subdomain || undefined,
     }
     const response = await contactApi.post<ContactLoginResponse>('/contact-auth/login', loginData)
     contactAuth.setTokens(response.access_token, response.refresh_token)

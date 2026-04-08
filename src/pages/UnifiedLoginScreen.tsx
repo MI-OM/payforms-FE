@@ -9,6 +9,17 @@ import { Logo, LogoIcon } from '@/components/Logo'
 
 type LoginType = 'admin' | 'contact'
 
+function getAutoDetectedSubdomain(): string {
+  const hostname = window.location.hostname
+  if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+    const parts = hostname.split('.')
+    if (parts.length >= 2) {
+      return parts[0]
+    }
+  }
+  return ''
+}
+
 export function UnifiedLoginScreen() {
   const navigate = useNavigate()
   const { login, isLocked, lockoutRemainingMs, remainingAttempts } = useAuth()
@@ -17,6 +28,7 @@ export function UnifiedLoginScreen() {
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [lockoutTimeLeft, setLockoutTimeLeft] = useState('')
+  const [subdomain, setSubdomain] = useState(getAutoDetectedSubdomain)
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -73,6 +85,7 @@ export function UnifiedLoginScreen() {
       const response = await contactAuthService.login({
         email: formData.email,
         password: formData.password,
+        organization_subdomain: subdomain || undefined,
       })
       navigate('/contact/dashboard')
     } catch (err: unknown) {
@@ -143,6 +156,28 @@ export function UnifiedLoginScreen() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            {loginType === 'contact' && (
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700" htmlFor="subdomain">
+                  Organization Subdomain
+                </label>
+                <div className="relative">
+                  <input 
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none transition-all duration-200 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                    id="subdomain"
+                    name="subdomain"
+                    placeholder="your-school"
+                    value={subdomain}
+                    onChange={(e) => setSubdomain(e.target.value)}
+                    disabled={isLoading}
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-slate-400 pointer-events-none">
+                    .payforms.com
+                  </span>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-slate-700" htmlFor="email">
                 Email address
