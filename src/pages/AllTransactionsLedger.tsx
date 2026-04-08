@@ -157,11 +157,7 @@ export function AllTransactionsLedger() {
   const [statusFilter, setStatusFilter] = useState('')
   const [stats, setStats] = useState<SummaryStats | null>(null)
   const [loadingStats, setLoadingStats] = useState(true)
-  const [dateRange, setDateRange] = useState(() => {
-    const today = new Date().toISOString().split('T')[0]
-    return { from: today, to: today }
-  })
-  const [showDateFilter, setShowDateFilter] = useState(false)
+  const [dateRange, setDateRange] = useState<{ from: string; to: string } | null>(null)
   const [contacts, setContacts] = useState<Contact[]>([])
   const [forms, setForms] = useState<Form[]>([])
   const [loadingLookupData, setLoadingLookupData] = useState(true)
@@ -190,15 +186,20 @@ export function AllTransactionsLedger() {
     setLoading(true)
     setError(null)
     try {
-      const params: Record<string, string | number | undefined> = { page, limit: 20 }
+      const params: Record<string, string | number | undefined> = { page, limit: 100 }
       if (searchQuery) params.reference = searchQuery
       if (statusFilter) params.status = statusFilter
-      if (showDateFilter && dateRange.from) params.start_date = dateRange.from
-      if (showDateFilter && dateRange.to) {
-        const endDate = new Date(dateRange.to)
-        endDate.setDate(endDate.getDate() + 1)
-        params.end_date = endDate.toISOString().split('T')[0]
-      }
+      
+      // Always apply date filter - today by default, or selected range
+      const today = new Date().toISOString().split('T')[0]
+      const startDate = dateRange?.from || today
+      const endDate = dateRange?.to || today
+      
+      params.start_date = startDate
+      const endDatePlusOne = new Date(endDate)
+      endDatePlusOne.setDate(endDatePlusOne.getDate() + 1)
+      params.end_date = endDatePlusOne.toISOString().split('T')[0]
+      
       const response = await paymentService.getTransactions(params)
       setTransactions(response.data as unknown as TransactionData[])
       setTotalPages(response.totalPages)
@@ -209,12 +210,24 @@ export function AllTransactionsLedger() {
     } finally {
       setLoading(false)
     }
-  }, [page, searchQuery, statusFilter, dateRange, showDateFilter])
+  }, [page, searchQuery, statusFilter, dateRange])
 
   const fetchStats = useCallback(async () => {
     setLoadingStats(true)
     try {
-      const transactionsData = await paymentService.getTransactions({ limit: 1000 }).catch(() => null)
+      const params: Record<string, string | number | undefined> = { limit: 1000 }
+      
+      // Always apply date filter - today by default, or selected range
+      const today = new Date().toISOString().split('T')[0]
+      const startDate = dateRange?.from || today
+      const endDate = dateRange?.to || today
+      
+      params.start_date = startDate
+      const endDatePlusOne = new Date(endDate)
+      endDatePlusOne.setDate(endDatePlusOne.getDate() + 1)
+      params.end_date = endDatePlusOne.toISOString().split('T')[0]
+      
+      const transactionsData = await paymentService.getTransactions(params).catch(() => null)
       
       let paidCount = 0, pendingCount = 0, failedCount = 0, partialCount = 0
       let paidAmount = 0, pendingAmount = 0, failedAmount = 0, partialAmount = 0
@@ -244,10 +257,10 @@ export function AllTransactionsLedger() {
       }
       
       const totalTransactions = paidCount + pendingCount + failedCount + partialCount
-      const successRate = totalTransactions > 0 ? Math.round((paidCount / totalTransactions) * 100 * 10) / 10 : 0
+      const successRate = totalTransactions > 0 ? Math.round(((paidCount + partialCount) / totalTransactions) * 100 * 10) / 10 : 0
 
       setStats({
-        total_volume: paidAmount,
+        total_volume: paidAmount + pendingAmount + failedAmount + partialAmount,
         outstanding_balance: pendingAmount + partialAmount,
         success_rate: successRate,
         today_collections: paidAmount,
@@ -269,7 +282,7 @@ export function AllTransactionsLedger() {
     } finally {
       setLoadingStats(false)
     }
-  }, [])
+  }, [dateRange])
 
   const handleStatusUpdate = async (transactionId: string, newStatus: string) => {
     try {
@@ -309,9 +322,7 @@ export function AllTransactionsLedger() {
   const handleClearFilters = () => {
     setSearchQuery('')
     setStatusFilter('')
-    setShowDateFilter(false)
-    const today = new Date().toISOString().split('T')[0]
-    setDateRange({ from: today, to: today })
+    setDateRange(null)
     setPage(1)
   }
 
@@ -381,23 +392,27 @@ export function AllTransactionsLedger() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 lg:mb-8">
           {/* Total Volume */}
           <div className="bg-white rounded-xl p-5 lg:p-6 shadow-sm border border-[#c6c6cd]/10">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[#45464d] mb-4">Total Volume</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[#45464d] mb-4">
+              {dateRange ? 'Total Volume' : "Today's Volume"}
+            </p>
             {loadingStats ? (
               <div className="h-9 bg-[#f2f4f6] rounded animate-pulse"></div>
             ) : (
               <h3 className="text-2xl lg:text-3xl font-extrabold tracking-tight text-[#191c1e]">
-                {formatCurrency(stats?.total_volume || 0)}
+                {formatCurrency(stats?.today_collections || 0)}
               </h3>
             )}
             <div className="mt-3 flex items-center gap-1 text-[#009668] text-xs font-semibold">
               <TrendingUp className="h-3 w-3" />
-              <span>{stats?.volume_change || 0}% from last month</span>
+              <span>{stats?.today_count || 0} transactions</span>
             </div>
           </div>
 
           {/* Outstanding Balance */}
           <div className="bg-white rounded-xl p-5 lg:p-6 shadow-sm border border-[#c6c6cd]/10">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[#45464d] mb-4">Outstanding Balance</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[#45464d] mb-4">
+              Outstanding Balance
+            </p>
             {loadingStats ? (
               <div className="h-9 bg-[#f2f4f6] rounded animate-pulse"></div>
             ) : (
@@ -407,13 +422,15 @@ export function AllTransactionsLedger() {
             )}
             <div className="mt-3 flex items-center gap-1 text-[#ba1a1a] text-xs font-semibold">
               <TrendingUp className="h-3 w-3" />
-              <span>Higher than usual</span>
+              <span>PENDING + PARTIAL</span>
             </div>
           </div>
 
           {/* Success Rate */}
           <div className="bg-white rounded-xl p-5 lg:p-6 shadow-sm border border-[#c6c6cd]/10">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[#45464d] mb-4">Success Rate</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[#45464d] mb-4">
+              Success Rate
+            </p>
             {loadingStats ? (
               <div className="h-9 bg-[#f2f4f6] rounded animate-pulse"></div>
             ) : (
@@ -423,23 +440,25 @@ export function AllTransactionsLedger() {
             )}
             <div className="mt-3 flex items-center gap-1 text-[#009668] text-xs font-semibold">
               <CheckCircle className="h-3 w-3" />
-              <span>Based on transactions</span>
+              <span>PAID + PARTIAL</span>
             </div>
           </div>
 
-          {/* Today's Collections */}
+          {/* Transaction Count */}
           <div className="bg-white rounded-xl p-5 lg:p-6 shadow-sm border border-[#c6c6cd]/10">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[#45464d] mb-4">Today's Collections</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[#45464d] mb-4">
+              {dateRange ? 'Total Transactions' : "Today's Transactions"}
+            </p>
             {loadingStats ? (
               <div className="h-9 bg-[#f2f4f6] rounded animate-pulse"></div>
             ) : (
               <h3 className="text-2xl lg:text-3xl font-extrabold tracking-tight text-[#191c1e]">
-                {formatCurrency(stats?.today_collections || 0)}
+                {(stats?.today_count || 0).toLocaleString()}
               </h3>
             )}
-            <div className="mt-3 flex items-center gap-1 text-[#009668] text-xs font-semibold">
+            <div className="mt-3 flex items-center gap-1 text-[#45464d] text-xs font-semibold">
               <Clock className="h-3 w-3" />
-              <span>{stats?.today_count || 0} transactions today</span>
+              <span>{dateRange ? `${dateRange.from} - ${dateRange.to}` : 'All time today'}</span>
             </div>
           </div>
         </div>
@@ -473,35 +492,42 @@ export function AllTransactionsLedger() {
 
           <div className="flex items-center gap-2">
             <Button 
-              variant={showDateFilter ? "default" : "outline"} 
+              variant={dateRange ? "default" : "outline"} 
               size="sm"
-              onClick={() => setShowDateFilter(!showDateFilter)}
+              onClick={() => {
+                if (dateRange) {
+                  setDateRange(null)
+                } else {
+                  const today = new Date().toISOString().split('T')[0]
+                  setDateRange({ from: today, to: today })
+                }
+              }}
               className="flex items-center gap-1"
             >
               <Calendar className="h-4 w-4" />
-              {showDateFilter ? 'Date Filter On' : 'Filter by Date'}
+              {dateRange ? `${dateRange.from} - ${dateRange.to}` : 'Filter by Date'}
             </Button>
             
-            {showDateFilter && (
+            {dateRange && (
               <>
                 <input 
                   type="date"
                   className="px-3 py-2 bg-white border border-[#c6c6cd]/15 rounded-md text-sm"
                   value={dateRange.from}
-                  onChange={(e) => { setDateRange(prev => ({ ...prev, from: e.target.value })); setPage(1); }}
+                  onChange={(e) => { setDateRange({ from: e.target.value, to: dateRange.to }); setPage(1); }}
                 />
                 <span className="text-[#76777d]">-</span>
                 <input 
                   type="date"
                   className="px-3 py-2 bg-white border border-[#c6c6cd]/15 rounded-md text-sm"
                   value={dateRange.to}
-                  onChange={(e) => { setDateRange(prev => ({ ...prev, to: e.target.value })); setPage(1); }}
+                  onChange={(e) => { setDateRange({ from: dateRange.from, to: e.target.value }); setPage(1); }}
                 />
               </>
             )}
           </div>
 
-          {(searchQuery || statusFilter || (showDateFilter && (dateRange.from || dateRange.to))) && (
+          {(searchQuery || statusFilter || dateRange) && (
             <Button 
               variant="ghost" 
               size="sm"

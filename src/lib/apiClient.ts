@@ -179,7 +179,12 @@ async function request<T>(
       return undefined as T
     }
 
-    return JSON.parse(responseText)
+    try {
+      return JSON.parse(responseText)
+    } catch (parseError) {
+      debug.error('[API] JSON parse error:', { responseText: responseText.substring(0, 500) })
+      throw new ApiError(response.status, `Invalid JSON response from server: ${responseText.substring(0, 100)}`, responseText)
+    }
   } catch (error) {
     if (error instanceof ApiError) {
       throw error
@@ -187,6 +192,7 @@ async function request<T>(
     if (error instanceof TypeError && error.message.includes('fetch')) {
       throw new ApiError(0, 'Cannot connect to server. Please check your internet connection.', error)
     }
+    debug.error('[API] Unexpected error:', error)
     throw new ApiError(0, sanitizeErrorMessage('An unexpected error occurred'), error)
   }
 }

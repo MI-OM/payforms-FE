@@ -7,6 +7,10 @@ import { notificationService, type ScheduledNotification as NotificationSchedule
 import { auditService } from '@/services/auditService'
 import { reportService } from '@/services/reportService'
 import { toast } from '@/components/ui/use-toast'
+import { contactService } from '@/services/contactService'
+import { formService } from '@/services/formService'
+import { paymentService } from '@/services/paymentService'
+import { organizationService } from '@/services/organizationService'
 
 export function ScheduledNotifications() {
   const navigate = useNavigate()
@@ -438,19 +442,83 @@ export function AuditLogs() {
     fetchLogs()
   }, [fetchLogs])
 
+  const getEntityName = async (entityType: string, entityId: string): Promise<string> => {
+    if (!entityId) return ''
+    try {
+      const cleanId = entityId.replace(/^(payment|contact|form|group|transaction|user|organization)_?/i, '')
+      const id = cleanId || entityId
+      switch (entityType.toLowerCase()) {
+        case 'contact':
+          const contact = await contactService.getContact(id)
+          return `${contact.first_name || ''} ${contact.last_name || ''}`.trim() || 'Unknown Contact'
+        case 'form':
+          const form = await formService.getForm(id)
+          return form.title || 'Unknown Form'
+        case 'payment':
+        case 'transaction':
+          const txn = await paymentService.getTransaction(id)
+          return txn.reference ? `Payment ${txn.reference.slice(0, 12)}` : `Transaction ${id.slice(0, 8)}`
+        case 'group':
+          return `Group ${id.slice(0, 8)}`
+        case 'organization':
+          const org = await organizationService.getOrganization()
+          return org.name || 'Organization'
+        default:
+          return entityId
+      }
+    } catch {
+      return entityId
+    }
+  }
+
   const handleExport = async () => {
     setExporting(true)
     try {
-      const blob = await auditService.exportAuditLogs(filters)
+      const response = await auditService.getAuditLogs({
+        page: 1,
+        limit: 1000,
+        ...filters
+      })
+      
+      const entityNames = await Promise.all(
+        response.data.map(async (log) => {
+          if (log.entity_type && log.entity_id) {
+            return getEntityName(log.entity_type, log.entity_id)
+          }
+          return ''
+        })
+      )
+      
+      const headers = ['Timestamp', 'Action', 'Entity Type', 'Entity Name', 'Performed By', 'IP Address', 'Details']
+      const csvRows = [headers.join(',')]
+      
+      response.data.forEach((log, index) => {
+        const row = [
+          log.timestamp || '',
+          log.action || '',
+          log.entity_type || '',
+          entityNames[index] || log.entity_id || '',
+          log.user_email || 'System',
+          log.ip_address || '',
+          log.details ? JSON.stringify(log.details).replace(/"/g, '""') : ''
+        ]
+        csvRows.push(row.map(cell => `"${cell}"`).join(','))
+      })
+      
+      const csvContent = csvRows.join('\n')
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
       a.download = `audit-logs-${new Date().toISOString().split('T')[0]}.csv`
+      document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+      toast({ title: 'Success', description: `${response.data.length} logs exported successfully`, variant: 'success' })
     } catch (err) {
+      console.error('Export failed:', err)
       toast({ title: 'Error', description: 'Failed to export logs', variant: 'destructive' })
-      console.error(err)
     } finally {
       setExporting(false)
     }

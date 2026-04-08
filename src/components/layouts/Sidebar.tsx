@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext"
 interface SidebarProps {
   className?: string
   organizationName?: string
+  organizationLogo?: string | null
   userRole?: 'ADMIN' | 'STAFF'
   onLogout?: () => void
   mobileMenuOpen?: boolean
@@ -49,6 +50,7 @@ function MaterialIcon({ name, className = '' }: { name: string; className?: stri
 export function Sidebar({ 
   className, 
   organizationName = 'Payforms',
+  organizationLogo = null,
   userRole = 'STAFF',
   onLogout,
   mobileMenuOpen,
@@ -80,27 +82,32 @@ export function Sidebar({
 
       {/* Sidebar */}
       <aside className={cn(
-        "h-screen w-64 fixed left-0 top-0 overflow-y-auto bg-slate-50 flex flex-col p-4 gap-2 z-50",
-        // Mobile: hidden by default, shown when open
-        mobileMenuOpen ? "translate-x-0" : "-translate-x-full",
-        // Desktop: always visible
-        "lg:translate-x-0"
+        "h-screen w-64 fixed left-0 top-0 bg-slate-50 flex flex-col z-50 overflow-hidden",
+        mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
         {/* Close Button for Mobile */}
         <button
           onClick={onCloseMobileMenu}
-          className="lg:hidden absolute top-4 right-4 p-1 text-slate-500 hover:text-slate-900"
+          className="lg:hidden absolute top-4 right-4 p-1 text-slate-500 hover:text-slate-900 z-10"
         >
           <MaterialIcon name="close" />
         </button>
 
         {/* Logo */}
-        <div className="flex items-center gap-3 px-2 mb-8">
-          <div className="w-8 h-8 rounded bg-black flex items-center justify-center">
-            <Building2 className="h-4 w-4 text-white" />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold tracking-tighter text-slate-900 leading-tight font-headline truncate max-w-[160px]">
+        <div className="flex items-center gap-3 px-4 pt-4 pb-6 border-b border-slate-100 shrink-0">
+          {organizationLogo ? (
+            <img 
+              src={organizationLogo} 
+              alt={organizationName} 
+              className="w-8 h-8 rounded object-contain shrink-0 bg-white border border-slate-200"
+            />
+          ) : (
+            <div className="w-8 h-8 rounded bg-black flex items-center justify-center shrink-0">
+              <Building2 className="h-4 w-4 text-white" />
+            </div>
+          )}
+          <div className="min-w-0">
+            <h1 className="text-lg font-bold tracking-tighter text-slate-900 leading-tight font-headline truncate">
               {organizationName}
             </h1>
             <p className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">
@@ -109,8 +116,8 @@ export function Sidebar({
           </div>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 space-y-1">
+        {/* Scrollable Navigation */}
+        <nav className="flex-1 overflow-y-auto p-4 space-y-1">
           {visibleNavItems.map((item) => {
             const isActive = location.pathname === item.path
             return (
@@ -132,26 +139,26 @@ export function Sidebar({
           })}
         </nav>
 
-        {/* Bottom Actions */}
-        <div className="mt-auto pt-4 border-t border-slate-100">
+        {/* Fixed Bottom Actions */}
+        <div className="p-4 border-t border-slate-100 bg-slate-50 shrink-0">
           <Link
             to="/forms/new"
             onClick={onCloseMobileMenu}
-            className="w-full bg-black text-white py-2.5 rounded-lg text-sm font-bold mb-4 hover:opacity-90 transition-all flex items-center justify-center"
+            className="w-full bg-black text-white py-2.5 rounded-lg text-sm font-bold mb-3 hover:opacity-90 transition-all flex items-center justify-center"
           >
             Create Form
           </Link>
           <Link
             to="/support"
             onClick={onCloseMobileMenu}
-            className="flex items-center gap-3 px-3 py-2 text-slate-500 hover:text-slate-900 transition-colors"
+            className="flex items-center gap-3 px-3 py-2 text-slate-500 hover:text-slate-900 hover:bg-slate-200/50 rounded-lg transition-colors"
           >
             <MaterialIcon name="help" className="text-lg" />
             <span className="font-headline text-sm font-medium tracking-tight">Support</span>
           </Link>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2 text-slate-500 hover:text-slate-900 transition-colors"
+            className="w-full flex items-center gap-3 px-3 py-2 text-slate-500 hover:text-slate-900 hover:bg-slate-200/50 rounded-lg transition-colors"
           >
             <MaterialIcon name="logout" className="text-lg" />
             <span className="font-headline text-sm font-medium tracking-tight">Sign Out</span>

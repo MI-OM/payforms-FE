@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Search, Download, ChevronDown, Upload, Shield, Edit, Settings, Loader2, Filter, X, User, FileText, Users, CreditCard, Building, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -118,6 +118,7 @@ export function AllActivityLogs() {
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+  const [total, setTotal] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
   const [actionFilter, setActionFilter] = useState('')
   const [entityTypeFilter, setEntityTypeFilter] = useState('')
@@ -127,39 +128,43 @@ export function AllActivityLogs() {
   const [showFilters, setShowFilters] = useState(false)
   const [entityCache, setEntityCache] = useState<EntityCache>({})
   const [loadingEntities, setLoadingEntities] = useState(false)
+  const entityCacheRef = useRef<EntityCache>({})
 
   const hasActiveFilters = actionFilter || entityTypeFilter || fromDate || toDate
 
-  const fetchEntityInfo = useCallback(async (entityType: string, entityId: string): Promise<EntityInfo | null> => {
+  const fetchEntityInfo = useCallback(async (entityType: string, entityId: string, cleanId?: string): Promise<EntityInfo | null> => {
     const cacheKey = `${entityType}-${entityId}`
     
-    if (entityCache[cacheKey]) {
-      return entityCache[cacheKey]
+    if (entityCacheRef.current[cacheKey]) {
+      return entityCacheRef.current[cacheKey]
     }
 
     try {
       let entityInfo: EntityInfo | null = null
       const normalizedType = entityType.toLowerCase()
       
-      const cleanEntityId = entityId.replace(/^(payment|contact|form|group|transaction|user|organization)/i, '').replace(/^e/i, 'e')
+      const idToUse = cleanId || entityId
 
       switch (normalizedType) {
         case 'contact':
           try {
-            const contact = await contactService.getContact(entityId)
+            console.log('Fetching contact with ID:', idToUse)
+            const contact = await contactService.getContact(idToUse)
+            console.log('Contact fetched:', contact)
             entityInfo = {
               name: `${contact.first_name || ''} ${contact.last_name || ''}`.trim() || 'Unknown Contact',
               subtitle: contact.email || undefined,
               icon: User
             }
-          } catch {
+          } catch (err) {
+            console.error('Failed to fetch contact:', idToUse, err)
             entityInfo = { name: 'Unknown Contact', icon: User }
           }
           break
 
         case 'form':
           try {
-            const form = await formService.getForm(entityId)
+            const form = await formService.getForm(idToUse)
             entityInfo = {
               name: form.title || 'Unknown Form',
               subtitle: form.slug || undefined,
@@ -173,7 +178,7 @@ export function AllActivityLogs() {
         case 'payment':
         case 'transaction':
           try {
-            const txn = await paymentService.getTransaction(entityId)
+            const txn = await paymentService.getTransaction(idToUse)
             entityInfo = {
               name: txn.reference?.slice(0, 16) || entityId.slice(0, 8),
               subtitle: `₦${parseFloat(txn.amount).toLocaleString()}`,
@@ -222,7 +227,8 @@ export function AllActivityLogs() {
       }
 
       if (entityInfo) {
-        setEntityCache(prev => ({ ...prev, [cacheKey]: entityInfo! }))
+        entityCacheRef.current = { ...entityCacheRef.current, [cacheKey]: entityInfo! }
+        setEntityCache(entityCacheRef.current)
       }
 
       return entityInfo
@@ -230,16 +236,17 @@ export function AllActivityLogs() {
       console.error(`Failed to fetch ${entityType} info:`, err)
       return null
     }
-  }, [entityCache])
+  }, [])
 
   const fetchEntitiesForLogs = useCallback(async (logs: AuditLog[]) => {
-    const uniqueEntities = new Map<string, { type: string; id: string }>()
+    const uniqueEntities = new Map<string, { type: string; id: string; cleanId: string }>()
     
     logs.forEach(log => {
       if (log.entity_type && log.entity_id) {
         const key = `${log.entity_type}-${log.entity_id}`
         if (!uniqueEntities.has(key)) {
-          uniqueEntities.set(key, { type: log.entity_type, id: log.entity_id })
+          const cleanId = log.entity_id.replace(/^(payment|contact|form|group|transaction|user|organization)_?/i, '')
+          uniqueEntities.set(key, { type: log.entity_type, id: log.entity_id, cleanId })
         }
       }
     })
@@ -250,8 +257,8 @@ export function AllActivityLogs() {
     
     try {
       await Promise.all(
-        Array.from(uniqueEntities.values()).map(({ type, id }) =>
-          fetchEntityInfo(type, id)
+        Array.from(uniqueEntities.values()).map(({ type, id, cleanId }) =>
+          fetchEntityInfo(type, id, cleanId)
         )
       )
     } finally {
@@ -273,6 +280,7 @@ export function AllActivityLogs() {
       })
       setLogs(response.data)
       setTotalPages(response.totalPages)
+      setTotal(response.total || 0)
     } catch (err) {
       console.error('Failed to fetch audit logs', err)
     } finally {
@@ -303,16 +311,77 @@ export function AllActivityLogs() {
     fetchLogs()
   }, [fetchLogs])
 
+  const getEntityName = async (entityType: string, entityId: string): Promise<string> => {
+    if (!entityId) return ''
+    try {
+      const cleanId = entityId.replace(/^(payment|contact|form|group|transaction|user|organization)_?/i, '')
+      const id = cleanId || entityId
+      switch (entityType.toLowerCase()) {
+        case 'contact':
+          const contact = await contactService.getContact(id)
+          return `${contact.first_name || ''} ${contact.last_name || ''}`.trim() || 'Unknown Contact'
+        case 'form':
+          const form = await formService.getForm(id)
+          return form.title || 'Unknown Form'
+        case 'payment':
+        case 'transaction':
+          const txn = await paymentService.getTransaction(id)
+          return txn.reference ? `Payment ${txn.reference.slice(0, 12)}` : `Transaction ${id.slice(0, 8)}`
+        case 'group':
+          return `Group ${id.slice(0, 8)}`
+        case 'organization':
+          const org = await organizationService.getOrganization()
+          return org.name || 'Organization'
+        default:
+          return entityId
+      }
+    } catch {
+      return entityId
+    }
+  }
+
   const handleExport = async () => {
     setExporting(true)
     try {
-      const blob = await auditService.exportAuditLogs({
+      const response = await auditService.getAuditLogs({
+        page: 1,
+        limit: 1000,
         keyword: searchQuery || undefined,
         action: actionFilter || undefined,
         entity_type: entityTypeFilter || undefined,
         from: fromDate || undefined,
         to: toDate || undefined,
       })
+      
+      const logsToExport = response.data.filter(log => !isInternalApiRequest(log))
+      
+      const entityNames = await Promise.all(
+        logsToExport.map(async (log) => {
+          if (log.entity_type && log.entity_id) {
+            return getEntityName(log.entity_type, log.entity_id)
+          }
+          return ''
+        })
+      )
+      
+      const headers = ['Timestamp', 'Action', 'Entity Type', 'Entity Name', 'Performed By', 'IP Address', 'Details']
+      const csvRows = [headers.join(',')]
+      
+      logsToExport.forEach((log, index) => {
+        const row = [
+          log.timestamp || '',
+          log.action || '',
+          log.entity_type || '',
+          entityNames[index] || log.entity_id || '',
+          log.user_email || 'System',
+          log.ip_address || '',
+          log.details ? JSON.stringify(log.details).replace(/"/g, '""') : ''
+        ]
+        csvRows.push(row.map(cell => `"${cell}"`).join(','))
+      })
+      
+      const csvContent = csvRows.join('\n')
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -321,9 +390,10 @@ export function AllActivityLogs() {
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
+      toast({ title: 'Success', description: `${logsToExport.length} logs exported successfully`, variant: 'success' })
     } catch (err) {
-      toast({ title: 'Error', description: 'Failed to export logs', variant: 'destructive' })
-      console.error(err)
+      console.error('Export failed:', err)
+      toast({ title: 'Error', description: 'Failed to export logs. Please try again.', variant: 'destructive' })
     } finally {
       setExporting(false)
     }
@@ -474,7 +544,7 @@ export function AllActivityLogs() {
                             {log.entity_type && log.entity_id ? (
                               (() => {
                                 const cacheKey = `${log.entity_type}-${log.entity_id}`
-                                const entityInfo = entityCache[cacheKey]
+                                const entityInfo = entityCacheRef.current[cacheKey] || entityCache[cacheKey]
                                 if (entityInfo) {
                                   return (
                                     <span className="flex items-center gap-1.5">
@@ -514,17 +584,22 @@ export function AllActivityLogs() {
                 )}
               </div>
 
-              {totalPages > 1 && (
-                <div className="flex justify-center gap-2 p-4 border-t">
-                  <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
-                    Previous
-                  </Button>
-                  <span className="px-4 py-2 text-sm text-gray-500">
-                    Page {page} of {totalPages}
+              {total > 0 && (
+                <div className="flex justify-between items-center gap-2 p-4 border-t">
+                  <span className="text-sm text-gray-500">
+                    {total} total logs
                   </span>
-                  <Button variant="secondary" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
-                    Next
-                  </Button>
+                  <div className="flex justify-center gap-2">
+                    <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
+                      Previous
+                    </Button>
+                    <span className="px-4 py-2 text-sm text-gray-500">
+                      Page {page} of {totalPages}
+                    </span>
+                    <Button variant="secondary" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+                      Next
+                    </Button>
+                  </div>
                 </div>
               )}
             </>

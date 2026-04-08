@@ -50,7 +50,7 @@ export function AdminDashboardContent() {
         const [summaryData, analyticsData, txnData, performanceData, formsData] = await Promise.all([
           reportService.getSummary().catch(() => null),
           reportService.getAnalytics().catch(() => null),
-          paymentService.getTransactions({ limit: 10 }).catch(() => ({ data: [] })),
+          paymentService.getTransactions({ limit: 100 }).catch(() => ({ data: [] })),
           reportService.getFormsPerformance().catch(() => ({ data: [] })),
           formService.getForms({ limit: 100 }).catch(() => ({ data: [], total: 0, page: 1, limit: 100, totalPages: 0 })),
           paymentService.getTransactions({ limit: 1000, status: 'PENDING' }).catch(() => ({ data: [] }))
@@ -277,46 +277,22 @@ interface LiveDashboardProps {
 }
 
 function LiveDashboard({ summary, analytics, transactions, topForms, forms, pendingStats, formatCurrency, formatDate, getFormName }: LiveDashboardProps) {
-  const getStatusCount = (status: string) => {
-    return analytics?.payment_status_breakdown?.find(s => s.status === status)?.count || 0
-  }
-
-  const getStatusAmount = (status: string) => {
-    return analytics?.payment_status_breakdown?.find(s => s.status === status)?.total_amount || 0
-  }
-
-  let paidCount = 0, pendingCount = 0, failedCount = 0, partialCount = 0
-  let paidAmount = 0, pendingAmount = 0, failedAmount = 0, partialAmount = 0
-  
-  transactions.forEach((txn: any) => {
-    const amount = parseFloat(txn.amount_paid || txn.amount || 0)
-    switch (txn.status?.toUpperCase()) {
-      case 'PAID':
-        paidCount++
-        paidAmount += amount
-        break
-      case 'PENDING':
-        pendingCount++
-        pendingAmount += amount
-        break
-      case 'FAILED':
-        failedCount++
-        failedAmount += amount
-        break
-      case 'PARTIAL':
-        partialCount++
-        partialAmount += amount
-        break
-    }
-  })
-  
-  // Use pendingStats from analytics if available, otherwise use calculated values
-  const displayPendingCount = pendingStats?.count ?? pendingCount
-  const displayPendingAmount = pendingStats?.amount ?? pendingAmount
+  // Get stats from analytics API (the authoritative source)
+  const paidCount = analytics?.payment_status_breakdown?.find(s => s.status === 'PAID')?.count || 0
+  const paidAmount = analytics?.payment_status_breakdown?.find(s => s.status === 'PAID')?.total_amount || 0
+  const pendingCount = analytics?.payment_status_breakdown?.find(s => s.status === 'PENDING')?.count || 0
+  const pendingAmount = analytics?.payment_status_breakdown?.find(s => s.status === 'PENDING')?.total_amount || 0
+  const failedCount = analytics?.payment_status_breakdown?.find(s => s.status === 'FAILED')?.count || 0
+  const failedAmount = analytics?.payment_status_breakdown?.find(s => s.status === 'FAILED')?.total_amount || 0
+  const partialCount = analytics?.payment_status_breakdown?.find(s => s.status === 'PARTIAL')?.count || 0
+  const partialAmount = analytics?.payment_status_breakdown?.find(s => s.status === 'PARTIAL')?.total_amount || 0
   
   const totalTransactions = paidCount + pendingCount + failedCount + partialCount
-
   const successRate = totalTransactions > 0 ? Math.round(((paidCount + partialCount) / totalTransactions) * 100 * 10) / 10 : 0
+  
+  // Use pendingStats from parent if available
+  const displayPendingCount = pendingStats?.count ?? pendingCount
+  const displayPendingAmount = pendingStats?.amount ?? pendingAmount
 
   const chartData = analytics?.payments_by_day?.map(d => ({
     day: new Date(d.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),

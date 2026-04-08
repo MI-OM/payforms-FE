@@ -78,14 +78,28 @@ export const auditService = {
     const queryString = searchParams.toString()
     const url = `${apiUrl}/audit/logs/export${queryString ? `?${queryString}` : ''}`
 
+    console.log('Export URL:', url)
+
     const response = await fetch(url, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     })
     
+    console.log('Export response status:', response.status)
+    console.log('Export response ok:', response.ok)
+    console.log('Export content-type:', response.headers.get('content-type'))
+
     if (!response.ok) {
-      throw new Error('Failed to export audit logs')
+      const errorText = await response.text()
+      console.error('Export error response:', errorText)
+      throw new Error(`Failed to export audit logs: ${response.status} ${response.statusText}`)
+    }
+    
+    const contentType = response.headers.get('content-type')
+    if (!contentType || !contentType.includes('csv')) {
+      const text = await response.text()
+      console.error('Unexpected content type or response:', text.substring(0, 500))
     }
     
     return response.blob()

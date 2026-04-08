@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Download, Search, Filter, Plus, Loader2, Upload, Edit, FolderInput, Mail, Trash2, X, AlertTriangle, Send } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { contactService, type Contact, type PaginatedResponse } from '@/services/contactService'
 import { groupService, type Group, type GroupTreeNode } from '@/services/groupService'
 import { reportService } from '@/services/reportService'
+import { paymentService } from '@/services/paymentService'
 import { toast } from '@/components/ui/use-toast'
 
 interface DeleteModalState {
@@ -33,6 +34,17 @@ function formatCurrency(amount: number): string {
   return `₦${amount.toFixed(2)}`
 }
 
+function cleanGroupName(name: string): string {
+  return name.replace(/^["\\]+|["\\]+$/g, '').replace(/\\"/g, '"').trim()
+}
+
+interface ContactWithFinancials extends Contact {
+  total_paid: number
+  balance: number
+  groups?: { id: string; name: string }[]
+  group_hierarchy?: string[]
+}
+
 interface FinancialSummary {
   total_paid: number
   total_outstanding: number
@@ -41,7 +53,7 @@ interface FinancialSummary {
 
 export function ContactsManagement() {
   const navigate = useNavigate()
-  const [contacts, setContacts] = useState<Contact[]>([])
+  const [contacts, setContacts] = useState<ContactWithFinancials[]>([])
   const [groups, setGroups] = useState<GroupTreeNode[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -61,6 +73,8 @@ export function ContactsManagement() {
     status: 'confirm',
   })
   const limit = 20
+  const pageRef = useRef(1)
+  const totalPagesRef = useRef(1)
 
   const fetchGroups = useCallback(async () => {
     try {
@@ -93,12 +107,15 @@ export function ContactsManagement() {
     }
   }, [])
 
-  const fetchContacts = useCallback(async () => {
+  const fetchContacts = useCallback(async (retryCount = 0) => {
     setLoading(true)
     setError(null)
     try {
+      const currentPage = pageRef.current
+      const validPage = isNaN(currentPage) || currentPage < 1 ? 1 : currentPage
+      
       const params: { page: number; limit: number; group_id?: string; search?: string } = {
-        page,
+        page: validPage,
         limit,
       }
       if (selectedGroupId) {
@@ -112,10 +129,34 @@ export function ContactsManagement() {
       const contactsWithGroups = await Promise.all(
         response.data.map(async (contact) => {
           try {
-            const details = await contactService.getContactDetails(contact.id)
-            return { ...contact, groups: details.groups, group_hierarchy: details.group_hierarchy }
+            const [details, txnResponse] = await Promise.all([
+              contactService.getContactDetails(contact.id).catch(() => null),
+              paymentService.getTransactions({ contact_id: contact.id, limit: 100 }).catch(() => ({ data: [] }))
+            ])
+            
+            let totalPaid = 0
+            let balance = 0
+            
+            if (txnResponse.data) {
+              txnResponse.data.forEach((txn: any) => {
+                const amount = parseFloat(txn.amount_paid || txn.amount || 0)
+                if (txn.status?.toUpperCase() === 'PAID') {
+                  totalPaid += amount
+                } else if (txn.status?.toUpperCase() === 'PENDING' || txn.status?.toUpperCase() === 'PARTIAL') {
+                  balance += parseFloat(txn.balance_due || txn.amount || 0)
+                }
+              })
+            }
+            
+            return { 
+              ...contact, 
+              groups: details?.groups || [], 
+              group_hierarchy: details?.group_hierarchy || [],
+              total_paid: totalPaid,
+              balance: balance
+            }
           } catch {
-            return contact
+            return { ...contact, groups: [], group_hierarchy: [], total_paid: 0, balance: 0 }
           }
         })
       )
@@ -123,17 +164,29 @@ export function ContactsManagement() {
       setContacts(contactsWithGroups)
       setTotal(response.total)
       setTotalPages(response.totalPages)
-    } catch (err) {
-      setError('Failed to load contacts')
-      console.error(err)
+      totalPagesRef.current = response.totalPages || 1
+    } catch (err: any) {
+      console.error('Error fetching contacts:', err)
+      if (retryCount < 2) {
+        console.log(`Retrying... (attempt ${retryCount + 1})`)
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        return fetchContacts(retryCount + 1)
+      }
+      setError(err?.message || 'Failed to load contacts')
     } finally {
       setLoading(false)
     }
-  }, [page, selectedGroupId, searchQuery])
+  }, [selectedGroupId, searchQuery, limit])
 
   useEffect(() => {
     fetchGroups()
   }, [fetchGroups])
+
+  useEffect(() => {
+    if (!isNaN(page) && page >= 1) {
+      pageRef.current = page
+    }
+  }, [page])
 
   useEffect(() => {
     fetchContacts()
@@ -325,7 +378,7 @@ export function ContactsManagement() {
                   >
                     <span className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-[#c6c6cd]"></span>
-                      {group.name}
+                      {cleanGroupName(group.name)}
                     </span>
                     <span className="text-[#45464d]/50 text-[10px]">{getGroupCount(group)}</span>
                   </button>
@@ -483,16 +536,16 @@ export function ContactsManagement() {
                           </div>
                         </td>
                         <td className="px-4 lg:px-6 py-3 lg:py-4">
-                          {contact.groups && contact.groups.length > 0 ? (
+                          {contact.group_hierarchy && contact.group_hierarchy.length > 0 ? (
                             <div className="flex flex-wrap gap-1">
-                              {contact.groups.slice(0, 2).map((group) => (
-                                <span key={group.id} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#dae2fd] text-[#3f465c]">
-                                  {group.name}
+                              {contact.group_hierarchy.slice(0, 2).map((path, idx) => (
+                                <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#dae2fd] text-[#3f465c]">
+                                  {cleanGroupName(path)}
                                 </span>
                               ))}
-                              {contact.groups.length > 2 && (
+                              {contact.group_hierarchy.length > 2 && (
                                 <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-500">
-                                  +{contact.groups.length - 2}
+                                  +{contact.group_hierarchy.length - 2}
                                 </span>
                               )}
                             </div>
@@ -502,8 +555,8 @@ export function ContactsManagement() {
                             </span>
                           )}
                         </td>
-                        <td className="px-4 lg:px-6 py-3 lg:py-4 text-sm font-medium text-right text-[#191c1e] hidden lg:table-cell">₦0.00</td>
-                        <td className="px-4 lg:px-6 py-3 lg:py-4 text-sm font-bold text-right text-[#009668] hidden lg:table-cell">₦0.00</td>
+                        <td className="px-4 lg:px-6 py-3 lg:py-4 text-sm font-medium text-right text-[#191c1e] hidden lg:table-cell">{formatCurrency(contact.total_paid)}</td>
+                        <td className="px-4 lg:px-6 py-3 lg:py-4 text-sm font-bold text-right text-[#ba1a1a] hidden lg:table-cell">{formatCurrency(contact.balance)}</td>
                         <td className="px-4 lg:px-6 py-3 lg:py-4 text-right">
                           <div className="flex items-center justify-end gap-1">
                             <Link
@@ -532,18 +585,22 @@ export function ContactsManagement() {
                 </span>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                    disabled={page === 1}
+                    onClick={() => setPage(p => Math.max(1, (isNaN(p) ? 1 : p) - 1))}
+                    disabled={page <= 1 || loading}
                     className="px-3 py-1.5 text-xs font-bold ring-1 ring-[#c6c6cd]/15 rounded-md hover:bg-[#f2f4f6] transition-colors disabled:opacity-50"
                   >
                     Previous
                   </button>
                   <button
-                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
+                    onClick={() => {
+                      const currentTotal = isNaN(totalPages) || totalPages < 1 ? 1 : totalPages
+                      const currentPage = isNaN(page) || page < 1 ? 1 : page
+                      setPage(Math.min(currentTotal, currentPage + 1))
+                    }}
+                    disabled={page >= totalPages || loading}
                     className="px-3 py-1.5 text-xs font-bold ring-1 ring-[#c6c6cd]/15 rounded-md hover:bg-[#f2f4f6] transition-colors disabled:opacity-50"
                   >
-                    Next
+                    {loading ? 'Loading...' : 'Next'}
                   </button>
                 </div>
               </div>
