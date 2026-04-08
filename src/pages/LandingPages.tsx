@@ -17,10 +17,9 @@ import {
   Users,
   ArrowRight,
   Lock,
-  CreditCard,
-  UsersIcon
+  CreditCard
 } from 'lucide-react'
-import { Logo } from '@/components/Logo'
+import { Logo, LogoIcon } from '@/components/Logo'
 
 function useScrollAnimation() {
   const ref = useRef<HTMLDivElement>(null)
@@ -630,8 +629,8 @@ export function PayformsLandingPage() {
       {/* Footer */}
       <footer className="bg-slate-50 w-full border-t border-slate-200/50">
         <div className="py-12 px-6 md:px-12 max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex flex-col gap-2">
-            <div className="font-headline font-extrabold text-xl text-slate-900">Payforms</div>
+          <div className="flex items-center gap-4">
+            <LogoIcon size="sm" asLink={false} />
             <div className="font-sans text-xs uppercase tracking-widest text-slate-400">
               © {new Date().getFullYear()} Payforms Inc. Built with Precision.
             </div>
