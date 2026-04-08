@@ -1,5 +1,6 @@
 import { Link, useNavigate, useSearchParams, useParams } from 'react-router-dom'
 import { useState } from 'react'
+import { LogoIcon } from '@/components/Logo'
 import { authService } from '@/services/authService'
 import { setTokens } from '@/lib/auth'
 import { ApiError } from '@/lib/apiClient'
@@ -179,7 +180,9 @@ export function AcceptInvite() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 mb-1">Payforms</h1>
+          <div className="mb-4">
+            <LogoIcon size="md" />
+          </div>
           <p className="text-sm text-slate-500">Accept Invitation</p>
         </div>
 
@@ -443,9 +446,9 @@ export function PasswordResetRequest() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
-            Payforms
-          </h1>
+          <div className="mb-4">
+            <LogoIcon size="md" />
+          </div>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
             Reset Password
           </p>
@@ -633,9 +636,9 @@ export function PasswordResetConfirm() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
-            Payforms
-          </h1>
+          <div className="mb-4">
+            <LogoIcon size="md" />
+          </div>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
             Reset Password
           </p>

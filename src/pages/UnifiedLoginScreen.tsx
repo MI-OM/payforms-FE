@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { ApiError } from '@/lib/apiClient'
 import { SECURITY_CONFIG } from '@/lib/auth'
 import { contactAuthService } from '@/services/contactAuthService'
-import { Logo } from '@/components/Logo'
+import { Logo, LogoIcon } from '@/components/Logo'
 
 type LoginType = 'admin' | 'contact'
 
@@ -292,8 +292,11 @@ export function UnifiedLoginScreen() {
       </main>
 
       <footer className="mt-auto py-6 text-center">
+        <div className="flex justify-center mb-2">
+          <LogoIcon size="sm" asLink={false} />
+        </div>
         <p className="text-xs text-slate-400">
-          © {new Date().getFullYear()} Payforms. All rights reserved.
+          © {new Date().getFullYear()} Payforms Inc. All rights reserved.
         </p>
       </footer>
     </div>
