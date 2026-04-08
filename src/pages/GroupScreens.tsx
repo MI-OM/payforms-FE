@@ -39,7 +39,11 @@ export function GroupTreeView() {
     setLoading(true)
     setError(null)
     try {
-      const data = await groupService.getGroupTree()
+      // Fetch both group tree and contacts in parallel
+      const [data, contactsResponse] = await Promise.all([
+        groupService.getGroupTree(),
+        contactService.getContacts({ limit: 1 })
+      ])
       
       // Clean the tree data - fix escaped quotes in names and ensure proper hierarchy
       const cleanTree = (nodes: GroupTreeNode[]): GroupTreeNode[] => {
@@ -59,28 +63,18 @@ export function GroupTreeView() {
       const rootIds = new Set(cleanedData.map(g => g.id))
       setExpanded(rootIds)
       
-      // Count total groups - include all groups
-      // For contacts, only count leaf groups (groups without children) to avoid double counting
-      // because parent group contact_count includes child group contacts
-      const countTreeData = (nodes: GroupTreeNode[]): { groups: number; contacts: number } => {
+      // Count total groups
+      const countGroups = (nodes: GroupTreeNode[]): number => {
         return nodes.reduce((acc, node) => {
-          const hasChildren = node.children && node.children.length > 0
-          const childCounts = hasChildren ? countTreeData(node.children || []) : { groups: 0, contacts: 0 }
-          
-          // Only add contact count for leaf groups (no children)
-          // Parent groups' contact_count already includes child contacts
-          const contactsToAdd = hasChildren ? 0 : (node.contact_count || 0)
-          
-          return {
-            groups: acc.groups + 1 + childCounts.groups,
-            contacts: acc.contacts + contactsToAdd + childCounts.contacts
-          }
-        }, { groups: 0, contacts: 0 })
+          return acc + 1 + (node.children ? countGroups(node.children) : 0)
+        }, 0)
       }
       
-      const counts = countTreeData(cleanedData)
-      setTotalGroups(counts.groups)
-      setTotalContacts(counts.contacts)
+      const totalGroups = countGroups(cleanedData)
+      const totalContacts = contactsResponse.total // Use true total from /contacts endpoint
+      
+      setTotalGroups(totalGroups)
+      setTotalContacts(totalContacts)
     } catch (err) {
       setError('Failed to load groups')
       console.error(err)
