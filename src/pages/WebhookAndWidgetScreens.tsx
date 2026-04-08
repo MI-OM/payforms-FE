@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Plus, Search, Check, X, RefreshCw, Copy, Eye, Webhook, Loader2 } from 'lucide-react'
+import { ArrowLeft, Plus, Search, Check, X, RefreshCw, Copy, Eye, EyeOff, Webhook, Loader2, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Loader } from 'lucide-react'
+import { publicFormService } from '@/services/formService'
 
 interface WebhookLog {
   id: string
@@ -291,7 +292,13 @@ export function WebhookLogs() {
 
 export function WidgetConfiguration() {
   const navigate = useNavigate()
-  const [formSlug, setFormSlug] = useState('q1-tuition')
+  const { id } = useParams<{ id: string }>()
+  const [formSlug, setFormSlug] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [formData, setFormData] = useState<{ slug?: string; title?: string } | null>(null)
+  const [embedScript, setEmbedScript] = useState('')
+  const [widgetHtml, setWidgetHtml] = useState('')
+  const [showPreview, setShowPreview] = useState(false)
   const [widgetSettings, setWidgetSettings] = useState({
     theme: 'light',
     primaryColor: '#188ace',
@@ -302,9 +309,64 @@ export function WidgetConfiguration() {
     autoRedirect: true,
   })
 
-  const embedCode = `<script src="https://api.payforms.app/public/forms/${formSlug}/embed.js" data-width="${widgetSettings.width}" data-height="${widgetSettings.minHeight}" data-primary-color="${widgetSettings.primaryColor}" ${widgetSettings.autoRedirect ? 'data-auto-redirect="true"' : ''}></script>`
+  useEffect(() => {
+    const fetchFormData = async () => {
+      if (id) {
+        try {
+          const { formService } = await import('@/services/formService')
+          const form = await formService.getForm(id)
+          setFormData(form)
+          setFormSlug(form.slug)
+        } catch (err) {
+          console.error('Failed to fetch form:', err)
+        }
+      }
+    }
+    fetchFormData()
+  }, [id])
 
-  const iframeCode = `<iframe src="https://api.payforms.app/public/forms/${formSlug}/widget?auto_redirect=${widgetSettings.autoRedirect}" width="${widgetSettings.width}" height="${widgetSettings.minHeight}" frameborder="0"></iframe>`
+  useEffect(() => {
+    const fetchWidgetAssets = async () => {
+      if (!formSlug) return
+      setLoading(true)
+      try {
+        const scriptResponse = await publicFormService.getEmbedScript(formSlug)
+        setEmbedScript(scriptResponse.script || `<script src="/api/public/forms/${formSlug}/embed.js"></script>`)
+        
+        const widgetResponse = await publicFormService.getWidget(formSlug, {
+          auto_redirect: widgetSettings.autoRedirect,
+          callback_url: widgetSettings.callbackUrl,
+        })
+        setWidgetHtml(typeof widgetResponse === 'string' ? widgetResponse : '')
+      } catch (err) {
+        console.error('Failed to fetch widget assets:', err)
+        setEmbedScript(`<script src="/api/public/forms/${formSlug}/embed.js" data-width="${widgetSettings.width}" data-height="${widgetSettings.minHeight}" data-primary-color="${widgetSettings.primaryColor}" ${widgetSettings.autoRedirect ? 'data-auto-redirect="true"' : ''}></script>`)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchWidgetAssets()
+  }, [formSlug, widgetSettings.autoRedirect, widgetSettings.callbackUrl])
+
+  const generateEmbedCode = () => {
+    return `<script src="/api/public/forms/${formSlug}/embed.js" data-width="${widgetSettings.width}" data-height="${widgetSettings.minHeight}" data-primary-color="${widgetSettings.primaryColor}" ${widgetSettings.autoRedirect ? 'data-auto-redirect="true"' : ''}></script>`
+  }
+
+  const generateIframeCode = () => {
+    const params = new URLSearchParams()
+    if (widgetSettings.autoRedirect) params.append('auto_redirect', 'true')
+    if (widgetSettings.callbackUrl) params.append('callback_url', widgetSettings.callbackUrl)
+    const query = params.toString() ? `?${params.toString()}` : ''
+    return `<iframe src="/api/public/forms/${formSlug}/widget${query}" width="${widgetSettings.width}" height="${widgetSettings.minHeight}" frameborder="0"></iframe>`
+  }
+
+  const previewUrl = () => {
+    const params = new URLSearchParams()
+    if (widgetSettings.autoRedirect) params.append('auto_redirect', 'true')
+    if (widgetSettings.callbackUrl) params.append('callback_url', widgetSettings.callbackUrl)
+    const query = params.toString() ? `?${params.toString()}` : ''
+    return `/api/public/forms/${formSlug}/widget${query}`
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -323,14 +385,28 @@ export function WidgetConfiguration() {
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-sm p-6">
               <h3 className="font-bold text-gray-900 mb-4">Form Selection</h3>
+              {formData?.title && (
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-800 font-medium">{formData.title}</p>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Form Slug</label>
                 <Input 
                   value={formSlug}
                   onChange={(e) => setFormSlug(e.target.value)}
                   placeholder="form-slug"
+                  disabled={!!id}
                 />
-                <p className="text-xs text-gray-500 mt-1">The URL-friendly name of your form</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {id ? 'Form slug is locked for this form' : 'The URL-friendly name of your form'}
+                </p>
+              </div>
+              <div className="mt-4 space-y-2">
+                <p className="text-sm text-gray-600">Payment URL:</p>
+                <code className="block bg-gray-100 p-2 rounded text-sm">
+                  /pay/{formSlug || 'your-slug'}
+                </code>
               </div>
             </div>
 
@@ -427,14 +503,21 @@ export function WidgetConfiguration() {
           </div>
 
           <div className="space-y-6">
+            {loading && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center gap-3">
+                <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+                <span className="text-sm text-blue-700">Loading widget configuration...</span>
+              </div>
+            )}
+
             <div className="bg-white rounded-xl shadow-sm p-6">
               <h3 className="font-bold text-gray-900 mb-4">Embed Script</h3>
               <p className="text-sm text-gray-500 mb-3">Add this code to your website HTML</p>
               <div className="bg-gray-900 rounded-lg p-4 relative">
                 <pre className="text-green-400 text-xs overflow-x-auto whitespace-pre-wrap">
-                  {embedCode}
+                  {generateEmbedCode()}
                 </pre>
-                <button className="absolute top-2 right-2 p-2 bg-gray-800 hover:bg-gray-700 rounded text-gray-400">
+                <button className="absolute top-2 right-2 p-2 bg-gray-800 hover:bg-gray-700 rounded text-gray-400" title="Copy to clipboard">
                   <Copy className="h-4 w-4" />
                 </button>
               </div>
@@ -445,26 +528,60 @@ export function WidgetConfiguration() {
               <p className="text-sm text-gray-500 mb-3">Alternative iframe method</p>
               <div className="bg-gray-900 rounded-lg p-4 relative">
                 <pre className="text-green-400 text-xs overflow-x-auto whitespace-pre-wrap">
-                  {iframeCode}
+                  {generateIframeCode()}
                 </pre>
-                <button className="absolute top-2 right-2 p-2 bg-gray-800 hover:bg-gray-700 rounded text-gray-400">
+                <button className="absolute top-2 right-2 p-2 bg-gray-800 hover:bg-gray-700 rounded text-gray-400" title="Copy to clipboard">
                   <Copy className="h-4 w-4" />
                 </button>
               </div>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm p-6">
-              <h3 className="font-bold text-gray-900 mb-4">Preview</h3>
-              <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 flex items-center justify-center">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-gray-900">Widget Preview</h3>
+                <button
+                  onClick={() => setShowPreview(!showPreview)}
+                  className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700"
+                >
+                  {showPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPreview ? 'Hide Preview' : 'Show Preview'}
+                </button>
+              </div>
+              {showPreview ? (
+                <div className="border-2 border-gray-200 rounded-lg overflow-hidden" style={{ minHeight: widgetSettings.minHeight }}>
+                  <iframe
+                    src={previewUrl()}
+                    width={widgetSettings.width}
+                    height={parseInt(widgetSettings.minHeight)}
+                    frameBorder="0"
+                    title="Widget Preview"
+                    className="w-full"
+                  />
+                </div>
+              ) : (
+                <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 flex flex-col items-center justify-center gap-4">
+                  <div 
+                    className="px-6 py-3 rounded-lg text-white font-medium shadow-md"
+                    style={{ backgroundColor: widgetSettings.primaryColor }}
+                  >
+                    {widgetSettings.buttonText}
+                  </div>
+                  <p className="text-sm text-gray-500">Click "Show Preview" to see the live widget</p>
+                </div>
+              )}
+              <div className="mt-4 flex gap-3">
                 <a 
                   href={`/pay/${formSlug}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-4 py-2 rounded-lg text-white text-sm font-medium"
-                  style={{ backgroundColor: widgetSettings.primaryColor }}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
                 >
-                  {widgetSettings.buttonText}
+                  Open in New Tab
+                  <ExternalLink className="h-4 w-4" />
                 </a>
+                <span className="text-sm text-gray-500 self-center">
+                  URL: <code className="bg-gray-100 px-2 py-1 rounded">/pay/{formSlug}</code>
+                </span>
               </div>
             </div>
           </div>

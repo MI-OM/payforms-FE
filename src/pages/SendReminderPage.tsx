@@ -21,6 +21,8 @@ export function SendReminderPage() {
   const [message, setMessage] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [sent, setSent] = useState(false)
+  const [attachment, setAttachment] = useState<File | null>(null)
+  const [attachmentError, setAttachmentError] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchContacts = async () => {
@@ -62,11 +64,17 @@ export function SendReminderPage() {
       return
     }
 
+    if (attachment && attachment.size > 10 * 1024 * 1024) {
+      toast({ title: 'Error', description: 'Attachment must be less than 10MB', variant: 'destructive' })
+      return
+    }
+
     setSending(true)
     try {
       await notificationService.sendReminder({
         contact_ids: selectedContacts.map((c) => c.id),
         message: message || undefined,
+        attachment: attachment || undefined,
       })
       setSent(true)
     } catch (err) {
@@ -75,6 +83,24 @@ export function SendReminderPage() {
     } finally {
       setSending(false)
     }
+  }
+
+  const handleAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        setAttachmentError('File must be less than 10MB')
+        setAttachment(null)
+      } else {
+        setAttachmentError(null)
+        setAttachment(file)
+      }
+    }
+  }
+
+  const removeAttachment = () => {
+    setAttachment(null)
+    setAttachmentError(null)
   }
 
   if (sent) {
@@ -236,6 +262,54 @@ export function SendReminderPage() {
                 />
               </div>
 
+              {/* Attachment (Optional) */}
+              <div className="mb-6">
+                <label className="block text-xs font-bold text-[#45464d] uppercase tracking-widest mb-2">
+                  Attachment (Optional, max 10MB)
+                </label>
+                {!attachment ? (
+                  <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center">
+                    <input
+                      type="file"
+                      id="attachment"
+                      className="hidden"
+                      onChange={handleAttachmentChange}
+                      accept="*/*"
+                    />
+                    <label
+                      htmlFor="attachment"
+                      className="cursor-pointer flex flex-col items-center gap-2"
+                    >
+                      <svg className="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
+                      <span className="text-sm text-gray-500">Click to upload attachment</span>
+                    </label>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between bg-[#f2f4f6] rounded-lg p-3">
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      <svg className="h-5 w-5 text-[#188ace] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                      </svg>
+                      <span className="text-sm truncate">{attachment.name}</span>
+                      <span className="text-xs text-gray-400 flex-shrink-0">
+                        ({(attachment.size / 1024 / 1024).toFixed(2)} MB)
+                      </span>
+                    </div>
+                    <button
+                      onClick={removeAttachment}
+                      className="p-1 hover:bg-slate-200 rounded flex-shrink-0"
+                    >
+                      <X className="h-4 w-4 text-gray-400" />
+                    </button>
+                  </div>
+                )}
+                {attachmentError && (
+                  <p className="text-xs text-red-500 mt-1">{attachmentError}</p>
+                )}
+              </div>
+
               {/* Actions */}
               <div className="flex gap-3">
                 <Button
@@ -279,6 +353,8 @@ export function SendGroupReminderPage() {
   const [message, setMessage] = useState('')
   const [sent, setSent] = useState(false)
   const [groupIds, setGroupIds] = useState<string[]>([])
+  const [attachment, setAttachment] = useState<File | null>(null)
+  const [attachmentError, setAttachmentError] = useState<string | null>(null)
 
   useEffect(() => {
     setLoading(false)
@@ -290,11 +366,17 @@ export function SendGroupReminderPage() {
       return
     }
 
+    if (attachment && attachment.size > 10 * 1024 * 1024) {
+      toast({ title: 'Error', description: 'Attachment must be less than 10MB', variant: 'destructive' })
+      return
+    }
+
     setSending(true)
     try {
       await notificationService.sendGroupReminder({
         group_ids: groupIds,
         message: message || undefined,
+        attachment: attachment || undefined,
       })
       setSent(true)
     } catch (err) {
@@ -303,6 +385,24 @@ export function SendGroupReminderPage() {
     } finally {
       setSending(false)
     }
+  }
+
+  const handleAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        setAttachmentError('File must be less than 10MB')
+        setAttachment(null)
+      } else {
+        setAttachmentError(null)
+        setAttachment(file)
+      }
+    }
+  }
+
+  const removeAttachment = () => {
+    setAttachment(null)
+    setAttachmentError(null)
   }
 
   if (sent) {
@@ -358,6 +458,54 @@ export function SendGroupReminderPage() {
               rows={4}
               className="w-full px-4 py-3 bg-[#f2f4f6] border-none rounded-lg text-sm focus:ring-2 focus:ring-[#188ace] transition-all resize-none"
             />
+          </div>
+
+          {/* Attachment (Optional) */}
+          <div className="mb-6">
+            <label className="block text-xs font-bold text-[#45464d] uppercase tracking-widest mb-2">
+              Attachment (Optional, max 10MB)
+            </label>
+            {!attachment ? (
+              <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center">
+                <input
+                  type="file"
+                  id="group-attachment"
+                  className="hidden"
+                  onChange={handleAttachmentChange}
+                  accept="*/*"
+                />
+                <label
+                  htmlFor="group-attachment"
+                  className="cursor-pointer flex flex-col items-center gap-2"
+                >
+                  <svg className="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  <span className="text-sm text-gray-500">Click to upload attachment</span>
+                </label>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between bg-[#f2f4f6] rounded-lg p-3">
+                <div className="flex items-center gap-3 overflow-hidden">
+                  <svg className="h-5 w-5 text-[#188ace] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                  </svg>
+                  <span className="text-sm truncate">{attachment.name}</span>
+                  <span className="text-xs text-gray-400 flex-shrink-0">
+                    ({(attachment.size / 1024 / 1024).toFixed(2)} MB)
+                  </span>
+                </div>
+                <button
+                  onClick={removeAttachment}
+                  className="p-1 hover:bg-slate-200 rounded flex-shrink-0"
+                >
+                  <X className="h-4 w-4 text-gray-400" />
+                </button>
+              </div>
+            )}
+            {attachmentError && (
+              <p className="text-xs text-red-500 mt-1">{attachmentError}</p>
+            )}
           </div>
 
           <div className="flex gap-3">

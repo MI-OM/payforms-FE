@@ -49,9 +49,17 @@ export interface CreateContactRequest {
 }
 
 export interface UpdateContactRequest {
-  name?: string
+  first_name?: string
+  middle_name?: string
+  last_name?: string
   email?: string
   phone?: string
+  gender?: string
+  student_id?: string
+  external_id?: string
+  guardian_name?: string
+  guardian_email?: string
+  guardian_phone?: string
   is_active?: boolean
 }
 
@@ -93,6 +101,11 @@ export interface PaginationParams {
   page?: number
   limit?: number
   group_id?: string
+  student_id?: string
+  last_name?: string
+  first_name?: string
+  email?: string
+  external_id?: string
   [key: string]: string | number | boolean | undefined
 }
 

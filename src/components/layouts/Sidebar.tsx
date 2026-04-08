@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils"
-import { Building2 } from "lucide-react"
+import { Logo, LogoIcon } from "@/components/Logo"
 import { Link, useLocation } from "react-router-dom"
 import { useAuth } from "@/contexts/AuthContext"
 
@@ -96,15 +96,15 @@ export function Sidebar({
         {/* Logo */}
         <div className="flex items-center gap-3 px-4 pt-4 pb-6 border-b border-slate-100 shrink-0">
           {organizationLogo ? (
-            <img 
-              src={organizationLogo} 
-              alt={organizationName} 
-              className="w-8 h-8 rounded object-contain shrink-0 bg-white border border-slate-200"
-            />
+            <Link to="/" className="shrink-0">
+              <img 
+                src={organizationLogo} 
+                alt={organizationName} 
+                className="w-8 h-8 rounded object-contain shrink-0 bg-white border border-slate-200"
+              />
+            </Link>
           ) : (
-            <div className="w-8 h-8 rounded bg-black flex items-center justify-center shrink-0">
-              <Building2 className="h-4 w-4 text-white" />
-            </div>
+            <LogoIcon size="md" asLink={false} />
           )}
           <div className="min-w-0">
             <h1 className="text-lg font-bold tracking-tighter text-slate-900 leading-tight font-headline truncate">

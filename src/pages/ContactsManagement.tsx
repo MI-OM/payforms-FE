@@ -35,7 +35,14 @@ function formatCurrency(amount: number): string {
 }
 
 function cleanGroupName(name: string): string {
-  return name.replace(/^["\\]+|["\\]+$/g, '').replace(/\\"/g, '"').trim()
+  if (!name) return ''
+  return name
+    .replace(/\\\"/g, '/')  // Replace escaped quotes with forward slash (hierarchy separator)
+    .replace(/"/g, '/')     // Replace regular quotes with forward slash
+    .replace(/\\/g, '')      // Remove remaining backslashes
+    .replace(/\/\//g, '/')   // Remove double slashes
+    .replace(/^\/|\/$/g, '') // Remove leading/trailing slashes
+    .trim() || 'Unassigned'
 }
 
 interface ContactWithFinancials extends Contact {
@@ -84,7 +91,7 @@ export function ContactsManagement() {
       const counts: Record<string, number> = {}
       const flattenGroupsForCount = (nodes: GroupTreeNode[]) => {
         for (const node of nodes) {
-          counts[node.id] = node.contact_count || 0
+          counts[node.id] = node.contact_count ?? node.contactCount ?? 0
           if (node.children && node.children.length > 0) {
             flattenGroupsForCount(node.children)
           }
@@ -148,15 +155,18 @@ export function ContactsManagement() {
               })
             }
             
+            const contactGroups = details?.groups || contact.groups || []
+            const contactHierarchy = details?.group_hierarchy || contact.group_hierarchy || []
+            
             return { 
               ...contact, 
-              groups: details?.groups || [], 
-              group_hierarchy: details?.group_hierarchy || [],
+              groups: contactGroups, 
+              group_hierarchy: contactHierarchy,
               total_paid: totalPaid,
               balance: balance
             }
           } catch {
-            return { ...contact, groups: [], group_hierarchy: [], total_paid: 0, balance: 0 }
+            return { ...contact, groups: contact.groups || [], group_hierarchy: contact.group_hierarchy || [], total_paid: 0, balance: 0 }
           }
         })
       )
@@ -546,6 +556,19 @@ export function ContactsManagement() {
                               {contact.group_hierarchy.length > 2 && (
                                 <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-500">
                                   +{contact.group_hierarchy.length - 2}
+                                </span>
+                              )}
+                            </div>
+                          ) : contact.groups && contact.groups.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {contact.groups.slice(0, 2).map((group, idx) => (
+                                <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#dae2fd] text-[#3f465c]">
+                                  {group.name}
+                                </span>
+                              ))}
+                              {contact.groups.length > 2 && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-500">
+                                  +{contact.groups.length - 2}
                                 </span>
                               )}
                             </div>

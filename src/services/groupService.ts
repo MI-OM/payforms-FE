@@ -68,6 +68,10 @@ export const groupService = {
     return apiClient.delete(`/groups/${id}`)
   },
 
+  detachGroup: async (id: string): Promise<Group> => {
+    return apiClient.patch(`/groups/${id}/detach`)
+  },
+
   getGroupContacts: async (id: string, params?: PaginationParams): Promise<PaginatedResponse<Contact>> => {
     return apiClient.get(`/groups/${id}/contacts`, { params })
   },
@@ -76,7 +80,7 @@ export const groupService = {
     return apiClient.post(`/groups/${groupId}/contacts`, { contact_ids: contactIds })
   },
 
-  removeContactFromGroup: async (groupId: string, contactId: string): Promise<void> => {
-    return apiClient.delete(`/groups/${groupId}/contacts/${contactId}`)
+  removeContactsFromGroup: async (groupId: string, contactIds: string[]): Promise<void> => {
+    return apiClient.delete(`/groups/${groupId}/contacts`, { contact_ids: contactIds })
   },
 }

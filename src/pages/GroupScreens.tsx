@@ -55,24 +55,30 @@ export function GroupTreeView() {
       }
       
       const cleanedData = cleanTree(data)
-      console.log('[Groups] Cleaned data:', cleanedData)
       setTree(cleanedData)
       const rootIds = new Set(cleanedData.map(g => g.id))
       setExpanded(rootIds)
       
-      // Count total groups and contacts from the tree
+      // Count total groups - include all groups
+      // For contacts, only count leaf groups (groups without children) to avoid double counting
+      // because parent group contact_count includes child group contacts
       const countTreeData = (nodes: GroupTreeNode[]): { groups: number; contacts: number } => {
         return nodes.reduce((acc, node) => {
-          const childCounts = node.children ? countTreeData(node.children) : { groups: 0, contacts: 0 }
+          const hasChildren = node.children && node.children.length > 0
+          const childCounts = hasChildren ? countTreeData(node.children || []) : { groups: 0, contacts: 0 }
+          
+          // Only add contact count for leaf groups (no children)
+          // Parent groups' contact_count already includes child contacts
+          const contactsToAdd = hasChildren ? 0 : (node.contact_count || 0)
+          
           return {
             groups: acc.groups + 1 + childCounts.groups,
-            contacts: acc.contacts + (node.contact_count || 0) + childCounts.contacts
+            contacts: acc.contacts + contactsToAdd + childCounts.contacts
           }
         }, { groups: 0, contacts: 0 })
       }
       
       const counts = countTreeData(cleanedData)
-      console.log('[Groups] Counts:', counts)
       setTotalGroups(counts.groups)
       setTotalContacts(counts.contacts)
     } catch (err) {
@@ -413,7 +419,7 @@ export function GroupContactsManagement() {
     if (!id) return
     const selectedIds = contacts.filter(c => c.selected).map(c => c.id)
     try {
-      await Promise.all(selectedIds.map(contactId => groupService.removeContactFromGroup(id, contactId)))
+      await groupService.removeContactsFromGroup(id, selectedIds)
       setContacts(contacts.filter(c => !c.selected))
       toast({ title: 'Success', description: `Removed ${selectedIds.length} contact(s)` })
     } catch (err) {

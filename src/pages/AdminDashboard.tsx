@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import { reportService, type ReportSummary, type FormPerformance, type AnalyticsData } from '@/services/reportService'
 import { paymentService, type Transaction } from '@/services/paymentService'
 import { formService, type Form } from '@/services/formService'
+import { auditService, type AuditLog } from '@/services/auditService'
 import { toast } from '@/components/ui/use-toast'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts'
 
@@ -19,6 +20,7 @@ function MaterialIcon({ name, className = '', filled = false }: { name: string; 
     person_add: "M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z",
     publish: "M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z",
     verified_user: "M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z",
+    history: "M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z",
   }
   
   const d = icons[name]
@@ -37,6 +39,7 @@ export function AdminDashboardContent() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [topForms, setTopForms] = useState<FormPerformance[]>([])
   const [forms, setForms] = useState<Form[]>([])
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([])
   const [pendingStats, setPendingStats] = useState<{ count: number; amount: number }>({ count: 0, amount: 0 })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -47,13 +50,14 @@ export function AdminDashboardContent() {
         setLoading(true)
         setError(null)
         
-        const [summaryData, analyticsData, txnData, performanceData, formsData] = await Promise.all([
+        const [summaryData, analyticsData, txnData, performanceData, formsData, auditData] = await Promise.all([
           reportService.getSummary().catch(() => null),
           reportService.getAnalytics().catch(() => null),
-          paymentService.getTransactions({ limit: 100 }).catch(() => ({ data: [] })),
+          paymentService.getTransactions({ limit: 15 }).catch(() => ({ data: [] })),
           reportService.getFormsPerformance().catch(() => ({ data: [] })),
           formService.getForms({ limit: 100 }).catch(() => ({ data: [], total: 0, page: 1, limit: 100, totalPages: 0 })),
-          paymentService.getTransactions({ limit: 1000, status: 'PENDING' }).catch(() => ({ data: [] }))
+          paymentService.getTransactions({ limit: 1000, status: 'PENDING' }).catch(() => ({ data: [] })),
+          auditService.getAuditLogs({ limit: 5 }).catch(() => ({ data: [] }))
         ])
         
         setSummary(summaryData)
@@ -61,6 +65,7 @@ export function AdminDashboardContent() {
         setTransactions(txnData.data || [])
         setTopForms(performanceData.data || [])
         setForms(formsData.data || [])
+        setAuditLogs(auditData.data || [])
         
         // Calculate pending stats from analytics or fetched pending transactions
         const pendingFromAnalytics = analyticsData?.payment_status_breakdown?.find(s => s.status === 'PENDING')
@@ -159,6 +164,7 @@ export function AdminDashboardContent() {
           transactions={transactions}
           topForms={topForms}
           forms={forms}
+          auditLogs={auditLogs}
           pendingStats={pendingStats}
           formatCurrency={formatCurrency}
           formatDate={formatDate}
@@ -270,13 +276,14 @@ interface LiveDashboardProps {
   transactions: Transaction[]
   topForms: FormPerformance[]
   forms: Form[]
+  auditLogs: AuditLog[]
   pendingStats: { count: number; amount: number }
   formatCurrency: (amount: number | string) => string
   formatDate: (date: string) => string
   getFormName: (formId: string | undefined) => string
 }
 
-function LiveDashboard({ summary, analytics, transactions, topForms, forms, pendingStats, formatCurrency, formatDate, getFormName }: LiveDashboardProps) {
+function LiveDashboard({ summary, analytics, transactions, topForms, forms, auditLogs, pendingStats, formatCurrency, formatDate, getFormName }: LiveDashboardProps) {
   // Get stats from analytics API (the authoritative source)
   const paidCount = analytics?.payment_status_breakdown?.find(s => s.status === 'PAID')?.count || 0
   const paidAmount = analytics?.payment_status_breakdown?.find(s => s.status === 'PAID')?.total_amount || 0
@@ -457,29 +464,28 @@ function LiveDashboard({ summary, analytics, transactions, topForms, forms, pend
 
         {/* Recent Activity Timeline */}
         <div className="bg-[#ffffff] rounded-xl p-8 shadow-sm">
-          <h2 className="text-xl font-bold tracking-tighter mb-6">Recent Activity</h2>
-          <div className="space-y-8 relative before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-[#e0e3e5]">
-            <div className="relative pl-10">
-              <div className="absolute left-0 top-1 w-6 h-6 rounded-full bg-[#002113] flex items-center justify-center z-10 border-4 border-white">
-                <MaterialIcon name="person_add" className="text-[10px] text-[#4edea3]" filled />
-              </div>
-              <p className="text-xs font-bold">New staff member invited</p>
-              <p className="text-[10px] text-[#45464d] uppercase mt-0.5">Admin Cluster • Recent</p>
-            </div>
-            <div className="relative pl-10">
-              <div className="absolute left-0 top-1 w-6 h-6 rounded-full bg-[#188ace]/10 flex items-center justify-center z-10 border-4 border-white">
-                <MaterialIcon name="publish" className="text-[10px] text-[#188ace]" filled />
-              </div>
-              <p className="text-xs font-bold">New form created</p>
-              <p className="text-[10px] text-[#45464d] uppercase mt-0.5">System • Recent</p>
-            </div>
-            <div className="relative pl-10">
-              <div className="absolute left-0 top-1 w-6 h-6 rounded-full bg-black flex items-center justify-center z-10 border-4 border-white">
-                <MaterialIcon name="verified_user" className="text-[10px] text-white" filled />
-              </div>
-              <p className="text-xs font-bold">Payment received</p>
-              <p className="text-[10px] text-[#45464d] uppercase mt-0.5">System • Recent</p>
-            </div>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-bold tracking-tighter">Recent Activity</h2>
+            <Link to="/activity" className="text-[10px] font-bold uppercase tracking-widest text-[#188ace] hover:underline">
+              View All
+            </Link>
+          </div>
+          <div className="space-y-6 relative before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-[#e0e3e5]">
+            {!auditLogs || auditLogs.length === 0 ? (
+              <p className="text-sm text-[#45464d] text-center py-8">No recent activity</p>
+            ) : (
+              auditLogs.slice(0, 5).map((log, i) => (
+                <div key={log.id || i} className="relative pl-10">
+                  <div className="absolute left-0 top-1 w-6 h-6 rounded-full bg-[#188ace] flex items-center justify-center z-10 border-4 border-white">
+                    <MaterialIcon name="history" className="text-[10px] text-white" />
+                  </div>
+                  <p className="text-xs font-bold capitalize">{log.action?.replace(/_/g, ' ') || 'Activity'}</p>
+                  <p className="text-[10px] text-[#45464d] uppercase mt-0.5">
+                    {log.user_email || 'System'} • {log.timestamp ? new Date(log.timestamp).toLocaleDateString() : 'Recent'}
+                  </p>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -489,14 +495,17 @@ function LiveDashboard({ summary, analytics, transactions, topForms, forms, pend
         {/* Recent Transactions Ledger */}
         <div className="xl:col-span-2 bg-[#ffffff] rounded-xl shadow-sm overflow-hidden">
           <div className="p-6 border-b border-[#f2f4f6] flex justify-between items-center">
-            <h2 className="text-xl font-bold tracking-tighter">Recent Transactions</h2>
+            <div>
+              <h2 className="text-xl font-bold tracking-tighter">Recent Transactions</h2>
+              <p className="text-[10px] text-[#45464d] mt-1">Last {Math.min(transactions.length, 15)} transactions</p>
+            </div>
             <Link to="/transactions" className="text-[10px] font-bold uppercase tracking-widest text-[#188ace] hover:underline">
               View All
             </Link>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
             <table className="w-full text-left">
-              <thead className="bg-[#f2f4f6] text-[10px] font-bold uppercase tracking-widest text-[#45464d]">
+              <thead className="bg-[#f2f4f6] text-[10px] font-bold uppercase tracking-widest text-[#45464d] sticky top-0">
                 <tr>
                   <th className="px-6 py-4">Date</th>
                   <th className="px-6 py-4">Reference</th>
@@ -513,7 +522,7 @@ function LiveDashboard({ summary, analytics, transactions, topForms, forms, pend
                     </td>
                   </tr>
                 ) : (
-                  transactions.map((txn, i) => (
+                  transactions.slice(0, 15).map((txn, i) => (
                     <tr key={txn.id || i} className="hover:bg-[#f7f9fb] transition-colors">
                       <td className="px-6 py-4 font-medium text-[#191c1e]">{formatDate(txn.created_at)}</td>
                       <td className="px-6 py-4 font-mono text-[#45464d]">
@@ -543,7 +552,7 @@ function LiveDashboard({ summary, analytics, transactions, topForms, forms, pend
         {/* Top Performing Forms Ranking */}
         <div className="bg-slate-900 text-white rounded-xl shadow-xl overflow-hidden flex flex-col">
           <div className="p-8 border-b border-white/10">
-            <h2 className="text-xl font-bold tracking-tighter">Top Performing Forms</h2>
+            <h2 className="text-xl font-bold tracking-tighter">Top 5 Performing Forms</h2>
             <p className="text-[10px] text-slate-400 uppercase mt-1">Based on Collection Rate</p>
           </div>
           <div className="flex-1">

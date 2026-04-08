@@ -373,7 +373,8 @@ export function EditContactView() {
     setSaving(true)
     try {
       await contactService.updateContact(id, {
-        name: `${form.first_name} ${form.last_name}`.trim(),
+        first_name: form.first_name,
+        last_name: form.last_name,
         email: form.email,
         phone: form.phone || undefined,
         is_active: form.is_active,

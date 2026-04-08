@@ -366,163 +366,153 @@ export function AcceptInvite() {
 }
 
 export function PasswordResetRequest() {
-  const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
   const [email, setEmail] = useState('')
-  const [error, setError] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
     setIsLoading(true)
 
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      setIsSuccess(true)
-    } catch {
-      setError('Failed to send reset email. Please try again.')
-    } finally {
-      setIsLoading(false)
-    }
+    await authService.requestPasswordReset({ email })
+    setIsSuccess(true)
+    setIsLoading(false)
   }
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen flex flex-col justify-center items-center bg-slate-100 relative overflow-hidden">
-        <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
-          .font-headline { font-family: 'Manrope', sans-serif; }
-          .font-body { font-family: 'Inter', sans-serif; }
-          .material-symbols-outlined {
-            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-            display: inline-block;
-            vertical-align: middle;
-          }
-        `}</style>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 relative overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-200/30 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-indigo-200/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        </div>
 
-        <div className="relative z-10 w-full max-w-md px-6">
-          <div className="bg-white/70 backdrop-blur-xl rounded-xl p-10 shadow-[0_40px_80px_-20px_rgba(25,28,30,0.08)] border border-white/20 text-center">
-            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg className="h-10 w-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="relative z-10 w-full max-w-sm sm:max-w-md px-4 sm:px-6">
+          <div className="bg-white rounded-2xl p-8 sm:p-10 shadow-xl shadow-slate-200/50 border border-slate-100 text-center">
+            <div className="w-16 h-16 bg-gradient-to-br from-green-100 to-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
             </div>
-            <h2 className="font-headline font-bold text-2xl text-slate-900 mb-3">
+            <h2 className="text-xl font-bold text-slate-900 mb-3">
               Check Your Email
             </h2>
-            <p className="font-body text-slate-500 mb-6">
-              We've sent a password reset link to <span className="font-semibold text-slate-700">{email}</span>
+            <p className="text-sm text-slate-500 mb-2">
+              We've sent a password reset link to
             </p>
-            <p className="text-sm text-slate-400 font-body mb-8">
-              The link will expire in 15 minutes.
+            <p className="font-semibold text-slate-700 mb-6">{email}</p>
+            <p className="text-xs text-slate-400 mb-8">
+              The link will expire in 15 minutes. Check your spam folder if you don't see it.
             </p>
-            <button 
-              className="text-sm font-medium text-blue-500 hover:text-blue-600 transition-colors"
-              onClick={() => { setIsSuccess(false); setEmail('') }}
-            >
-              Didn't receive it? Try again
-            </button>
-
-            <div className="mt-8 pt-6 border-t border-slate-200">
-              <Link className="text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors" to="/login">
-                Back to Login
-              </Link>
+            <div className="space-y-3">
+              <button 
+                className="w-full py-2.5 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+                onClick={() => { setIsSuccess(false); setEmail('') }}
+              >
+                Didn't receive it? Try again
+              </button>
+              <div className="pt-4 border-t border-slate-100">
+                <Link className="text-sm font-medium text-slate-500 hover:text-slate-700 transition-colors" to="/login">
+                  Back to Login
+                </Link>
+              </div>
             </div>
           </div>
         </div>
+
+        <footer className="absolute bottom-4 text-center">
+          <p className="text-xs text-slate-400">
+            © {new Date().getFullYear()} Payforms. All rights reserved.
+          </p>
+        </footer>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center bg-slate-100 relative overflow-hidden">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
-        .font-headline { font-family: 'Manrope', sans-serif; }
-        .font-body { font-family: 'Inter', sans-serif; }
-        .material-symbols-outlined {
-          font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-          display: inline-block;
-          vertical-align: middle;
-        }
-      `}</style>
-
-      <div className="absolute top-0 left-0 w-full h-full pointer-events-none z-0">
-        <div className="absolute -top-24 -left-24 w-96 h-96 bg-blue-200 opacity-20 blur-3xl rounded-full"></div>
-        <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-blue-100 opacity-10 blur-3xl rounded-full"></div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 relative overflow-hidden">
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-200/30 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-indigo-200/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
       </div>
 
-      <main className="relative z-10 w-full max-w-md px-6 py-12">
-        <div className="text-center mb-10">
-          <h1 className="font-headline font-extrabold text-3xl tracking-tighter text-slate-900 mb-2">
+      <main className="relative z-10 w-full max-w-sm sm:max-w-md px-4 sm:px-6 py-8 sm:py-12">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl shadow-lg shadow-blue-500/30 mb-4">
+            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
             Payforms
           </h1>
-          <p className="font-label text-xs uppercase tracking-widest text-slate-500 opacity-70">
-            Password Reset
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            Reset Password
           </p>
         </div>
 
-        <div className="bg-white/70 backdrop-blur-xl rounded-xl p-8 md:p-10 shadow-[0_40px_80px_-20px_rgba(25,28,30,0.08)] border border-white/20">
-          <div className="mb-8">
-            <h2 className="font-headline font-bold text-2xl text-slate-900 tracking-tight mb-1">Reset Password</h2>
-            <p className="text-slate-500 text-sm font-body">Enter your email to receive a reset link.</p>
+        <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-xl shadow-slate-200/50 border border-slate-100">
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold text-slate-900 mb-1">Forgot your password?</h2>
+            <p className="text-sm text-slate-500">Enter your email and we'll send you a reset link.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2">
-              <label className="font-label text-xs uppercase tracking-wider font-bold text-slate-800 opacity-80" htmlFor="email">Work Email</label>
-              <div className="relative group">
-                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors">alternate_email</span>
-                <input 
-                  className="w-full pl-12 pr-4 py-3.5 bg-slate-100 border border-slate-200/50 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-body text-slate-900 placeholder:text-slate-400" 
-                  id="email" 
-                  type="email"
-                  placeholder="name@company.com"
-                  required={true}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700" htmlFor="email">
+                Email address
+              </label>
+              <input 
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-slate-900 placeholder:text-slate-400 text-sm" 
+                id="email" 
+                type="email"
+                placeholder="you@example.com"
+                required={true}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
+              />
             </div>
 
-            {error && (
-              <div className="p-3 bg-red-50 border border-red-100 rounded-lg">
-                <p className="text-sm text-red-600 font-body">{error}</p>
-              </div>
-            )}
-
             <button 
-              className="w-full py-4 bg-slate-900 text-white rounded-lg font-semibold text-sm tracking-wide shadow-xl shadow-slate-900/10 hover:opacity-90 active:scale-[0.98] transition-all flex justify-center items-center gap-2 group disabled:opacity-50"
+              className="w-full py-3.5 bg-slate-900 text-white rounded-xl font-medium text-sm shadow-lg shadow-slate-900/20 hover:bg-slate-800 active:scale-[0.98] transition-all flex justify-center items-center gap-2 disabled:opacity-50"
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || !email}
             >
               {isLoading ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <>
+                  <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Sending...</span>
+                </>
               ) : (
                 <>
                   <span>Send Reset Link</span>
-                  <span className="material-symbols-outlined text-lg group-hover:translate-x-1 transition-transform">arrow_right_alt</span>
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
                 </>
               )}
             </button>
           </form>
 
           <div className="mt-6 text-center">
-            <Link className="text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors" to="/login">
+            <Link className="text-sm font-medium text-slate-500 hover:text-slate-700 transition-colors" to="/login">
               Back to Login
             </Link>
           </div>
         </div>
       </main>
 
-      <footer className="mt-auto py-6 opacity-40">
-        <p className="font-label text-[10px] uppercase tracking-[0.3em] text-slate-500">
-          © 2024 Payforms Inc. Built with Precision.
-        </p>
+      <footer className="absolute bottom-4 flex justify-center gap-4 text-xs text-slate-400">
+        <a href="#" className="hover:text-slate-600 transition-colors">Privacy</a>
+        <span>•</span>
+        <a href="#" className="hover:text-slate-600 transition-colors">Terms</a>
+        <span>•</span>
+        <a href="#" className="hover:text-slate-600 transition-colors">Support</a>
       </footer>
-
-      <div className="fixed bottom-0 left-0 w-full h-1 bg-gradient-to-r from-slate-900 via-blue-500 to-green-400 opacity-50"></div>
     </div>
   )
 }
@@ -533,67 +523,95 @@ export function PasswordResetConfirm() {
   const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
   const [error, setError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [formData, setFormData] = useState({
     password: '',
     confirmPassword: ''
   })
 
+  const passwordRequirements = [
+    { id: 'length', label: 'At least 12 characters', test: (p: string) => p.length >= 12 },
+    { id: 'uppercase', label: 'At least one uppercase letter', test: (p: string) => /[A-Z]/.test(p) },
+    { id: 'lowercase', label: 'At least one lowercase letter', test: (p: string) => /[a-z]/.test(p) },
+    { id: 'number', label: 'At least one number', test: (p: string) => /\d/.test(p) },
+    { id: 'special', label: 'At least one special character', test: (p: string) => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(p) },
+  ]
+
+  const getPasswordStrength = (password: string): { score: number; label: string; color: string } => {
+    const passed = passwordRequirements.filter(req => req.test(password)).length
+    if (password.length === 0) return { score: 0, label: '', color: '' }
+    if (passed < 2) return { score: 1, label: 'Weak', color: 'bg-red-500' }
+    if (passed < 4) return { score: 2, label: 'Fair', color: 'bg-yellow-500' }
+    if (passed === 4) return { score: 3, label: 'Good', color: 'bg-blue-500' }
+    return { score: 4, label: 'Strong', color: 'bg-green-500' }
+  }
+
+  const isPasswordStrongEnough = (password: string): boolean => {
+    return passwordRequirements.every(req => req.test(password))
+  }
+
+  const passwordsMatch = formData.password === formData.confirmPassword && formData.confirmPassword.length > 0
+  const canSubmit = isPasswordStrongEnough(formData.password) && passwordsMatch && !isLoading
+  const strength = getPasswordStrength(formData.password)
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
 
-    if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters')
+    if (!isPasswordStrongEnough(formData.password)) {
+      setError('Password does not meet all requirements')
       return
     }
 
-    if (formData.password !== formData.confirmPassword) {
+    if (!passwordsMatch) {
       setError('Passwords do not match')
+      return
+    }
+
+    if (!token) {
+      setError('Invalid reset link')
       return
     }
 
     setIsLoading(true)
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      await authService.confirmPasswordReset({ token, password: formData.password })
       setIsSuccess(true)
       setTimeout(() => navigate('/login'), 2000)
-    } catch {
+    } catch (err) {
       setError('Failed to reset password. The link may have expired.')
-    } finally {
       setIsLoading(false)
     }
   }
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen flex flex-col justify-center items-center bg-slate-100 relative overflow-hidden">
-        <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
-          .font-headline { font-family: 'Manrope', sans-serif; }
-          .font-body { font-family: 'Inter', sans-serif; }
-          .material-symbols-outlined {
-            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-            display: inline-block;
-            vertical-align: middle;
-          }
-        `}</style>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 relative overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-green-200/30 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-emerald-200/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        </div>
 
-        <div className="relative z-10 w-full max-w-md px-6">
-          <div className="bg-white/70 backdrop-blur-xl rounded-xl p-10 shadow-[0_40px_80px_-20px_rgba(25,28,30,0.08)] border border-white/20 text-center">
-            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg className="h-10 w-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="relative z-10 w-full max-w-sm sm:max-w-md px-4 sm:px-6">
+          <div className="bg-white rounded-2xl p-8 sm:p-10 shadow-xl shadow-slate-200/50 border border-slate-100 text-center">
+            <div className="w-16 h-16 bg-gradient-to-br from-green-100 to-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h2 className="font-headline font-bold text-2xl text-slate-900 mb-3">
-              Password Reset!
+            <h2 className="text-xl font-bold text-slate-900 mb-3">
+              Password Reset Complete!
             </h2>
-            <p className="font-body text-slate-500 mb-8">
-              Your password has been updated. Redirecting to login...
+            <p className="text-sm text-slate-500 mb-6">
+              Your password has been updated successfully.
+            </p>
+            <p className="text-xs text-slate-400 mb-6">
+              Redirecting to login...
             </p>
             <div className="flex justify-center">
-              <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
             </div>
           </div>
         </div>
@@ -602,118 +620,198 @@ export function PasswordResetConfirm() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center bg-slate-100 relative overflow-hidden">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
-        .font-headline { font-family: 'Manrope', sans-serif; }
-        .font-body { font-family: 'Inter', sans-serif; }
-        .material-symbols-outlined {
-          font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-          display: inline-block;
-          vertical-align: middle;
-        }
-      `}</style>
-
-      <div className="absolute top-0 left-0 w-full h-full pointer-events-none z-0">
-        <div className="absolute -top-24 -left-24 w-96 h-96 bg-blue-200 opacity-20 blur-3xl rounded-full"></div>
-        <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-blue-100 opacity-10 blur-3xl rounded-full"></div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 relative overflow-hidden">
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-200/30 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-indigo-200/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
       </div>
 
-      <main className="relative z-10 w-full max-w-md px-6 py-12">
-        <div className="text-center mb-10">
-          <h1 className="font-headline font-extrabold text-3xl tracking-tighter text-slate-900 mb-2">
+      <main className="relative z-10 w-full max-w-sm sm:max-w-md px-4 sm:px-6 py-8 sm:py-12">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl shadow-lg shadow-blue-500/30 mb-4">
+            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
             Payforms
           </h1>
-          <p className="font-label text-xs uppercase tracking-widest text-slate-500 opacity-70">
-            Set New Password
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            Reset Password
           </p>
         </div>
 
-        <div className="bg-white/70 backdrop-blur-xl rounded-xl p-8 md:p-10 shadow-[0_40px_80px_-20px_rgba(25,28,30,0.08)] border border-white/20">
-          <div className="mb-8">
-            <h2 className="font-headline font-bold text-2xl text-slate-900 tracking-tight mb-1">Create New Password</h2>
-            <p className="text-slate-500 text-sm font-body">Enter your new password below.</p>
+        <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-xl shadow-slate-200/50 border border-slate-100">
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold text-slate-900 mb-1">Create New Password</h2>
+            <p className="text-sm text-slate-500">Enter your new password below.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2">
-              <label className="font-label text-xs uppercase tracking-wider font-bold text-slate-800 opacity-80" htmlFor="password">New Password</label>
-              <div className="relative group">
-                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors">lock</span>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700" htmlFor="password">
+                New Password
+              </label>
+              <div className="relative">
                 <input 
-                  className="w-full pl-12 pr-4 py-3.5 bg-slate-100 border border-slate-200/50 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-body text-slate-900 placeholder:text-slate-400" 
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-slate-900 placeholder:text-slate-400 text-sm" 
                   id="password" 
-                  type="password"
-                  placeholder="Min 8 characters"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Enter new password"
                   required={true}
                   value={formData.password}
                   onChange={(e) => setFormData({...formData, password: e.target.value})}
+                  disabled={isLoading}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  {showPassword ? (
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  )}
+                </button>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="font-label text-xs uppercase tracking-wider font-bold text-slate-800 opacity-80" htmlFor="confirmPassword">Confirm Password</label>
-              <div className="relative group">
-                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors">lock</span>
+            {formData.password.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-slate-500">Password strength</span>
+                  <span className={`text-xs font-medium ${strength.score >= 3 ? 'text-green-600' : strength.score >= 2 ? 'text-yellow-600' : 'text-red-600'}`}>
+                    {strength.label}
+                  </span>
+                </div>
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4].map((level) => (
+                    <div
+                      key={level}
+                      className={`h-1 flex-1 rounded-full transition-all ${
+                        level <= strength.score ? strength.color : 'bg-slate-200'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {formData.password.length > 0 && (
+              <div className="bg-slate-50 rounded-xl p-3 space-y-1">
+                {passwordRequirements.map((req) => (
+                  <div key={req.id} className="flex items-center gap-2">
+                    {req.test(formData.password) ? (
+                      <svg className="w-3.5 h-3.5 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : (
+                      <svg className="w-3.5 h-3.5 text-slate-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    )}
+                    <span className={`text-xs ${req.test(formData.password) ? 'text-green-600' : 'text-slate-500'}`}>
+                      {req.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700" htmlFor="confirmPassword">
+                Confirm Password
+              </label>
+              <div className="relative">
                 <input 
-                  className="w-full pl-12 pr-4 py-3.5 bg-slate-100 border border-slate-200/50 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-body text-slate-900 placeholder:text-slate-400" 
+                  className={`w-full px-4 py-3 bg-slate-50 border rounded-xl outline-none transition-all text-slate-900 placeholder:text-slate-400 text-sm ${
+                    passwordsMatch && formData.confirmPassword.length > 0
+                      ? 'border-green-300 focus:ring-2 focus:ring-green-500/20 focus:border-green-500'
+                      : 'border-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
+                  }`}
                   id="confirmPassword" 
-                  type="password"
+                  type={showConfirmPassword ? 'text' : 'password'}
                   placeholder="Confirm password"
                   required={true}
                   value={formData.confirmPassword}
                   onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+                  disabled={isLoading}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  {showConfirmPassword ? (
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  )}
+                </button>
               </div>
-            </div>
-
-            <div className="p-3 bg-amber-50 border border-amber-100 rounded-lg flex items-start gap-3">
-              <svg className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              <p className="text-sm text-amber-700 font-body">
-                Use at least 8 characters with a mix of letters, numbers & symbols.
-              </p>
+              {formData.confirmPassword.length > 0 && (
+                <p className={`text-xs ${passwordsMatch ? 'text-green-600' : 'text-red-500'}`}>
+                  {passwordsMatch ? 'Passwords match' : 'Passwords do not match'}
+                </p>
+              )}
             </div>
 
             {error && (
-              <div className="p-3 bg-red-50 border border-red-100 rounded-lg">
-                <p className="text-sm text-red-600 font-body">{error}</p>
+              <div className="p-3 bg-red-50 border border-red-100 rounded-xl">
+                <p className="text-sm text-red-600">{error}</p>
               </div>
             )}
 
             <button 
-              className="w-full py-4 bg-slate-900 text-white rounded-lg font-semibold text-sm tracking-wide shadow-xl shadow-slate-900/10 hover:opacity-90 active:scale-[0.98] transition-all flex justify-center items-center gap-2 group disabled:opacity-50"
+              className="w-full py-3.5 bg-slate-900 text-white rounded-xl font-medium text-sm shadow-lg shadow-slate-900/20 hover:bg-slate-800 active:scale-[0.98] transition-all flex justify-center items-center gap-2 disabled:opacity-50"
               type="submit"
-              disabled={isLoading}
+              disabled={!canSubmit}
             >
               {isLoading ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <>
+                  <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Resetting...</span>
+                </>
               ) : (
                 <>
                   <span>Reset Password</span>
-                  <span className="material-symbols-outlined text-lg group-hover:translate-x-1 transition-transform">arrow_right_alt</span>
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
                 </>
               )}
             </button>
           </form>
 
           <div className="mt-6 text-center">
-            <Link className="text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors" to="/login">
+            <Link className="text-sm font-medium text-slate-500 hover:text-slate-700 transition-colors" to="/login">
               Back to Login
             </Link>
           </div>
         </div>
       </main>
 
-      <footer className="mt-auto py-6 opacity-40">
-        <p className="font-label text-[10px] uppercase tracking-[0.3em] text-slate-500">
-          © 2024 Payforms Inc. Built with Precision.
-        </p>
+      <footer className="absolute bottom-4 flex justify-center gap-4 text-xs text-slate-400">
+        <a href="#" className="hover:text-slate-600 transition-colors">Privacy</a>
+        <span>•</span>
+        <a href="#" className="hover:text-slate-600 transition-colors">Terms</a>
+        <span>•</span>
+        <a href="#" className="hover:text-slate-600 transition-colors">Support</a>
       </footer>
-
-      <div className="fixed bottom-0 left-0 w-full h-1 bg-gradient-to-r from-slate-900 via-blue-500 to-green-400 opacity-50"></div>
     </div>
   )
 }

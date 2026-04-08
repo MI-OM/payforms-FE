@@ -1,4 +1,5 @@
 import { apiClient } from '@/lib/apiClient'
+import { getAccessToken } from '@/lib/auth'
 
 export interface FormField {
   id: string
@@ -10,6 +11,10 @@ export interface FormField {
   validation_rules?: Record<string, unknown>
 }
 
+export type PaymentType = 'FIXED' | 'VARIABLE'
+export type AccessMode = 'OPEN' | 'LOGIN_REQUIRED' | 'TARGETED_ONLY'
+export type IdentityValidationMode = 'NONE' | 'CONTACT_EMAIL' | 'CONTACT_EXTERNAL_ID'
+
 export interface Form {
   id: string
   title: string
@@ -17,10 +22,13 @@ export interface Form {
   category?: string
   description?: string
   note?: string
-  payment_type: 'FIXED' | 'VARIABLE'
+  payment_type: PaymentType
   amount?: number
   allow_partial: boolean
   is_active: boolean
+  access_mode?: AccessMode
+  identity_validation_mode?: IdentityValidationMode
+  identity_field_label?: string
   fields?: FormField[]
   created_at: string
   updated_at: string
@@ -32,9 +40,12 @@ export interface CreateFormRequest {
   category?: string
   description?: string
   note?: string
-  payment_type: 'FIXED' | 'VARIABLE'
+  payment_type: PaymentType
   amount?: number
   allow_partial: boolean
+  access_mode?: AccessMode
+  identity_validation_mode?: IdentityValidationMode
+  identity_field_label?: string
 }
 
 export interface CreateFieldRequest {
@@ -83,6 +94,14 @@ export const formService = {
     return apiClient.patch(`/forms/${id}`, data)
   },
 
+  getFormGroups: async (formId: string): Promise<{ id: string; name: string }[]> => {
+    return apiClient.get(`/forms/${formId}/groups`)
+  },
+
+  addFormGroups: async (formId: string, groupIds: string[]): Promise<void> => {
+    return apiClient.post(`/forms/${formId}/groups`, { group_ids: groupIds })
+  },
+
   deleteForm: async (id: string): Promise<void> => {
     return apiClient.delete(`/forms/${id}`)
   },
@@ -119,12 +138,40 @@ export const formService = {
     return apiClient.delete(`/forms/${formId}/targets/${targetId}`)
   },
 
-  getFormGroups: async (formId: string): Promise<{ id: string; name: string }[]> => {
-    return apiClient.get(`/forms/${formId}/groups`)
-  },
-
-  addFormGroups: async (formId: string, groupIds: string[]): Promise<void> => {
-    return apiClient.post(`/forms/${formId}/groups`, { group_ids: groupIds })
+  exportSubmissions: async (params?: {
+    format?: 'csv' | 'pdf'
+    form_id?: string
+    contact_id?: string
+    start_date?: string
+    end_date?: string
+    page?: number
+    limit?: number
+  }): Promise<Blob> => {
+    const token = getAccessToken()
+    if (!token) {
+      throw new Error('Authentication required')
+    }
+    
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+    const searchParams = new URLSearchParams()
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined) searchParams.append(key, String(value))
+      })
+    }
+    const url = `${apiUrl}/submissions/export?${searchParams.toString()}`
+    
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+    
+    if (!response.ok) {
+      throw new Error('Failed to export submissions')
+    }
+    
+    return response.blob()
   },
 }
 
@@ -134,7 +181,7 @@ export interface PublicForm {
   slug: string
   description?: string
   note?: string
-  payment_type: 'FIXED' | 'VARIABLE'
+  payment_type: PaymentType
   amount?: number
   allow_partial: boolean
   fields: FormField[]
@@ -188,6 +235,38 @@ export const publicFormService = {
     return publicApi.get<PublicForm>(`/public/forms/${slug}`)
   },
 
+  getWidgetConfig: async (slug: string): Promise<{
+    form: PublicForm
+    callback_url?: string
+    contact_token?: string
+    contact_email?: string
+    contact_name?: string
+    auto_redirect?: boolean
+  }> => {
+    return publicApi.get(`/public/forms/${slug}/widget-config`)
+  },
+
+  getEmbedScript: async (slug: string): Promise<{ script: string }> => {
+    return publicApi.get(`/public/forms/${slug}/embed.js`)
+  },
+
+  getWidget: async (slug: string, options?: {
+    callback_url?: string
+    contact_token?: string
+    contact_email?: string
+    contact_name?: string
+    auto_redirect?: boolean
+  }): Promise<string> => {
+    const params = new URLSearchParams()
+    if (options?.callback_url) params.append('callback_url', options.callback_url)
+    if (options?.contact_token) params.append('contact_token', options.contact_token)
+    if (options?.contact_email) params.append('contact_email', options.contact_email)
+    if (options?.contact_name) params.append('contact_name', options.contact_name)
+    if (options?.auto_redirect) params.append('auto_redirect', 'true')
+    const query = params.toString() ? `?${params.toString()}` : ''
+    return publicApi.get(`/public/forms/${slug}/widget${query}`)
+  },
+
   submitForm: async (
     slug: string, 
     data: FormSubmissionData,
@@ -207,7 +286,7 @@ export const publicFormService = {
     })
   },
 
-  verifyPayment: async (reference: string): Promise<{
+  handlePaymentCallback: async (reference: string): Promise<{
     status: string
     reference: string
     amount?: number
@@ -220,5 +299,20 @@ export const publicFormService = {
     organization_name?: string
   }> => {
     return publicApi.get(`/public/payments/callback?reference=${reference}`)
+  },
+
+  verifyPayment: async (reference: string): Promise<{
+    status: string
+    reference: string
+    amount?: number
+    currency?: string
+    customer_email?: string
+    customer_name?: string
+    paid_at?: string
+    payment_type?: string
+    form_title?: string
+    organization_name?: string
+  }> => {
+    return publicApi.get(`/public/payments/verify?reference=${reference}`)
   },
 }

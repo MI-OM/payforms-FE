@@ -48,10 +48,10 @@ export function ContactsGroupsManagement() {
             <Link key={group.id} to={`/groups/${group.id}`} className="bg-white rounded-xl p-6 border border-gray-100 hover:border-blue-200 transition-colors cursor-pointer shadow-sm">
               <div className="flex items-center gap-3 mb-4">
                 <div className={`w-3 h-3 rounded-full ${colors[index % colors.length]}`} />
-                <span className="font-bold text-gray-900">{group.contact_count || 0}</span>
+                <span className="font-bold text-gray-900">{group.contact_count ?? group.contactCount ?? 0}</span>
               </div>
               <h3 className="text-lg font-bold text-gray-900">{group.name}</h3>
-              <p className="text-sm text-gray-500">{group.contact_count || 0} contacts</p>
+              <p className="text-sm text-gray-500">{group.contact_count ?? group.contactCount ?? 0} contacts</p>
             </Link>
           ))}
         </div>
@@ -80,7 +80,7 @@ export function ContactsGroupsManagement() {
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
-                  <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full">{group.contact_count || 0} contacts</span>
+                  <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full">{group.contact_count ?? group.contactCount ?? 0} contacts</span>
                   <Link to={`/groups/${group.id}`} className="text-gray-400 hover:text-gray-600">
                     <ChevronRight className="h-5 w-5" />
                   </Link>

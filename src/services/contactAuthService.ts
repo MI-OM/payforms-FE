@@ -112,7 +112,7 @@ export const contactAuthService = {
 
   logout: async (): Promise<void> => {
     try {
-      await contactApi.post('/auth/logout', {})
+      await contactApi.post('/contact-auth/logout', {})
     } finally {
       contactAuth.clearTokens()
     }

@@ -20,6 +20,7 @@ import {
   CreditCard,
   UsersIcon
 } from 'lucide-react'
+import { Logo } from '@/components/Logo'
 
 function useScrollAnimation() {
   const ref = useRef<HTMLDivElement>(null)
@@ -254,9 +255,7 @@ export function PayformsLandingPage() {
       {/* Top Navigation */}
       <nav className="fixed top-0 w-full z-50 bg-slate-50/80 backdrop-blur-md border-b border-slate-200/50">
         <div className="flex justify-between items-center h-16 px-6 md:px-12 max-w-7xl mx-auto w-full">
-          <div className="text-xl font-bold tracking-tighter text-slate-900 font-headline">
-            Payforms
-          </div>
+          <Logo variant="default" size="md" />
           
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">

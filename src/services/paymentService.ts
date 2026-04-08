@@ -47,12 +47,14 @@ export interface TransactionHistory {
 export interface CreatePaymentRequest {
   submission_id: string
   amount: number
+  total_amount?: number
   reference?: string
 }
 
 export interface UpdatePaymentStatusRequest {
   status: 'PENDING' | 'PAID' | 'PARTIAL' | 'FAILED'
   paid_at?: string
+  amount_paid?: number
 }
 
 export interface PaginationParams {

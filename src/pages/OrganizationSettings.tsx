@@ -151,14 +151,31 @@ function GeneralSettings() {
 }
 
 function IntegrationsSettings() {
+  const [loading, setLoading] = useState(true)
   const [keys, setKeys] = useState({
     paystack_public_key: '',
     paystack_secret_key: '',
+    paystack_webhook_url: '',
   })
   const [showSecret, setShowSecret] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle')
+
+  const fetchOrg = useCallback(async () => {
+    setLoading(true)
+    try {
+      const org = await organizationService.getOrganization()
+    } catch (err) {
+      console.error('Failed to load organization', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchOrg()
+  }, [fetchOrg])
 
   const handleSave = async () => {
     setIsSaving(true)
@@ -166,9 +183,11 @@ function IntegrationsSettings() {
       await organizationService.updateKeys({
         paystack_public_key: keys.paystack_public_key,
         paystack_secret_key: keys.paystack_secret_key,
+        paystack_webhook_url: keys.paystack_webhook_url,
       })
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
+      toast({ title: 'Success', description: 'Keys saved successfully' })
     } catch (err) {
       toast({ title: 'Error', description: 'Failed to save keys', variant: 'destructive' })
       console.error(err)
@@ -233,6 +252,16 @@ function IntegrationsSettings() {
       <div className="bg-white rounded-xl p-6 shadow-sm">
         <h3 className="font-bold mb-4 text-gray-900">Webhook URL</h3>
         <div className="space-y-3">
+          <div className="space-y-2">
+            <Label className="text-gray-700">Paystack Webhook URL</Label>
+            <Input 
+              type="url"
+              value={keys.paystack_webhook_url}
+              onChange={(e) => setKeys({...keys, paystack_webhook_url: e.target.value})}
+              placeholder="https://yourdomain.com/webhooks/paystack"
+            />
+            <p className="text-xs text-gray-500">Optional: Custom webhook URL for Paystack events</p>
+          </div>
           <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg font-mono text-sm text-gray-600">
             {import.meta.env.VITE_API_URL}/webhooks/paystack
           </div>
@@ -499,6 +528,7 @@ function NotificationsSettings() {
     notify_submission_confirmation: true,
     notify_payment_confirmation: true,
     notify_payment_failure: true,
+    partial_payment_limit: 100,
   })
   const [isSaving, setIsSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -506,12 +536,13 @@ function NotificationsSettings() {
   const fetchSettings = useCallback(async () => {
     setLoading(true)
     try {
-      const org = await organizationService.getOrganization()
+      const org = await organizationService.getSettings()
       setSettings({
         require_contact_login: org.require_contact_login || false,
         notify_submission_confirmation: org.notify_submission_confirmation ?? true,
         notify_payment_confirmation: org.notify_payment_confirmation ?? true,
         notify_payment_failure: org.notify_payment_failure ?? true,
+        partial_payment_limit: org.partial_payment_limit ?? 100,
       })
     } catch (err) {
       console.error('Failed to load settings', err)
@@ -527,7 +558,7 @@ function NotificationsSettings() {
   const handleSave = async () => {
     setIsSaving(true)
     try {
-      await organizationService.updateOrganization(settings)
+      await organizationService.updateSettings(settings)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } catch (err) {
@@ -596,6 +627,24 @@ function NotificationsSettings() {
               checked={settings.require_contact_login}
               onChange={(checked) => setSettings({...settings, require_contact_login: checked})}
             />
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl p-6 shadow-sm">
+        <h3 className="font-bold mb-4 text-gray-900">Partial Payments</h3>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label className="text-gray-700">Partial Payment Limit (%)</Label>
+            <Input 
+              type="number"
+              min="0"
+              max="100"
+              value={settings.partial_payment_limit}
+              onChange={(e) => setSettings({...settings, partial_payment_limit: parseInt(e.target.value) || 0})}
+              placeholder="100"
+            />
+            <p className="text-xs text-gray-500">Maximum percentage of total amount that can be paid as partial payment (0-100)</p>
           </div>
         </div>
       </div>

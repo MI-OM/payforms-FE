@@ -12,6 +12,7 @@ export interface Organization {
   notify_submission_confirmation?: boolean
   notify_payment_confirmation?: boolean
   notify_payment_failure?: boolean
+  partial_payment_limit?: number
 }
 
 export interface OrganizationSettings {
@@ -25,6 +26,7 @@ export interface OrganizationSettings {
   notify_submission_confirmation: boolean
   notify_payment_confirmation: boolean
   notify_payment_failure: boolean
+  partial_payment_limit?: number
 }
 
 export interface OrganizationUpdateRequest {
@@ -36,11 +38,13 @@ export interface OrganizationUpdateRequest {
   notify_submission_confirmation?: boolean
   notify_payment_confirmation?: boolean
   notify_payment_failure?: boolean
+  partial_payment_limit?: number
 }
 
 export interface PaystackKeys {
   paystack_public_key?: string
   paystack_secret_key?: string
+  paystack_webhook_url?: string
 }
 
 export const organizationService = {

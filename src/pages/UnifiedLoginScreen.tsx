@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { ApiError } from '@/lib/apiClient'
 import { SECURITY_CONFIG } from '@/lib/auth'
 import { contactAuthService } from '@/services/contactAuthService'
+import { Logo } from '@/components/Logo'
 
 type LoginType = 'admin' | 'contact'
 
@@ -96,15 +97,10 @@ export function UnifiedLoginScreen() {
 
       <main className="relative z-10 w-full max-w-sm sm:max-w-md px-4 sm:px-6 py-8 sm:py-12">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl shadow-lg shadow-blue-500/30 mb-4">
-            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
+          <div className="flex justify-center mb-4">
+            <Logo size="xl" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
-            Payforms
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+          <p className="text-xs sm:text-sm text-slate-500">
             Sign in to your account
           </p>
         </div>
@@ -180,7 +176,7 @@ export function UnifiedLoginScreen() {
                 </label>
                 <Link 
                   className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline underline-offset-2 transition-colors" 
-                  to={loginType === 'contact' ? '/contact/password-reset' : '/password-reset'}
+                  to={loginType === 'contact' ? '/contact/reset-password' : '/password-reset'}
                 >
                   Forgot password?
                 </Link>
