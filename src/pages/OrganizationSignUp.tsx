@@ -150,9 +150,9 @@ export function OrganizationSignUp() {
       <div className="flex-1 flex items-center justify-center p-6 sm:p-8 md:p-12">
         <div className="w-full max-w-md">
           <AnimatedSection>
-            <Link to="/" className="inline-flex items-center gap-3 mb-8 group">
+            <div className="mb-8">
               <Logo size="md" />
-            </Link>
+            </div>
           </AnimatedSection>
 
           <AnimatedSection delay={100}>

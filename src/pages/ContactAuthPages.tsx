@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { contactAuthService } from '@/services/contactAuthService'
 import { contactService, type Transaction } from '@/services/contactService'
+import { Logo, LogoIcon } from '@/components/Logo'
 import { ApiError } from '@/lib/apiClient'
 
 function getAutoDetectedSubdomain(): string {
@@ -64,12 +65,9 @@ export function ContactLoginPage() {
 
       <div className="relative z-10 w-full max-w-md px-6">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl shadow-lg shadow-blue-500/30 mb-4">
-            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
+          <div className="flex justify-center mb-4">
+            <Logo size="lg" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 mb-1">Payforms</h1>
           <p className="text-sm text-slate-500">Sign in to your account</p>
         </div>
 
@@ -209,8 +207,11 @@ export function ContactLoginPage() {
           </div>
         </div>
 
-        <p className="text-center text-xs text-slate-400 mt-6">
-          © {new Date().getFullYear()} Payforms. All rights reserved.
+        <div className="flex justify-center mb-2">
+          <LogoIcon size="sm" asLink={false} />
+        </div>
+        <p className="text-center text-xs text-slate-400">
+          © {new Date().getFullYear()} Payforms Inc. All rights reserved.
         </p>
       </div>
     </div>
@@ -324,9 +325,8 @@ export function ContactSetPassword() {
       </div>
 
       <main className="relative z-10 w-full max-w-md px-6 py-12">
-        <div className="text-center mb-10">
-          <h1 className="font-headline font-extrabold text-3xl tracking-tighter text-slate-900 mb-2">Payforms</h1>
-          <p className="font-label text-xs uppercase tracking-widest text-slate-500 opacity-70">New Password</p>
+        <div className="flex justify-center mb-10">
+          <Logo size="lg" />
         </div>
 
         <div className="bg-white/70 backdrop-blur-xl rounded-xl p-8 md:p-10 shadow-[0_40px_80px_-20px_rgba(25,28,30,0.08)] border border-white/20">
@@ -536,9 +536,8 @@ export function ContactResetPasswordRequest() {
       </div>
 
       <main className="relative z-10 w-full max-w-md px-6 py-12">
-        <div className="text-center mb-10">
-          <h1 className="font-headline font-extrabold text-3xl tracking-tighter text-slate-900 mb-2">Payforms</h1>
-          <p className="font-label text-xs uppercase tracking-widest text-slate-500 opacity-70">Reset Password</p>
+        <div className="flex justify-center mb-10">
+          <Logo size="lg" />
         </div>
 
         <div className="bg-white/70 backdrop-blur-xl rounded-xl p-8 md:p-10 shadow-[0_40px_80px_-20px_rgba(25,28,30,0.08)] border border-white/20">
@@ -697,9 +696,8 @@ export function ContactResetPasswordConfirm() {
       </div>
 
       <main className="relative z-10 w-full max-w-md px-6 py-12">
-        <div className="text-center mb-10">
-          <h1 className="font-headline font-extrabold text-3xl tracking-tighter text-slate-900 mb-2">Payforms</h1>
-          <p className="font-label text-xs uppercase tracking-widest text-slate-500 opacity-70">New Password</p>
+        <div className="flex justify-center mb-10">
+          <Logo size="lg" />
         </div>
 
         <div className="bg-white/70 backdrop-blur-xl rounded-xl p-8 md:p-10 shadow-[0_40px_80px_-20px_rgba(25,28,30,0.08)] border border-white/20">
@@ -887,9 +885,11 @@ export function ContactDashboard() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Payforms</h1>
-            <p className="text-sm text-gray-500">Student Portal</p>
+          <div className="flex items-center gap-3">
+            <LogoIcon size="sm" />
+            <div>
+              <p className="text-sm text-gray-500">Student Portal</p>
+            </div>
           </div>
           <div className="flex items-center gap-4">
             <div className="text-right">
