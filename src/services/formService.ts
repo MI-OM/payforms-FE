@@ -187,6 +187,7 @@ export interface PublicForm {
   fields: FormField[]
   organization_name: string
   require_contact_login?: boolean
+  access_mode?: AccessMode
 }
 
 export interface FormSubmissionData {

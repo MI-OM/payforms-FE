@@ -42,6 +42,8 @@ import { InviteStaffSuccessState } from '@/pages/InviteStaff'
 import { InviteStaffErrorState } from '@/pages/InviteStaff'
 import { AcceptInvite, PasswordResetRequest, PasswordResetConfirm } from '@/pages/AuthPages'
 import { ContactLoginPage, ContactSetPassword, ContactResetPasswordRequest, ContactResetPasswordConfirm, ContactDashboard } from '@/pages/ContactAuthPages'
+import { ContactFormsPage } from '@/pages/ContactFormsPage'
+import { ContactTransactionsPage } from '@/pages/ContactTransactionsPage'
 import { ReportsAnalytics } from '@/pages/ReportsAnalytics'
 import { OrganizationSettings } from '@/pages/OrganizationSettings'
 import { FormFieldsManagement, FormDeleteConfirmation } from '@/pages/FormScreens'
@@ -149,6 +151,8 @@ function App() {
         <Route path="/contact/reset-password" element={<ContactResetPasswordRequest />} />
         <Route path="/contact/reset-password/:token" element={<ContactResetPasswordConfirm />} />
         <Route path="/contact/dashboard" element={<ContactDashboard />} />
+        <Route path="/contact/forms" element={<ContactFormsPage />} />
+        <Route path="/contact/transactions" element={<ContactTransactionsPage />} />
         
         {/* Payment Flows */}
         <Route path="/payment/success" element={<PaymentSuccessState />} />

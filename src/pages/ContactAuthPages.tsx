@@ -27,6 +27,8 @@ export function ContactLoginPage() {
     password: '',
   })
 
+  const redirectUrl = new URLSearchParams(window.location.search).get('redirect') || '/contact/dashboard'
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -38,7 +40,7 @@ export function ContactLoginPage() {
         organization_subdomain: subdomain || undefined,
       })
       localStorage.setItem('contact_data', JSON.stringify(response.contact))
-      navigate('/contact/dashboard')
+      navigate(redirectUrl, { replace: true })
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message || 'Invalid email or password')
@@ -844,33 +846,50 @@ export function ContactResetPasswordConfirm() {
 
 export function ContactDashboard() {
   const navigate = useNavigate()
-  const [contact] = useState(() => {
-    const data = localStorage.getItem('contact_data')
-    return data ? JSON.parse(data) : null
-  })
+  const [contact, setContact] = useState<{ id: string; first_name: string; last_name: string; email: string; student_id?: string } | null>(null)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   useEffect(() => {
-    const fetchTransactions = async () => {
-      if (!contact?.id) return
+    const fetchData = async () => {
       try {
-        const data = await contactService.getContactTransactions(contact.id, { limit: 20 })
-        setTransactions(data.data)
+        const contactData = await contactAuthService.getMe()
+        setContact(contactData)
+        const txData = await contactService.getContactTransactions(contactData.id, { limit: 10 })
+        setTransactions(txData.data)
       } catch (err) {
-        console.error('Failed to fetch transactions:', err)
+        console.error('Failed to fetch data:', err)
+        navigate('/contact/login')
       } finally {
         setLoading(false)
       }
     }
-    fetchTransactions()
-  }, [contact])
+    fetchData()
+  }, [navigate])
 
-  const handleLogout = () => {
-    localStorage.removeItem('contact_data')
-    localStorage.removeItem('payforms_access_token')
-    localStorage.removeItem('payforms_refresh_token')
-    navigate('/contact/login')
+  const handleLogout = async () => {
+    setIsLoggingOut(true)
+    try {
+      await contactAuthService.logout()
+    } catch (err) {
+      console.error('Logout error:', err)
+    } finally {
+      localStorage.removeItem('contact_data')
+      localStorage.removeItem('payforms_access_token')
+      localStorage.removeItem('payforms_refresh_token')
+      localStorage.removeItem('pf_contact_token')
+      navigate('/contact/login')
+    }
+  }
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: 'NGN',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount)
   }
 
   const totalPaid = transactions
@@ -881,6 +900,32 @@ export function ContactDashboard() {
     .filter(t => t.status === 'PENDING' || t.status === 'PARTIAL')
     .reduce((sum, t) => sum + t.amount, 0)
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-500">Loading your dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!contact) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-500 mb-4">Unable to load your profile. Please login again.</p>
+          <button onClick={() => navigate('/contact/login')} className="px-4 py-2 bg-blue-600 text-white rounded-lg">
+            Go to Login
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const contactName = [contact.first_name, contact.last_name].filter(Boolean).join(' ') || 'Student'
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200">
@@ -888,19 +933,20 @@ export function ContactDashboard() {
           <div className="flex items-center gap-3">
             <LogoIcon size="sm" />
             <div>
-              <p className="text-sm text-gray-500">Student Portal</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wide">Contact Portal</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
             <div className="text-right">
-              <p className="font-medium text-gray-900">{contact?.name || 'Student'}</p>
-              <p className="text-sm text-gray-500">{contact?.email || ''}</p>
+              <p className="font-medium text-gray-900">{contactName}</p>
+              <p className="text-sm text-gray-500">{contact.email}</p>
             </div>
             <button
               onClick={handleLogout}
-              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              disabled={isLoggingOut}
+              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
             >
-              Sign Out
+              {isLoggingOut ? 'Signing out...' : 'Sign Out'}
             </button>
           </div>
         </div>
@@ -908,18 +954,26 @@ export function ContactDashboard() {
 
       <main className="max-w-4xl mx-auto px-6 py-8">
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900">Welcome, {contact?.name?.split(' ')[0] || 'Student'}</h2>
-          <p className="text-gray-500">Manage your payments and view history</p>
+          <h2 className="text-2xl font-bold text-gray-900">Welcome, {contact.first_name || 'Student'}</h2>
+          <div className="flex items-center gap-4 mt-1">
+            <p className="text-gray-500">{contact.email}</p>
+            {contact.student_id && (
+              <>
+                <span className="text-gray-300">|</span>
+                <p className="text-gray-500">ID: {contact.student_id}</p>
+              </>
+            )}
+          </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-xl p-6 shadow-sm">
             <p className="text-sm text-gray-500 mb-1">Total Paid</p>
-            <p className="text-2xl font-bold text-green-600">${totalPaid.toFixed(2)}</p>
+            <p className="text-2xl font-bold text-green-600">{formatCurrency(totalPaid)}</p>
           </div>
           <div className="bg-white rounded-xl p-6 shadow-sm">
             <p className="text-sm text-gray-500 mb-1">Pending</p>
-            <p className="text-2xl font-bold text-amber-600">${totalPending.toFixed(2)}</p>
+            <p className="text-2xl font-bold text-amber-600">{formatCurrency(totalPending)}</p>
           </div>
           <div className="bg-white rounded-xl p-6 shadow-sm">
             <p className="text-sm text-gray-500 mb-1">Status</p>
@@ -929,29 +983,95 @@ export function ContactDashboard() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm">
-          <div className="p-6 border-b border-gray-100">
-            <h3 className="font-bold text-gray-900">Payment History</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <h3 className="font-bold text-gray-900 mb-4">Quick Actions</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <button 
+                onClick={() => navigate('/contact/forms')}
+                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-blue-50 hover:bg-blue-100 transition-colors"
+              >
+                <svg className="w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+                <span className="text-sm font-medium text-blue-900">My Forms</span>
+              </button>
+              <button 
+                onClick={() => navigate('/contact/transactions')}
+                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-green-50 hover:bg-green-100 transition-colors"
+              >
+                <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                </svg>
+                <span className="text-sm font-medium text-green-900">Statements</span>
+              </button>
+            </div>
           </div>
-          {loading ? (
-            <div className="p-8 text-center text-gray-500">Loading...</div>
-          ) : transactions.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">No transactions found</div>
+
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <h3 className="font-bold text-gray-900 mb-4">Need Help?</h3>
+            <div className="space-y-3">
+              <p className="text-sm text-gray-500">Contact your school administrator if you have payment issues.</p>
+              <div className="flex gap-3">
+                <button className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors">
+                  View FAQ
+                </button>
+                <button className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors">
+                  Contact Support
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm">
+          <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+            <h3 className="font-bold text-gray-900">Recent Transactions</h3>
+            <button 
+              onClick={() => navigate('/contact/transactions')}
+              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+            >
+              View All →
+            </button>
+          </div>
+          {transactions.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">
+              <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              <p className="mb-2 font-medium">No transactions yet</p>
+              <p className="text-sm">Your payment history will appear here once you make a payment.</p>
+            </div>
           ) : (
             <div className="divide-y divide-gray-100">
               {transactions.map((tx) => (
-                <div key={tx.id} className="p-4 flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-gray-900">Payment #{tx.reference}</p>
-                    <p className="text-sm text-gray-500">{new Date(tx.created_at).toLocaleDateString()}</p>
+                <div key={tx.id} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">{tx.reference || `Payment #${tx.id.slice(0, 8)}`}</p>
+                    <p className="text-sm text-gray-500">{new Date(tx.created_at).toLocaleDateString('en-NG', { year: 'numeric', month: 'short', day: 'numeric' })}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="font-medium text-gray-900">${tx.amount.toFixed(2)}</p>
-                    <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${
-                      tx.status === 'PAID' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
-                    }`}>
-                      {tx.status}
-                    </span>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <p className="font-bold text-gray-900">{formatCurrency(tx.amount)}</p>
+                      <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${
+                        tx.status === 'PAID' ? 'bg-green-100 text-green-700' : 
+                        tx.status === 'PARTIAL' ? 'bg-blue-100 text-blue-700' : 
+                        'bg-amber-100 text-amber-700'
+                      }`}>
+                        {tx.status}
+                      </span>
+                    </div>
+                    {tx.status === 'PAID' && (
+                      <button
+                        onClick={() => window.open(`/contact/payment/${tx.id}/receipt`, '_blank')}
+                        className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                        title="Download Receipt"
+                      >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}

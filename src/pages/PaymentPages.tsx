@@ -7,6 +7,7 @@ import { paymentService, type Transaction } from '@/services/paymentService'
 import { contactService } from '@/services/contactService'
 import { organizationService } from '@/services/organizationService'
 import { reportService } from '@/services/reportService'
+import { contactAuthService } from '@/services/contactAuthService'
 import { Loader2 } from 'lucide-react'
 import { getCallbackUrl } from '@/utils/config'
 
@@ -47,6 +48,8 @@ export function PublicPaymentPage() {
   const [formFields, setFormFields] = useState<Record<string, string>>({})
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
+  const [requiresAuth, setRequiresAuth] = useState(false)
+  const [authChecked, setAuthChecked] = useState(false)
 
   useEffect(() => {
     const fetchForm = async () => {
@@ -69,11 +72,22 @@ export function PublicPaymentPage() {
         if (formData.payment_type === 'FIXED' && formData.amount) {
           setPartialAmount(formData.amount.toString())
         }
+        
+        const accessMode = formData.access_mode || 'OPEN'
+        if (accessMode !== 'OPEN') {
+          setRequiresAuth(true)
+          try {
+            await contactAuthService.getMe()
+          } catch {
+            window.location.href = `/contact/login?redirect=${encodeURIComponent(window.location.pathname)}`
+          }
+        }
       } catch (err) {
         setError('Form not found or unavailable')
         console.error(err)
       } finally {
         setLoading(false)
+        setAuthChecked(true)
       }
     }
     
@@ -202,7 +216,12 @@ export function PublicPaymentPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#f7f9fb] flex items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-[#000]" />
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-[#000] mx-auto mb-4" />
+          <p className="text-[#45464d]">
+            {requiresAuth && !authChecked ? 'Verifying access...' : 'Loading form...'}
+          </p>
+        </div>
       </div>
     )
   }
@@ -235,10 +254,20 @@ export function PublicPaymentPage() {
             <p className="text-[#45464d] font-['Inter'] text-xs uppercase tracking-[0.1em]">Student Payment Portal</p>
           </div>
         </div>
+        <div className="flex items-center gap-4">
+          {requiresAuth && (
+            <button
+              onClick={() => window.location.href = `/contact/login?redirect=${encodeURIComponent(window.location.pathname)}`}
+              className="px-4 py-2 bg-[#000] text-white rounded-lg text-sm font-medium hover:bg-[#333] transition-colors"
+            >
+              Login to Continue
+            </button>
+          )}
           <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-[#002113] rounded-full">
             <MaterialIcon name="verified_user" className="text-[#009668] w-5 h-5" filled />
             <span className="text-[#009668] font-['Inter'] text-xs font-semibold">Secure Encryption Active</span>
           </div>
+        </div>
       </header>
       
       <main className="w-full max-w-6xl px-6 pb-24 relative z-10 mx-auto">
