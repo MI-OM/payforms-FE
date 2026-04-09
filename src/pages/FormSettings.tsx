@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { ArrowLeft, Loader2, Save, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { formService, type Form } from '@/services/formService'
+import { formService, type Form, type AccessMode, type IdentityValidationMode } from '@/services/formService'
 
 export function FormSettings() {
   const { id } = useParams<{ id: string }>()
@@ -23,6 +23,9 @@ export function FormSettings() {
     amount: 0,
     allow_partial: false,
     is_active: true,
+    access_mode: 'OPEN' as AccessMode,
+    identity_validation_mode: 'NONE' as IdentityValidationMode,
+    identity_field_label: '',
   })
 
   useEffect(() => {
@@ -42,6 +45,9 @@ export function FormSettings() {
           amount: data.amount || 0,
           allow_partial: data.allow_partial,
           is_active: data.is_active,
+          access_mode: data.access_mode || 'OPEN',
+          identity_validation_mode: data.identity_validation_mode || 'NONE',
+          identity_field_label: data.identity_field_label || '',
         })
       } catch (err) {
         setError('Failed to load form')
@@ -67,6 +73,9 @@ export function FormSettings() {
         amount: formSettings.amount,
         allow_partial: formSettings.allow_partial,
         is_active: formSettings.is_active,
+        access_mode: formSettings.access_mode,
+        identity_validation_mode: formSettings.identity_validation_mode,
+        identity_field_label: formSettings.identity_field_label || undefined,
       })
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
@@ -197,6 +206,47 @@ export function FormSettings() {
                 </div>
               </label>
             </div>
+          </div>
+
+          <div className="bg-surface-container-lowest rounded-xl p-8 space-y-6">
+            <h3 className="font-bold">Access Control</h3>
+
+            <div className="space-y-2">
+              <label className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Access Mode</label>
+              <select
+                className="w-full px-4 py-3 bg-surface-container-low border-none rounded-lg"
+                value={formSettings.access_mode}
+                onChange={(e) => setFormSettings({ ...formSettings, access_mode: e.target.value as AccessMode })}
+              >
+                <option value="OPEN">Open - Anyone with link can access</option>
+                <option value="LOGIN_REQUIRED">Login Required - Must be logged in as contact</option>
+                <option value="TARGETED_ONLY">Targeted Only - Must be in assigned group AND logged in</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Identity Validation</label>
+              <select
+                className="w-full px-4 py-3 bg-surface-container-low border-none rounded-lg"
+                value={formSettings.identity_validation_mode}
+                onChange={(e) => setFormSettings({ ...formSettings, identity_validation_mode: e.target.value as IdentityValidationMode })}
+              >
+                <option value="NONE">None - No validation required</option>
+                <option value="CONTACT_EMAIL">Contact Email - Validate against contact email</option>
+                <option value="CONTACT_EXTERNAL_ID">External ID - Validate against student ID</option>
+              </select>
+            </div>
+
+            {formSettings.identity_validation_mode !== 'NONE' && (
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Identity Field Label</label>
+                <Input
+                  value={formSettings.identity_field_label}
+                  onChange={(e) => setFormSettings({ ...formSettings, identity_field_label: e.target.value })}
+                  placeholder={formSettings.identity_validation_mode === 'CONTACT_EMAIL' ? 'Email Address' : 'Student ID'}
+                />
+              </div>
+            )}
           </div>
 
           <div className="bg-surface-container-lowest rounded-xl p-8 space-y-6">
