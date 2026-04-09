@@ -42,9 +42,9 @@ export function FormSettings() {
           description: data.description || '',
           note: data.note || '',
           payment_type: data.payment_type,
-          amount: data.amount || 0,
-          allow_partial: data.allow_partial,
-          is_active: data.is_active,
+          amount: typeof data.amount === 'number' ? data.amount : 0,
+          allow_partial: data.allow_partial ?? false,
+          is_active: data.is_active ?? true,
           access_mode: data.access_mode || 'OPEN',
           identity_validation_mode: data.identity_validation_mode || 'NONE',
           identity_field_label: data.identity_field_label || '',
@@ -64,19 +64,28 @@ export function FormSettings() {
     setSaving(true)
     setError('')
     try {
-      await formService.updateForm(id, {
+      const updateData: any = {
         title: formSettings.title,
-        slug: formSettings.slug,
         category: formSettings.category || undefined,
         description: formSettings.description || undefined,
         note: formSettings.note || undefined,
-        amount: formSettings.amount,
         allow_partial: formSettings.allow_partial,
         is_active: formSettings.is_active,
         access_mode: formSettings.access_mode,
         identity_validation_mode: formSettings.identity_validation_mode,
-        identity_field_label: formSettings.identity_field_label || undefined,
-      })
+      }
+
+      // Only include amount for FIXED payment type
+      if (formSettings.payment_type === 'FIXED' && typeof formSettings.amount === 'number') {
+        updateData.amount = formSettings.amount
+      }
+
+      // Only include identity_field_label when identity validation is enabled
+      if (formSettings.identity_validation_mode !== 'NONE') {
+        updateData.identity_field_label = formSettings.identity_field_label || undefined
+      }
+
+      await formService.updateForm(id, updateData)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } catch (err) {
