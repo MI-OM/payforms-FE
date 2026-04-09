@@ -45,6 +45,7 @@ import { ContactLoginPage, ContactSetPassword, ContactResetPasswordRequest, Cont
 import { ContactFormsPage } from '@/pages/ContactFormsPage'
 import { ContactTransactionsPage } from '@/pages/ContactTransactionsPage'
 import { ContactPaymentDetailPage } from '@/pages/ContactPaymentDetailPage'
+import { ContactProfilePage } from '@/pages/ContactProfilePage'
 import { ReportsAnalytics } from '@/pages/ReportsAnalytics'
 import { OrganizationSettings } from '@/pages/OrganizationSettings'
 import { FormFieldsManagement, FormDeleteConfirmation } from '@/pages/FormScreens'
@@ -155,6 +156,7 @@ function App() {
         <Route path="/contact/forms" element={<ContactFormsPage />} />
         <Route path="/contact/transactions" element={<ContactTransactionsPage />} />
         <Route path="/contact/payment/:id" element={<ContactPaymentDetailPage />} />
+        <Route path="/contact/profile" element={<ContactProfilePage />} />
         
         {/* Payment Flows */}
         <Route path="/payment/success" element={<PaymentSuccessState />} />
