@@ -75,25 +75,27 @@ export function ContactLoginPage() {
 
         <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-8 shadow-xl shadow-slate-200/50 border border-white/50">
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-1.5">
-              <label className="text-sm font-semibold text-slate-700" htmlFor="subdomain">
-                Organization Subdomain
-              </label>
-              <div className="relative">
-                <input
-                  className="block w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-slate-900 placeholder:text-slate-400 text-sm"
-                  id="subdomain"
-                  type="text"
-                  placeholder="your-school"
-                  value={subdomain}
-                  onChange={(e) => setSubdomain(e.target.value)}
-                  autoComplete="off"
-                />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-slate-400 pointer-events-none">
-                  .payforms.com
-                </span>
+            {import.meta.env.DEV && (
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-slate-700" htmlFor="subdomain">
+                  Organization Subdomain
+                </label>
+                <div className="relative">
+                  <input
+                    className="block w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-slate-900 placeholder:text-slate-400 text-sm"
+                    id="subdomain"
+                    type="text"
+                    placeholder="your-school"
+                    value={subdomain}
+                    onChange={(e) => setSubdomain(e.target.value)}
+                    autoComplete="off"
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-slate-400 pointer-events-none">
+                    .payforms.com
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="space-y-1.5">
               <label className="text-sm font-semibold text-slate-700" htmlFor="email">

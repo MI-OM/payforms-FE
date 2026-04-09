@@ -156,7 +156,7 @@ export function UnifiedLoginScreen() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {loginType === 'contact' && (
+            {loginType === 'contact' && import.meta.env.DEV && (
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-slate-700" htmlFor="subdomain">
                   Organization Subdomain
