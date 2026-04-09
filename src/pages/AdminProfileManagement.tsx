@@ -227,21 +227,39 @@ export function AdminProfileManagement() {
               <Shield className="h-5 w-5" />
               Security
             </h3>
-            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <Shield className="h-5 w-5 text-slate-400" />
-                <div>
-                  <p className="font-bold text-slate-900">Password</p>
-                  <p className="text-sm text-slate-500">Last changed unknown</p>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Shield className="h-5 w-5 text-slate-400" />
+                  <div>
+                    <p className="font-bold text-slate-900">Password</p>
+                    <p className="text-sm text-slate-500">Last changed unknown</p>
+                  </div>
                 </div>
+                <Button 
+                  type="button" 
+                  variant="secondary"
+                  onClick={() => navigate('/password-reset')}
+                >
+                  Change Password
+                </Button>
               </div>
-              <Button 
-                type="button" 
-                variant="secondary"
-                onClick={() => navigate('/password-reset')}
-              >
-                Change Password
-              </Button>
+              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Shield className="h-5 w-5 text-slate-400" />
+                  <div>
+                    <p className="font-bold text-slate-900">Two-Factor Authentication</p>
+                    <p className="text-sm text-slate-500">Manage 2FA settings</p>
+                  </div>
+                </div>
+                <Button 
+                  type="button" 
+                  variant="secondary"
+                  onClick={() => navigate('/settings/2fa')}
+                >
+                  Manage 2FA
+                </Button>
+              </div>
             </div>
           </div>
 

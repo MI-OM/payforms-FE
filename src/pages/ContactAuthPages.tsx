@@ -35,11 +35,13 @@ export function ContactLoginPage() {
     setIsLoading(true)
 
     try {
-      const response = await contactAuthService.login({
+      await contactAuthService.login({
         ...formData,
         organization_subdomain: subdomain || undefined,
       })
-      localStorage.setItem('contact_data', JSON.stringify(response.contact))
+      
+      const contact = await contactAuthService.getMe()
+      localStorage.setItem('pf_contact', JSON.stringify(contact))
       navigate(redirectUrl, { replace: true })
     } catch (err) {
       if (err instanceof ApiError) {
@@ -881,6 +883,7 @@ export function ContactDashboard() {
       localStorage.removeItem('payforms_access_token')
       localStorage.removeItem('payforms_refresh_token')
       localStorage.removeItem('pf_contact_token')
+      localStorage.removeItem('pf_contact')
       navigate('/contact/login')
     }
   }

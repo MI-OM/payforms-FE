@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import { authService, type User } from '@/services/authService'
+import { authService, type User, type TwoFactorChallengeResponse } from '@/services/authService'
 import { organizationService } from '@/services/organizationService'
-import { clearTokens, getAccessToken, isLockedOut, getLockoutRemainingMs, recordFailedAttempt, getRemainingAttempts } from '@/lib/auth'
+import { clearTokens, getAccessToken, isLockedOut, getLockoutRemainingMs, recordFailedAttempt, getRemainingAttempts, setTokens } from '@/lib/auth'
 import { ApiError } from '@/lib/apiClient'
 
 type UserRole = 'ADMIN' | 'STAFF' | 'CONTACT' | null
@@ -10,7 +10,8 @@ interface AuthContextType {
   user: User | null
   isAuthenticated: boolean
   isLoading: boolean
-  login: (email: string, password: string) => Promise<void>
+  login: (email: string, password: string) => Promise<TwoFactorChallengeResponse | undefined>
+  verify2FA: (challengeToken: string, code: string) => Promise<void>
   logout: () => Promise<void>
   switchToContact: (contact: User) => void
   error: string | null
@@ -18,6 +19,8 @@ interface AuthContextType {
   lockoutRemainingMs: number
   remainingAttempts: number
   clearError: () => void
+  twoFactorChallenge: TwoFactorChallengeResponse | null
+  clearTwoFactorChallenge: () => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -34,6 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [remainingAttempts, setRemainingAttempts] = useState(5)
   const [showWarning, setShowWarning] = useState(false)
   const [idleRemaining, setIdleRemaining] = useState(IDLE_TIMEOUT_MS)
+  const [twoFactorChallenge, setTwoFactorChallenge] = useState<TwoFactorChallengeResponse | null>(null)
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -141,7 +145,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user])
 
-  const login = useCallback(async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string): Promise<TwoFactorChallengeResponse | undefined> => {
     if (isLockedOut()) {
       const err = new Error('Account temporarily locked. Please try again later.')
       setError(err.message)
@@ -153,6 +157,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const response = await authService.login({ email, password })
+      
+      // Check if 2FA is required
+      if ('requires_two_factor' in response && response.requires_two_factor) {
+        setTwoFactorChallenge(response)
+        setIsLoading(false)
+        return response
+      }
+      
+      // Normal login - set tokens and fetch user
       const orgData = await organizationService.getOrganization().catch(() => null)
       setUser({ ...response.user, organization_name: orgData?.name })
       setRemainingAttempts(5)
@@ -179,6 +192,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  const verify2FA = useCallback(async (challengeToken: string, code: string) => {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const response = await authService.verify2FA({ challenge_token: challengeToken, code })
+      const orgData = await organizationService.getOrganization().catch(() => null)
+      setUser({ ...response.user, organization_name: orgData?.name })
+      setTwoFactorChallenge(null)
+      setRemainingAttempts(5)
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message)
+        throw err
+      }
+      setError('An unexpected error occurred')
+      throw err
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  const clearTwoFactorChallenge = useCallback(() => {
+    setTwoFactorChallenge(null)
+  }, [])
+
   const logout = useCallback(async () => {
     try {
       await authService.logout()
@@ -189,6 +228,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLocked(false)
       setLockoutRemainingMs(0)
       setRemainingAttempts(5)
+      setTwoFactorChallenge(null)
     }
   }, [])
 
@@ -220,13 +260,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAuthenticated: !!user,
       isLoading,
       login,
+      verify2FA,
       logout,
       switchToContact,
       error,
       isLocked,
       lockoutRemainingMs,
       remainingAttempts,
-      clearError
+      clearError,
+      twoFactorChallenge,
+      clearTwoFactorChallenge,
     }}>
       {children}
       {showWarning && (

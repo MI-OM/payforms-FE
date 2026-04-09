@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { Eye, EyeOff, AlertCircle, CheckCircle, Loader, Lock, UserCog, GraduationCap } from 'lucide-react'
+import { Eye, EyeOff, AlertCircle, CheckCircle, Loader, Lock, UserCog, GraduationCap, Shield } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { ApiError } from '@/lib/apiClient'
 import { SECURITY_CONFIG } from '@/lib/auth'
@@ -22,7 +22,7 @@ function getAutoDetectedSubdomain(): string {
 
 export function UnifiedLoginScreen() {
   const navigate = useNavigate()
-  const { login, isLocked, lockoutRemainingMs, remainingAttempts } = useAuth()
+  const { login, verify2FA, isLocked, lockoutRemainingMs, remainingAttempts, twoFactorChallenge, clearTwoFactorChallenge } = useAuth()
   const [loginType, setLoginType] = useState<LoginType>('admin')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -37,6 +37,8 @@ export function UnifiedLoginScreen() {
     email: false,
     password: false,
   })
+  const [twoFactorCode, setTwoFactorCode] = useState('')
+  const [isVerifying2FA, setIsVerifying2FA] = useState(false)
 
   useEffect(() => {
     if (isLocked && lockoutRemainingMs > 0) {
@@ -63,7 +65,13 @@ export function UnifiedLoginScreen() {
     setIsLoading(true)
 
     try {
-      await login(formData.email, formData.password)
+      const response = await login(formData.email, formData.password)
+      
+      if (response?.requires_two_factor) {
+        setIsLoading(false)
+        return
+      }
+      
       navigate('/dashboard')
     } catch (err) {
       if (err instanceof ApiError) {
@@ -76,17 +84,44 @@ export function UnifiedLoginScreen() {
     }
   }
 
+  const handle2FAVerification = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!twoFactorChallenge?.challenge_token || !twoFactorCode) return
+    
+    setError('')
+    setIsVerifying2FA(true)
+
+    try {
+      await verify2FA(twoFactorChallenge.challenge_token, twoFactorCode)
+      setTwoFactorCode('')
+      clearTwoFactorChallenge()
+      navigate('/dashboard')
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message || 'Invalid verification code')
+      } else {
+        setError('An unexpected error occurred')
+      }
+    } finally {
+      setIsVerifying2FA(false)
+    }
+  }
+
   const handleContactLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setIsLoading(true)
 
     try {
-      const response = await contactAuthService.login({
+      await contactAuthService.login({
         email: formData.email,
         password: formData.password,
         organization_subdomain: subdomain || undefined,
       })
+      
+      const contact = await contactAuthService.getMe()
+      localStorage.setItem('pf_contact', JSON.stringify(contact))
+      
       navigate('/contact/dashboard')
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -272,12 +307,72 @@ export function UnifiedLoginScreen() {
                 <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-red-700">{error}</p>
-                  <p className="text-xs text-red-600/80 mt-0.5">Please check your credentials and try again</p>
+                  <p className="text-xs text-red-600/80 mt-0.5">
+                    {twoFactorChallenge ? 'Invalid verification code' : 'Please check your credentials and try again'}
+                  </p>
                 </div>
               </div>
             )}
 
-            <button 
+            {twoFactorChallenge && loginType === 'admin' && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-100 rounded-xl">
+                  <Shield className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-blue-700">Two-Factor Authentication</p>
+                    <p className="text-xs text-blue-600/80 mt-0.5">Enter the 6-digit code from your authenticator app</p>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700" htmlFor="twoFactorCode">
+                    Verification Code
+                  </label>
+                  <input
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none transition-all duration-200 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-center text-2xl tracking-widest font-mono"
+                    id="twoFactorCode"
+                    type="text"
+                    placeholder="000000"
+                    maxLength={6}
+                    value={twoFactorCode}
+                    onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    disabled={isVerifying2FA}
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handle2FAVerification}
+                  disabled={isVerifying2FA || twoFactorCode.length !== 6}
+                  className="w-full py-3.5 bg-slate-900 text-white rounded-xl font-medium text-sm shadow-lg shadow-slate-900/20 hover:bg-slate-800 active:scale-[0.98] transition-all duration-200 flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isVerifying2FA ? (
+                    <>
+                      <Loader className="w-5 h-5 animate-spin" />
+                      <span>Verifying...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Verify Code</span>
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { clearTwoFactorChallenge(); setError(''); }}
+                  className="w-full py-2 text-sm text-slate-500 hover:text-slate-700 transition-colors"
+                >
+                  Back to login
+                </button>
+              </div>
+            )}
+
+            {!twoFactorChallenge && (
+              <button 
               className="w-full py-3.5 bg-slate-900 text-white rounded-xl font-medium text-sm shadow-lg shadow-slate-900/20 hover:bg-slate-800 active:scale-[0.98] transition-all duration-200 flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               type="submit"
               disabled={isLoading || !formData.email || !formData.password || (loginType === 'admin' && isLocked)}
@@ -296,6 +391,7 @@ export function UnifiedLoginScreen() {
                 </>
               )}
             </button>
+            )}
           </form>
 
           {loginType === 'contact' && (

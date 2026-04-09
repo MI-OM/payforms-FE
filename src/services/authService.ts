@@ -12,6 +12,36 @@ export interface LoginResponse {
   user: User
 }
 
+export interface TwoFactorChallengeResponse {
+  requires_two_factor: boolean
+  challenge_token?: string
+  challenge_expires_in?: number
+  user?: Partial<User>
+}
+
+export interface TwoFactorVerifyRequest {
+  challenge_token: string
+  code?: string
+  recovery_code?: string
+}
+
+export interface TwoFactorStatus {
+  enabled: boolean
+  setup_pending: boolean
+  recovery_codes_remaining: number
+}
+
+export interface TwoFactorSetupResponse {
+  secret: string
+  manual_entry_key: string
+  otpauth_url: string
+  expires_at: string
+}
+
+export interface TwoFactorEnableResponse {
+  recovery_codes: string[]
+}
+
 export interface RegisterRequest {
   organization_name: string
   email: string
@@ -60,8 +90,13 @@ export interface ProfileUpdateRequest {
 }
 
 export const authService = {
-  login: async (data: LoginRequest): Promise<LoginResponse> => {
-    const response = await apiClient.post<LoginResponse>('/auth/login', data)
+  login: async (data: LoginRequest): Promise<LoginResponse | TwoFactorChallengeResponse> => {
+    const response = await apiClient.post<LoginResponse | TwoFactorChallengeResponse>('/auth/login', data)
+    // If 2FA is required, return the challenge without setting tokens
+    if ('requires_two_factor' in response && response.requires_two_factor) {
+      return response as TwoFactorChallengeResponse
+    }
+    // Normal login - set tokens
     setTokens(response.access_token, response.refresh_token)
     return response
   },
@@ -124,5 +159,32 @@ export const authService = {
     const response = await apiClient.post<LoginResponse>('/auth/refresh', { refresh_token: refreshToken })
     setTokens(response.access_token, response.refresh_token)
     return response
+  },
+
+  // 2FA Methods
+  verify2FA: async (data: TwoFactorVerifyRequest): Promise<LoginResponse> => {
+    const response = await apiClient.post<LoginResponse>('/auth/2fa/verify-login', data)
+    setTokens(response.access_token, response.refresh_token)
+    return response
+  },
+
+  get2FAStatus: async (): Promise<TwoFactorStatus> => {
+    return apiClient.get('/auth/2fa/status')
+  },
+
+  setup2FA: async (): Promise<TwoFactorSetupResponse> => {
+    return apiClient.post('/auth/2fa/setup', {})
+  },
+
+  enable2FA: async (code: string): Promise<TwoFactorEnableResponse> => {
+    return apiClient.post('/auth/2fa/enable', { code })
+  },
+
+  disable2FA: async (code: string, recoveryCode?: string): Promise<{ message: string }> => {
+    return apiClient.post('/auth/2fa/disable', { code, recovery_code: recoveryCode })
+  },
+
+  regenerateRecoveryCodes: async (code: string, recoveryCode?: string): Promise<{ recovery_codes: string[] }> => {
+    return apiClient.post('/auth/2fa/recovery-codes/regenerate', { code, recovery_code: recoveryCode })
   },
 }

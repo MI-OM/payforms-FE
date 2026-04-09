@@ -118,6 +118,7 @@ async function request<T>(
     const response = await fetch(url, {
       ...fetchOptions,
       headers,
+      credentials: 'include',
     })
 
     debug.log('[API] Response:', { status: response.status, statusText: response.statusText, url })
@@ -130,6 +131,7 @@ async function request<T>(
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ refresh_token: refreshToken }),
+            credentials: 'include',
           })
 
           if (refreshResponse.ok) {
@@ -140,6 +142,7 @@ async function request<T>(
             const retryResponse = await fetch(url, {
               ...fetchOptions,
               headers,
+              credentials: 'include',
             })
 
             if (!retryResponse.ok) {

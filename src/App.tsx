@@ -8,6 +8,7 @@ import { EmailVerifiedSuccess, EmailVerifiedSuccessView, EmailVerificationErrorV
 import { VerifyOrganizationEmail } from '@/pages/VerifyOrganizationEmail'
 import { AdminDashboardContent } from '@/pages/AdminDashboard'
 import { AdminProfileManagement } from '@/pages/AdminProfileManagement'
+import { TwoFactorSettings } from '@/pages/TwoFactorSettings'
 import { AllActivityLogs } from '@/pages/AllActivityLogs'
 import { ActivityDetailsActions } from '@/pages/ActivityDetailsActions'
 import { AllFormsManagement } from '@/pages/AllFormsManagement'
@@ -71,6 +72,7 @@ import { ForgeProtocol } from '@/pages/LandingPages'
 import { ArchitecturalLedgerAdminPaymentFlow } from '@/pages/LandingPages'
 import { DashboardLayout } from '@/components/layouts/DashboardLayout'
 import { AuthProvider, useAuth, useRequireAuth } from '@/contexts/AuthContext'
+import { ContactAuthProvider } from '@/contexts/ContactAuthContext'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const status = useRequireAuth(['ADMIN', 'STAFF'])
@@ -147,16 +149,18 @@ function App() {
         <Route path="/move/success" element={<MoveContactSuccessFailureStates />} />
         
         {/* Contact Auth Routes */}
-        <Route path="/contact/login" element={<ContactLoginPage />} />
-        <Route path="/contact/set-password" element={<ContactSetPassword />} />
-        <Route path="/contact-reset" element={<ContactSetPassword />} />
-        <Route path="/contact/reset-password" element={<ContactResetPasswordRequest />} />
-        <Route path="/contact/reset-password/:token" element={<ContactResetPasswordConfirm />} />
-        <Route path="/contact/dashboard" element={<ContactDashboard />} />
-        <Route path="/contact/forms" element={<ContactFormsPage />} />
-        <Route path="/contact/transactions" element={<ContactTransactionsPage />} />
-        <Route path="/contact/payment/:id" element={<ContactPaymentDetailPage />} />
-        <Route path="/contact/profile" element={<ContactProfilePage />} />
+        <Route element={<ContactAuthProvider />}>
+          <Route path="/contact/login" element={<ContactLoginPage />} />
+          <Route path="/contact/set-password" element={<ContactSetPassword />} />
+          <Route path="/contact-reset" element={<ContactSetPassword />} />
+          <Route path="/contact/reset-password" element={<ContactResetPasswordRequest />} />
+          <Route path="/contact/reset-password/:token" element={<ContactResetPasswordConfirm />} />
+          <Route path="/contact/dashboard" element={<ContactDashboard />} />
+          <Route path="/contact/forms" element={<ContactFormsPage />} />
+          <Route path="/contact/transactions" element={<ContactTransactionsPage />} />
+          <Route path="/contact/payment/:id" element={<ContactPaymentDetailPage />} />
+          <Route path="/contact/profile" element={<ContactProfilePage />} />
+        </Route>
         
         {/* Payment Flows */}
         <Route path="/payment/success" element={<PaymentSuccessState />} />
@@ -244,6 +248,7 @@ function App() {
           
           {/* Settings */}
           <Route path="/settings" element={<OrganizationSettings />} />
+          <Route path="/settings/2fa" element={<TwoFactorSettings />} />
           <Route path="/settings/webhooks" element={<WebhookManagement />} />
           <Route path="/settings/webhooks/:id/logs" element={<WebhookLogs />} />
           <Route path="/settings/notifications/scheduled" element={<ScheduledNotifications />} />

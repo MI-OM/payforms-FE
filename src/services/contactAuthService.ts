@@ -58,6 +58,7 @@ const createContactApiClient = () => {
         method: 'POST',
         headers,
         body: JSON.stringify(data),
+        credentials: 'include',
       })
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
@@ -75,6 +76,7 @@ const createContactApiClient = () => {
       const response = await fetch(`${import.meta.env.VITE_API_URL}${endpoint}`, {
         method: 'GET',
         headers,
+        credentials: 'include',
       })
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
@@ -106,7 +108,10 @@ export const contactAuthService = {
       ...data,
       organization_subdomain: organization_subdomain || undefined,
     }
+    // Backend sets pf_contact_token cookie, so we don't need to store tokens in sessionStorage
     const response = await contactApi.post<ContactLoginResponse>('/contact-auth/login', loginData)
+    // Store tokens as fallback for API calls that need bearer token
+    // The cookie will handle most requests automatically
     contactAuth.setTokens(response.access_token, response.refresh_token)
     return response
   },
@@ -142,6 +147,7 @@ export const contactAuthService = {
       headers: {
         'Authorization': `Bearer ${token}`,
       },
+      credentials: 'include',
     })
     if (!response.ok) {
       throw new Error('Failed to fetch receipt')
@@ -156,6 +162,7 @@ export const contactAuthService = {
       headers: {
         'Authorization': `Bearer ${token}`,
       },
+      credentials: 'include',
     })
     if (!response.ok) {
       throw new Error('Failed to fetch receipt')
