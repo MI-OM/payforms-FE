@@ -256,4 +256,11 @@ export interface Transaction {
   amount: number
   status: string
   created_at: string
+  paid_at?: string
+  form_id?: string
+  form_name?: string
+  contact_id?: string
+  contact_name?: string
+  organization_id?: string
+  partial_payment_limit?: number
 }

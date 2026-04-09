@@ -1045,7 +1045,11 @@ export function ContactDashboard() {
           ) : (
             <div className="divide-y divide-gray-100">
               {transactions.map((tx) => (
-                <div key={tx.id} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                <div 
+                  key={tx.id} 
+                  className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
+                  onClick={() => navigate(`/contact/payment/${tx.id}?reference=${tx.reference}&amount=${tx.amount}&status=${tx.status}&created_at=${tx.created_at}`)}
+                >
                   <div className="flex-1">
                     <p className="font-medium text-gray-900">{tx.reference || `Payment #${tx.id.slice(0, 8)}`}</p>
                     <p className="text-sm text-gray-500">{new Date(tx.created_at).toLocaleDateString('en-NG', { year: 'numeric', month: 'short', day: 'numeric' })}</p>
@@ -1063,7 +1067,7 @@ export function ContactDashboard() {
                     </div>
                     {tx.status === 'PAID' && (
                       <button
-                        onClick={() => window.open(`/contact/payment/${tx.id}/receipt`, '_blank')}
+                        onClick={(e) => { e.stopPropagation(); window.open(`/contact/payment/${tx.id}/receipt`, '_blank'); }}
                         className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
                         title="Download Receipt"
                       >
