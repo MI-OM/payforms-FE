@@ -18,8 +18,24 @@ const debug = {
 
 export { AuthorizationError, ForbiddenError }
 
-function sanitizeErrorMessage(message: string): string {
+function sanitizeErrorMessage(message: unknown): string {
   if (!message) return 'An error occurred'
+  
+  // Handle array of errors (e.g., validation errors)
+  if (Array.isArray(message)) {
+    return message.join(', ')
+  }
+  
+  // Handle object errors
+  if (typeof message === 'object') {
+    const msg = (message as any).message || (message as any).error || JSON.stringify(message)
+    return typeof msg === 'string' ? msg : 'An error occurred'
+  }
+  
+  // Ensure it's a string
+  if (typeof message !== 'string') {
+    return 'An error occurred'
+  }
   
   let sanitized = message
   

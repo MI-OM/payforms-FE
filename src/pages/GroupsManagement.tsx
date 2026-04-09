@@ -78,7 +78,7 @@ export function ContactsGroupsManagement() {
               <div key={group.id} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600">
-                    {group.name.charAt(0).toUpperCase()}
+                    {(group.name || 'G').charAt(0).toUpperCase()}
                   </div>
                   <div>
                     <p className="font-bold text-gray-900">{group.name}</p>
@@ -106,17 +106,29 @@ export function GroupEditorView() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [group, setGroup] = useState<Group | null>(null)
-  const [members, setMembers] = useState<Contact[]>([])
+  const [members, setMembers] = useState<{ id: string; first_name?: string; last_name?: string; email?: string }[]>([])
   const [parentGroup, setParentGroup] = useState<Group | null>(null)
-  const [form, setForm] = useState({ name: '', description: '' })
+  const [allGroups, setAllGroups] = useState<Group[]>([])
+  const [form, setForm] = useState({ name: '', description: '', parent_group_id: '' as string | undefined })
 
   const parentGroupId = searchParams.get('parent')
+
+  useEffect(() => {
+    if (!id) {
+      groupService.getGroups({ limit: 100 }).then(response => {
+        setAllGroups(response.data)
+      }).catch(err => {
+        console.error('Failed to load groups', err)
+      })
+    }
+  }, [id])
 
   useEffect(() => {
     if (!id) {
       if (parentGroupId) {
         groupService.getGroup(parentGroupId).then(parent => {
           setParentGroup(parent)
+          setForm(prev => ({ ...prev, parent_group_id: parentGroupId }))
         }).catch(err => {
           console.error('Failed to load parent group', err)
         })
@@ -145,14 +157,16 @@ export function GroupEditorView() {
     setSaving(true)
     try {
       if (id) {
-        await groupService.updateGroup(id, form)
+        await groupService.updateGroup(id, { name: form.name, description: form.description })
       } else {
-        const createData = parentGroupId 
-          ? { ...form, parent_group_id: parentGroupId }
-          : form
+        const createData = {
+          name: form.name,
+          description: form.description,
+          parent_group_id: form.parent_group_id || undefined
+        }
         await groupService.createGroup(createData)
       }
-      navigate(parentGroupId ? `/groups/${parentGroupId}/subgroups` : '/groups')
+      navigate(id ? (parentGroupId ? `/groups/${parentGroupId}/subgroups` : '/groups') : (form.parent_group_id ? `/groups/${form.parent_group_id}/subgroups` : '/groups'))
       toast({ title: 'Success', description: `Group ${id ? 'updated' : 'created'} successfully` })
     } catch (err) {
       toast({ title: 'Error', description: 'Failed to save group', variant: 'destructive' })
@@ -219,13 +233,31 @@ export function GroupEditorView() {
             <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                  <span className="text-sm font-bold text-blue-600">{parentGroup.name.charAt(0).toUpperCase()}</span>
+                  <span className="text-sm font-bold text-blue-600">{(parentGroup.name || 'P').charAt(0).toUpperCase()}</span>
                 </div>
                 <div>
                   <p className="text-xs text-blue-600 font-medium uppercase">Parent Group</p>
-                  <p className="font-bold text-gray-900">{parentGroup.name}</p>
+                  <p className="font-bold text-gray-900">{parentGroup.name || 'Parent Group'}</p>
                 </div>
               </div>
+            </div>
+          )}
+          {!isSubgroup && !id && allGroups.length > 0 && (
+            <div className="mb-6 space-y-2">
+              <label className="text-[10px] uppercase tracking-widest text-gray-500 font-bold block">
+                Parent Group (Optional)
+              </label>
+              <select
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+                value={form.parent_group_id || ''}
+                onChange={(e) => setForm({ ...form, parent_group_id: e.target.value || undefined })}
+              >
+                <option value="">No parent - create as top-level group</option>
+                {allGroups.filter(g => g.id !== id).map(group => (
+                  <option key={group.id} value={group.id}>{group.name}</option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500">Select a parent group to create this as a subgroup</p>
             </div>
           )}
           <div className="space-y-4">
@@ -261,16 +293,19 @@ export function GroupEditorView() {
               </Button>
             </div>
             <div className="space-y-3">
-              {members.slice(0, 5).map((member) => (
-                <div key={member.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-600">
-                      {member.name.charAt(0).toUpperCase()}
+              {members.slice(0, 5).map((member) => {
+                const displayName = member.name || `${member.first_name || ''} ${member.last_name || ''}`.trim() || 'Unknown'
+                return (
+                  <div key={member.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-600">
+                        {displayName.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="font-medium text-gray-900">{displayName}</span>
                     </div>
-                    <span className="font-medium text-gray-900">{member.name}</span>
                   </div>
-                </div>
-              ))}
+                )
+              })}
               {members.length > 5 && (
                 <p className="text-sm text-gray-500 text-center">...and {members.length - 5} more</p>
               )}
