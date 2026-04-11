@@ -974,6 +974,7 @@ export function PaymentSuccessState() {
                     customer_name: verifiedData?.customer_name || formData.name || '',
                     customer_email: verifiedData?.customer_email || formData.email || '',
                     form_title: verifiedData?.form_title || verifiedData?.title || organization,
+                    organization_name: organization,
                     paid_at: verifiedData?.paid_at || new Date().toISOString(),
                     status: verifiedData?.status || 'success',
                     payment_method: state?.payment_method,
@@ -1185,12 +1186,14 @@ export function OfficialPaymentReceipt() {
           status: data.status || 'PAID',
         } as any)
         setFormTitle(data.form_title || 'Payment')
+        setOrganization({ name: data.organization_name || 'Payforms' })
       } catch (e) {
         console.error('Failed to parse stored receipt data', e)
+        setOrganization({ name: 'Payforms' })
       }
+    } else {
+      setOrganization({ name: 'Payforms' })
     }
-    
-    setOrganization({ name: 'Payforms' })
   }, [id])
 
   const contactName = transaction?.customer_name || 'Customer'
@@ -1262,7 +1265,7 @@ export function OfficialPaymentReceipt() {
               </div>
               <div>
                 <h1 className="font-['Manrope'] font-extrabold text-2xl tracking-tighter text-[#191c1e]">{organizationName}</h1>
-                <p className="text-xs font-['Inter'] uppercase tracking-widest text-[#45464d]">Academic Institution</p>
+                <p className="text-xs font-['Inter'] uppercase tracking-widest text-[#45464d]">Organization</p>
               </div>
             </div>
             <div className="text-right">
@@ -1296,7 +1299,13 @@ export function OfficialPaymentReceipt() {
                   <span className="text-sm font-['Inter'] text-[#45464d]">Reference</span>
                   <span className="text-sm font-['Manrope'] font-bold text-[#191c1e]">{reference}</span>
                   <span className="text-sm font-['Inter'] text-[#45464d]">Method</span>
-                  <span className="text-sm font-['Manrope'] font-bold text-[#191c1e]">Paystack</span>
+                  <span className="text-sm font-['Manrope'] font-bold text-[#191c1e]">
+                    {(transaction as any)?.payment_method === 'ONLINE' ? 'Pay Online' : 
+                     (transaction as any)?.payment_method === 'CASH' ? 'Cash' :
+                     (transaction as any)?.payment_method === 'BANK_TRANSFER' ? 'Bank Transfer' :
+                     (transaction as any)?.payment_method === 'POS' ? 'POS' :
+                     (transaction as any)?.payment_method === 'CHEQUE' ? 'Cheque' : 'Paystack'}
+                  </span>
                 </div>
               </div>
             </div>
