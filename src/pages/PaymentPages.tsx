@@ -1209,10 +1209,6 @@ export function OfficialPaymentReceipt() {
     ? new Date(transaction.paid_at || transaction.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     : new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 
-  const date = transaction?.paid_at || transaction?.created_at
-    ? new Date(transaction.paid_at || transaction.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-    : new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-
   const handleDownloadPDF = () => {
     const doc = new jsPDF()
     const pageWidth = doc.internal.pageSize.getWidth()
