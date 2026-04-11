@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Building, Users, Shield, Bell, Palette, CreditCard, Key, Upload, Eye, EyeOff, Check, AlertCircle, Image, Loader2 } from 'lucide-react'
+import { Building, Users, Shield, Bell, Palette, CreditCard, Key, Upload, Eye, EyeOff, Check, AlertCircle, Image, Loader2, Copy, CheckCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -48,6 +48,25 @@ function GeneralSettings() {
   })
   const [isSaving, setIsSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  const getFrontendDomain = () => {
+    return window.location.host
+  }
+  const frontendDomain = getFrontendDomain()
+  const portalUrl = formData.subdomain ? `${formData.subdomain}.${frontendDomain}` : ''
+
+  const handleCopyPortalUrl = async () => {
+    if (!portalUrl) return
+    try {
+      await navigator.clipboard.writeText(portalUrl)
+      setCopied(true)
+      toast({ description: 'Copied to clipboard!' })
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy:', err)
+    }
+  }
 
   const fetchOrg = useCallback(async () => {
     setLoading(true)
@@ -114,14 +133,25 @@ function GeneralSettings() {
               placeholder="admin@example.com"
             />
           </div>
-          <div className="space-y-2">
+            <div className="space-y-2">
             <Label className="text-gray-700">Subdomain</Label>
             <Input 
               value={formData.subdomain}
               onChange={(e) => setFormData({...formData, subdomain: e.target.value})}
               placeholder="school"
             />
-            <p className="text-xs text-gray-500">Your portal will be at: {formData.subdomain || 'subdomain'}.payforms.app</p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-gray-500">Your portal will be at: {formData.subdomain || 'subdomain'}.{frontendDomain}</p>
+              {formData.subdomain && (
+                <button
+                  onClick={handleCopyPortalUrl}
+                  className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 transition-colors"
+                >
+                  {copied ? <CheckCheck className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                  {copied ? 'Copied!' : 'Copy'}
+                </button>
+              )}
+            </div>
           </div>
           <div className="space-y-2">
             <Label className="text-gray-700">Custom Domain</Label>

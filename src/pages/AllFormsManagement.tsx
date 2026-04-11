@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom'
 import { useState, useEffect, useCallback } from 'react'
-import { Search, Plus, MoreVertical, Eye, Edit, Copy, Trash2, Loader2, X, ExternalLink, FileText } from 'lucide-react'
+import { Search, Plus, MoreVertical, Eye, Edit, Copy, Trash2, Loader2, X, ExternalLink, FileText, CheckCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { formService, publicFormService, type Form, type PublicForm } from '@/services/formService'
 import { toast } from '@/components/ui/use-toast'
+import { appConfig } from '@/utils/config'
 
 function formatRelativeTime(dateString: string | undefined | null): string {
   if (!dateString) return 'Unknown'
@@ -34,6 +35,19 @@ export function AllFormsManagement() {
   const [previewForm, setPreviewForm] = useState<PublicForm | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
   const [togglingId, setTogglingId] = useState<string | null>(null)
+  const [copiedSlug, setCopiedSlug] = useState<string | null>(null)
+
+  const handleCopyLink = async (slug: string) => {
+    const url = `${appConfig.appUrl}/pay/${slug}`
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopiedSlug(slug)
+      toast({ description: 'Link copied to clipboard!' })
+      setTimeout(() => setCopiedSlug(null), 2000)
+    } catch (err) {
+      console.error('Failed to copy:', err)
+    }
+  }
 
   const fetchForms = useCallback(async () => {
     setLoading(true)
@@ -316,12 +330,13 @@ export function AllFormsManagement() {
                 <ExternalLink className="h-3 w-3" />
                 <span className="hidden md:inline">Live</span>
               </a>
-              <Link to={`/forms/${form.id}/submissions`}>
-                <Button variant="ghost" size="sm" className="flex items-center gap-1 text-xs">
-                  <FileText className="h-3 w-3" />
-                  <span className="hidden md:inline">Submissions</span>
-                </Button>
-              </Link>
+              <button 
+                onClick={() => handleCopyLink(form.slug)}
+                className="inline-flex items-center gap-1 px-2 py-1 text-xs text-gray-600 hover:text-blue-600 hover:bg-gray-50 rounded"
+              >
+                {copiedSlug === form.slug ? <CheckCheck className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                <span className="hidden md:inline">{copiedSlug === form.slug ? 'Copied' : 'Copy'}</span>
+              </button>
             </div>
           </div>
         ))}

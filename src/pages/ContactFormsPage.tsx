@@ -3,7 +3,9 @@ import { useNavigate, Link } from 'react-router-dom'
 import { LogoIcon } from '@/components/Logo'
 import { ContactSidebar } from '@/components/layouts/ContactSidebar'
 import { contactAuthService } from '@/services/contactAuthService'
-import { Search, FileText, CreditCard, Lock } from 'lucide-react'
+import { appConfig } from '@/utils/config'
+import { Search, FileText, CreditCard, Lock, Copy, CheckCheck } from 'lucide-react'
+import { toast } from '@/components/ui/use-toast'
 
 interface Form {
   id: string
@@ -29,6 +31,19 @@ export function ContactFormsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [copiedSlug, setCopiedSlug] = useState<string | null>(null)
+
+  const handleCopyLink = async (slug: string) => {
+    const url = `${appConfig.appUrl}/pay/${slug}`
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopiedSlug(slug)
+      toast({ description: 'Link copied to clipboard!' })
+      setTimeout(() => setCopiedSlug(null), 2000)
+    } catch (err) {
+      console.error('Failed to copy:', err)
+    }
+  }
 
   useEffect(() => {
     const fetchData = async () => {
@@ -172,6 +187,16 @@ export function ContactFormsPage() {
                           Login Required
                         </span>
                       )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleCopyLink(form.slug)
+                        }}
+                        className="inline-flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-blue-600 hover:bg-gray-100 rounded"
+                      >
+                        {copiedSlug === form.slug ? <CheckCheck className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                        {copiedSlug === form.slug ? 'Copied' : 'Copy'}
+                      </button>
                     </div>
                   </div>
                 </div>
