@@ -1193,12 +1193,10 @@ export function OfficialPaymentReceipt() {
     setOrganization({ name: 'Payforms' })
   }, [id])
 
-  const contactName = contact 
-    ? `${contact.first_name || ''} ${contact.last_name || ''}`.trim() || 'Customer'
-    : transaction?.customer_name || 'Customer'
-  const contactEmail = contact?.email || transaction?.customer_email || ''
-  const studentRef = contact?.student_id || transaction?.student_id || id?.slice(0, 12).toUpperCase() || ''
-  const organizationName = organization?.name || transaction?.organization_name || 'Payforms'
+  const contactName = transaction?.customer_name || 'Customer'
+  const contactEmail = transaction?.customer_email || ''
+  const studentRef = id?.slice(0, 12).toUpperCase() || ''
+  const organizationName = organization?.name || 'Payforms'
   const reference = transaction?.reference || id || ''
   const amount = transaction?.amount ? parseFloat(transaction.amount) : transaction?.amount_paid ? parseFloat(transaction.amount_paid) : 0
   const date = transaction?.paid_at || transaction?.created_at
