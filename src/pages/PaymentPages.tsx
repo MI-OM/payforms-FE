@@ -10,6 +10,7 @@ import { reportService } from '@/services/reportService'
 import { contactAuthService } from '@/services/contactAuthService'
 import { Loader2 } from 'lucide-react'
 import { getCallbackUrl } from '@/utils/config'
+import { jsPDF } from 'jspdf'
 
 function MaterialIcon({ name, className = '', filled = false, style }: { name: string; className?: string; filled?: boolean; style?: React.CSSProperties }) {
   const iconStyle = filled ? { fontVariationSettings: "'FILL' 1", ...style } : style
@@ -1208,8 +1209,136 @@ export function OfficialPaymentReceipt() {
     ? new Date(transaction.paid_at || transaction.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     : new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 
+  const date = transaction?.paid_at || transaction?.created_at
+    ? new Date(transaction.paid_at || transaction.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+
   const handleDownloadPDF = () => {
-    window.print()
+    const doc = new jsPDF()
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const margin = 20
+    let y = 20
+
+    doc.setFontSize(10)
+    doc.setTextColor(100)
+    doc.text('OFFICIAL RECEIPT', pageWidth / 2, y, { align: 'center' })
+    y += 10
+
+    doc.setFillColor(0, 0, 0)
+    doc.rect(margin, y, 170, 40, 'F')
+    y += 5
+
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(18)
+    doc.text(organizationName, margin + 10, y + 15)
+    doc.setFontSize(8)
+    doc.text('Organization', margin + 10, y + 25)
+
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(14)
+    doc.text('PAYMENT RECEIPT', pageWidth - margin - 10, y + 15, { align: 'right' })
+    doc.setFontSize(8)
+    doc.text('Verified Transaction', pageWidth - margin - 10, y + 25, { align: 'right' })
+    y += 50
+
+    doc.setTextColor(60, 60, 60)
+    doc.setFontSize(10)
+    doc.text('BILL TO', margin, y)
+    doc.text('TRANSACTION DETAILS', pageWidth / 2 + 10, y)
+    y += 8
+
+    doc.setTextColor(0, 0, 0)
+    doc.setFontSize(12)
+    doc.text(contactName || 'Customer', margin, y)
+    
+    doc.setTextColor(60, 60, 60)
+    doc.setFontSize(10)
+    doc.text('Date:', pageWidth / 2 + 10, y)
+    doc.setTextColor(0, 0, 0)
+    doc.text(date, pageWidth - margin, y, { align: 'right' })
+    y += 7
+
+    if (contactEmail) {
+      doc.setTextColor(60, 60, 60)
+      doc.text('Email:', pageWidth / 2 + 10, y)
+      doc.setTextColor(0, 0, 0)
+      doc.text(contactEmail, pageWidth - margin, y, { align: 'right' })
+      y += 7
+    }
+
+    if (studentRef) {
+      doc.setTextColor(60, 60, 60)
+      doc.text('ID:', pageWidth / 2 + 10, y)
+      doc.setTextColor(0, 0, 0)
+      doc.text(studentRef, pageWidth - margin, y, { align: 'right' })
+      y += 7
+    }
+
+    doc.setTextColor(60, 60, 60)
+    doc.text('Reference:', pageWidth / 2 + 10, y)
+    doc.setTextColor(0, 0, 0)
+    doc.text(reference || '-', pageWidth - margin, y, { align: 'right' })
+    y += 7
+
+    doc.setTextColor(60, 60, 60)
+    doc.text('Method:', pageWidth / 2 + 10, y)
+    const methodLabel = (transaction as any)?.payment_method === 'ONLINE' ? 'Pay Online' : 
+                        (transaction as any)?.payment_method === 'CASH' ? 'Cash' :
+                        (transaction as any)?.payment_method === 'BANK_TRANSFER' ? 'Bank Transfer' :
+                        (transaction as any)?.payment_method === 'POS' ? 'POS' :
+                        (transaction as any)?.payment_method === 'CHEQUE' ? 'Cheque' : 'Paystack'
+    doc.setTextColor(0, 0, 0)
+    doc.text(methodLabel, pageWidth - margin, y, { align: 'right' })
+    y += 20
+
+    doc.setFillColor(245, 245, 245)
+    doc.rect(margin, y, 170, 25, 'F')
+    doc.setTextColor(60, 60, 60)
+    doc.setFontSize(10)
+    doc.text('Description', margin + 10, y + 10)
+    doc.setTextColor(0, 0, 0)
+    doc.setFontSize(11)
+    doc.text(formTitle || 'Payment', margin + 10, y + 18)
+    doc.setFontSize(12)
+    doc.text(`₦${amount.toLocaleString()}`, pageWidth - margin - 10, y + 15, { align: 'right' })
+    y += 30
+
+    doc.setDrawColor(200, 200, 200)
+    doc.line(margin, y, pageWidth - margin, y)
+    y += 10
+
+    doc.setFontSize(10)
+    doc.setTextColor(60, 60, 60)
+    doc.text('Subtotal', margin, y)
+    doc.setTextColor(0, 0, 0)
+    doc.text(`₦${amount.toLocaleString()}`, pageWidth - margin, y, { align: 'right' })
+    y += 7
+
+    doc.setFontSize(12)
+    doc.setTextColor(0, 0, 0)
+    doc.text('Total Amount', margin, y)
+    doc.text(`₦${amount.toLocaleString()}`, pageWidth - margin, y, { align: 'right' })
+    y += 15
+
+    doc.setFillColor(230, 245, 230)
+    doc.roundedRect(margin, y, 170, 15, 3, 3, 'F')
+    doc.setTextColor(0, 100, 0)
+    doc.setFontSize(9)
+    doc.text('Paid in full', pageWidth / 2, y + 10, { align: 'center' })
+    y += 25
+
+    doc.setTextColor(100, 100, 100)
+    doc.setFontSize(8)
+    doc.text('This document serves as an official receipt for the payment above.', margin, y)
+    y += 5
+    doc.text(`Transaction Reference: ${reference || '-'}`, margin, y)
+    y += 10
+
+    doc.setFontSize(8)
+    doc.setTextColor(150, 150, 150)
+    doc.text('Generated by Payforms', pageWidth / 2, y + 30, { align: 'center' })
+
+    doc.save(`receipt-${reference || 'payment'}.pdf`)
   }
 
   const handlePrint = () => window.print()
