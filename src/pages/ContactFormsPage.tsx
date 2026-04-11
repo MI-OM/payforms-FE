@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { LogoIcon } from '@/components/Logo'
-import { ContactSidebar } from '@/components/layouts/ContactSidebar'
 import { contactAuthService } from '@/services/contactAuthService'
 import { appConfig } from '@/utils/config'
 import { Search, FileText, CreditCard, Lock, Copy, CheckCheck } from 'lucide-react'
@@ -51,13 +50,15 @@ export function ContactFormsPage() {
         setError(null)
         const contactData = await contactAuthService.getMe()
         setContact(contactData)
-        setForms([])
+        
+        const formsData = await contactAuthService.getForms({ limit: 50 })
+        setForms(formsData.data)
       } catch (err) {
         console.error('Failed to fetch data:', err)
         if (err instanceof ApiError && err.status === 401) {
           navigate('/contact/login')
         } else {
-          setError('Unable to load profile. Please try again.')
+          setError('Unable to load forms. Please try again.')
           setForms([])
         }
       } finally {
@@ -111,100 +112,96 @@ export function ContactFormsPage() {
   const contactName = contact ? [contact.first_name, contact.last_name].filter(Boolean).join(' ') : 'Student'
 
   return (
-    <div className="min-h-screen bg-[#f7f9fb]">
-      <ContactSidebar onLogout={handleLogout} />
-      
-      <main className="ml-64 p-8">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">My Forms</h1>
-          <p className="text-gray-500 mt-1">Forms and payment pages available to you</p>
-        </div>
+    <div className="min-h-screen bg-[#f7f9fb] p-8">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900">My Forms</h1>
+        <p className="text-gray-500 mt-1">Forms and payment pages available to you</p>
+      </div>
 
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center justify-between">
-            <p className="text-red-700">{error}</p>
-            <button 
-              onClick={() => window.location.reload()} 
-              className="px-3 py-1 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700"
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center justify-between">
+          <p className="text-red-700">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-3 py-1 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      <div className="mb-6">
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search forms..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+          />
+        </div>
+      </div>
+
+      {filteredForms.length === 0 ? (
+        <div className="bg-white rounded-xl p-12 text-center shadow-sm">
+          <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No forms available</h3>
+          <p className="text-gray-500">
+            {searchQuery ? 'No forms match your search.' : 'There are no forms available for you at this time.'}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {filteredForms.map((form) => (
+            <div 
+              key={form.id} 
+              className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => navigate(`/pay/${form.slug}`)}
             >
-              Retry
-            </button>
-          </div>
-        )}
-
-        <div className="mb-6">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search forms..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-            />
-          </div>
-        </div>
-
-        {filteredForms.length === 0 ? (
-          <div className="bg-white rounded-xl p-12 text-center shadow-sm">
-            <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No forms available</h3>
-            <p className="text-gray-500">
-              {searchQuery ? 'No forms match your search.' : 'There are no forms available for you at this time.'}
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {filteredForms.map((form) => (
-              <div 
-                key={form.id} 
-                className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => navigate(`/pay/${form.slug}`)}
-              >
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center shrink-0">
-                    <FileText className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-gray-900 mb-1">{form.title}</h3>
-                    {form.description && (
-                      <p className="text-sm text-gray-500 line-clamp-2 mb-3">{form.description}</p>
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center shrink-0">
+                  <FileText className="w-6 h-6 text-blue-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-gray-900 mb-1">{form.title}</h3>
+                  {form.description && (
+                    <p className="text-sm text-gray-500 line-clamp-2 mb-3">{form.description}</p>
+                  )}
+                  <div className="flex items-center gap-3">
+                    {form.amount ? (
+                      <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full">
+                        <CreditCard className="w-4 h-4" />
+                        {formatCurrency(form.amount)}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-600 text-sm font-medium rounded-full">
+                        Free
+                      </span>
                     )}
-                    <div className="flex items-center gap-3">
-                      {form.amount ? (
-                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full">
-                          <CreditCard className="w-4 h-4" />
-                          {formatCurrency(form.amount)}
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-600 text-sm font-medium rounded-full">
-                          Free
-                        </span>
-                      )}
-                      {form.access_mode === 'LOGIN_REQUIRED' && (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">
-                          <Lock className="w-3 h-3" />
-                          Login Required
-                        </span>
-                      )}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleCopyLink(form.slug)
-                        }}
-                        className="inline-flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-blue-600 hover:bg-gray-100 rounded"
-                      >
-                        {copiedSlug === form.slug ? <CheckCheck className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                        {copiedSlug === form.slug ? 'Copied' : 'Copy'}
-                      </button>
-                    </div>
+                    {form.access_mode === 'LOGIN_REQUIRED' && (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">
+                        <Lock className="w-3 h-3" />
+                        Login Required
+                      </span>
+                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleCopyLink(form.slug)
+                      }}
+                      className="inline-flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-blue-600 hover:bg-gray-100 rounded"
+                    >
+                      {copiedSlug === form.slug ? <CheckCheck className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                      {copiedSlug === form.slug ? 'Copied' : 'Copy'}
+                    </button>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </main>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

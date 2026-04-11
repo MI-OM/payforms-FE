@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { contactAuthService, type Transaction } from '@/services/contactAuthService'
 import { Logo, LogoIcon } from '@/components/Logo'
-import { ContactSidebar } from '@/components/layouts/ContactSidebar'
 import { ApiError } from '@/lib/apiClient'
 
 function getAutoDetectedSubdomain(): string {
@@ -1000,177 +999,173 @@ export function ContactDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f9fb]">
-      <ContactSidebar onLogout={handleLogout} />
-      
-      <main className="ml-64 p-8">
-        <div className="mb-8">
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
-            Welcome back, {getContactName()}
-          </h2>
-          <div className="flex items-center gap-4 mt-2 flex-wrap">
-            <p className="text-slate-600">{contact?.email}</p>
-            {contact?.student_id && (
-              <>
-                <span className="text-gray-300">•</span>
-                <p className="text-slate-600">ID: {contact.student_id}</p>
-              </>
-            )}
+    <div className="min-h-screen bg-[#f7f9fb] p-8 overflow-hidden">
+      <div className="mb-8">
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+          Welcome back, {getContactName()}
+        </h2>
+        <div className="flex items-center gap-4 mt-2 flex-wrap">
+          <p className="text-slate-600">{contact?.email}</p>
+          {contact?.student_id && (
+            <>
+              <span className="text-gray-300">•</span>
+              <p className="text-slate-600">ID: {contact.student_id}</p>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="bg-white rounded-xl p-6 border border-slate-200">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm font-medium text-slate-600">Total Paid</p>
+            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+              <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
           </div>
+          <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalPaid)}</p>
+        </div>
+        <div className="bg-white rounded-xl p-6 border border-slate-200">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm font-medium text-slate-600">Pending</p>
+            <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+              <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+          <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalPending)}</p>
+        </div>
+        <div className="bg-white rounded-xl p-6 border border-slate-200">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm font-medium text-slate-600">Account Status</p>
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${contact.is_active ? 'bg-green-100' : 'bg-red-100'}`}>
+              <svg className={`w-5 h-5 ${contact.is_active ? 'text-green-600' : 'text-red-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+          <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${contact.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+            {contact.is_active ? 'Active' : 'Inactive'}
+          </span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+        <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200">
+          <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+            <h3 className="font-bold text-gray-900">Recent Transactions</h3>
+            <button 
+              onClick={() => navigate('/contact/transactions')}
+              className="text-sm font-medium text-slate-600 hover:text-slate-900"
+            >
+              View All →
+            </button>
+          </div>
+          {transactions.length === 0 ? (
+            <div className="p-8 text-center text-slate-500">
+              <svg className="w-12 h-12 mx-auto mb-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              <p className="mb-2 font-medium">No transactions yet</p>
+              <p className="text-sm">Your payment history will appear here.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {transactions.slice(0, 5).map((tx) => (
+                <div 
+                  key={tx.id} 
+                  className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer"
+                  onClick={() => navigate(`/contact/payment/${tx.id}`)}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                      tx.status === 'PAID' ? 'bg-green-100' : 
+                      tx.status === 'PARTIAL' ? 'bg-blue-100' : 
+                      'bg-amber-100'
+                    }`}>
+                      <svg className={`w-5 h-5 ${
+                        tx.status === 'PAID' ? 'text-green-600' : 
+                        tx.status === 'PARTIAL' ? 'text-blue-600' : 
+                        'text-amber-600'
+                      }`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">{tx.reference || `Payment #${tx.id.slice(0, 8)}`}</p>
+                      <p className="text-sm text-slate-500">{new Date(tx.created_at).toLocaleDateString('en-NG', { year: 'numeric', month: 'short', day: 'numeric' })}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <p className="font-bold text-gray-900">{formatCurrency(tx.amount)}</p>
+                      <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${
+                        tx.status === 'PAID' ? 'bg-green-100 text-green-700' : 
+                        tx.status === 'PARTIAL' ? 'bg-blue-100 text-blue-700' : 
+                        'bg-amber-100 text-amber-700'
+                      }`}>
+                        {tx.status}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-xl p-6 border border-slate-200">
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-sm font-medium text-slate-600">Total Paid</p>
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalPaid)}</p>
-          </div>
-          <div className="bg-white rounded-xl p-6 border border-slate-200">
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-sm font-medium text-slate-600">Pending</p>
-              <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalPending)}</p>
-          </div>
-          <div className="bg-white rounded-xl p-6 border border-slate-200">
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-sm font-medium text-slate-600">Account Status</p>
-              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${contact.is_active ? 'bg-green-100' : 'bg-red-100'}`}>
-                <svg className={`w-5 h-5 ${contact.is_active ? 'text-green-600' : 'text-red-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-            <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${contact.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-              {contact.is_active ? 'Active' : 'Inactive'}
-            </span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-          <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="font-bold text-gray-900">Recent Transactions</h3>
+        <div className="space-y-6">
+          <div className="bg-white rounded-xl border border-slate-200 p-6">
+            <h3 className="font-bold text-gray-900 mb-4">Quick Actions</h3>
+            <div className="space-y-3">
+              <button 
+                onClick={() => navigate('/contact/forms')}
+                className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
+              >
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </div>
+                <span className="font-medium text-gray-900">My Forms</span>
+              </button>
               <button 
                 onClick={() => navigate('/contact/transactions')}
-                className="text-sm font-medium text-slate-600 hover:text-slate-900"
+                className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
               >
-                View All →
+                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                  <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </div>
+                <span className="font-medium text-gray-900">Transactions</span>
+              </button>
+              <button 
+                onClick={() => navigate('/contact/profile')}
+                className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
+              >
+                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                  <svg className="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                <span className="font-medium text-gray-900">Profile</span>
               </button>
             </div>
-            {transactions.length === 0 ? (
-              <div className="p-8 text-center text-slate-500">
-                <svg className="w-12 h-12 mx-auto mb-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-                <p className="mb-2 font-medium">No transactions yet</p>
-                <p className="text-sm">Your payment history will appear here.</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-slate-100">
-                {transactions.slice(0, 5).map((tx) => (
-                  <div 
-                    key={tx.id} 
-                    className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer"
-                    onClick={() => navigate(`/contact/payment/${tx.id}`)}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                        tx.status === 'PAID' ? 'bg-green-100' : 
-                        tx.status === 'PARTIAL' ? 'bg-blue-100' : 
-                        'bg-amber-100'
-                      }`}>
-                        <svg className={`w-5 h-5 ${
-                          tx.status === 'PAID' ? 'text-green-600' : 
-                          tx.status === 'PARTIAL' ? 'text-blue-600' : 
-                          'text-amber-600'
-                        }`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{tx.reference || `Payment #${tx.id.slice(0, 8)}`}</p>
-                        <p className="text-sm text-slate-500">{new Date(tx.created_at).toLocaleDateString('en-NG', { year: 'numeric', month: 'short', day: 'numeric' })}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <p className="font-bold text-gray-900">{formatCurrency(tx.amount)}</p>
-                        <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${
-                          tx.status === 'PAID' ? 'bg-green-100 text-green-700' : 
-                          tx.status === 'PARTIAL' ? 'bg-blue-100 text-blue-700' : 
-                          'bg-amber-100 text-amber-700'
-                        }`}>
-                          {tx.status}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
 
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl border border-slate-200 p-6">
-              <h3 className="font-bold text-gray-900 mb-4">Quick Actions</h3>
-              <div className="space-y-3">
-                <button 
-                  onClick={() => navigate('/contact/forms')}
-                  className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
-                >
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                  </div>
-                  <span className="font-medium text-gray-900">My Forms</span>
-                </button>
-                <button 
-                  onClick={() => navigate('/contact/transactions')}
-                  className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
-                >
-                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                    <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                  </div>
-                  <span className="font-medium text-gray-900">Transactions</span>
-                </button>
-                <button 
-                  onClick={() => navigate('/contact/profile')}
-                  className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
-                >
-                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <svg className="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                  </div>
-                  <span className="font-medium text-gray-900">Profile</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl border border-slate-200 p-6">
-              <h3 className="font-bold text-gray-900 mb-3">Need Help?</h3>
-              <p className="text-sm text-slate-600 mb-4">Contact your administrator if you have payment issues.</p>
-              <button className="w-full px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-sm font-medium transition-colors">
-                Contact Support
-              </button>
-            </div>
+          <div className="bg-white rounded-xl border border-slate-200 p-6">
+            <h3 className="font-bold text-gray-900 mb-3">Need Help?</h3>
+            <p className="text-sm text-slate-600 mb-4">Contact your administrator if you have payment issues.</p>
+            <button className="w-full px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-sm font-medium transition-colors">
+              Contact Support
+            </button>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   )
 }

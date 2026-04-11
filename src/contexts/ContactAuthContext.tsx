@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { Outlet } from 'react-router-dom'
 import { contactAuthService, type Contact } from '@/services/contactAuthService'
+import { ContactLayout } from '@/components/layouts/ContactLayout'
 
 interface ContactAuthContextType {
   contact: Contact | null
@@ -112,7 +113,7 @@ export function ContactAuthProvider({ children }: { children?: React.ReactNode }
       error,
       clearError,
     }}>
-      {children ?? <Outlet />}
+      {children ?? <ContactLayout />}
     </ContactAuthContext.Provider>
   )
 }

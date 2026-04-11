@@ -243,27 +243,24 @@ export const contactAuthService = {
     page?: number
     limit?: number
   }): Promise<PaginatedResponse<Form>> => {
-    // Use public forms endpoint - accessible without auth for OPEN forms
-    // For LOGIN_REQUIRED forms, contact must be logged in
-    // Include Authorization header for authenticated requests
     const token = contactAuth.getAccessToken()
-    const headers: Record<string, string> = {}
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`
+    if (!token) {
+      throw new Error('Authentication required')
     }
     
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/public/forms?limit=${params?.limit || 50}&page=${params?.page || 1}`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/contact-auth/forms?limit=${params?.limit || 50}&page=${params?.page || 1}`, {
       method: 'GET',
-      headers,
-      credentials: 'include', // Include cookies
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      credentials: 'include',
     })
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
       throw new Error(errorData.message || errorData.error || `Request failed: ${response.status}`)
     }
     const data = await response.json()
-    // The public forms endpoint returns { forms: Form[], total: number }
-    const formsList = data.forms || data.data || []
+    const formsList = data.data || []
     return {
       data: formsList,
       total: data.total || formsList.length,

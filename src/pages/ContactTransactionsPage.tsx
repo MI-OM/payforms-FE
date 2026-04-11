@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { LogoIcon } from '@/components/Logo'
-import { ContactSidebar } from '@/components/layouts/ContactSidebar'
 import { contactAuthService } from '@/services/contactAuthService'
 import { contactService, type Transaction } from '@/services/contactService'
 import { Search, Download, Filter, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
@@ -151,138 +150,134 @@ export function ContactTransactionsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f9fb]">
-      <ContactSidebar onLogout={handleLogout} />
-      
-      <main className="ml-64 p-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Transaction History</h1>
-            <p className="text-gray-500 mt-1">View all your payment transactions</p>
-          </div>
-          <button 
-            onClick={handleExportCSV} 
-            disabled={exporting || transactions.length === 0}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {exporting ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Download className="w-4 h-4" />
-            )}
-            {exporting ? 'Exporting...' : 'Export CSV'}
-          </button>
+    <div className="min-h-screen bg-[#f7f9fb] p-8">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Transaction History</h1>
+          <p className="text-gray-500 mt-1">View all your payment transactions</p>
         </div>
-
-        <div className="bg-white rounded-xl shadow-sm mb-6">
-          <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search by reference..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <Filter className="w-5 h-5 text-gray-400" />
-              <select
-                value={statusFilter}
-                onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-                className="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
-              >
-                <option value="all">All Status</option>
-                <option value="PAID">Paid</option>
-                <option value="PENDING">Pending</option>
-                <option value="PARTIAL">Partial</option>
-                <option value="FAILED">Failed</option>
-              </select>
-            </div>
-          </div>
-
-          {filteredTransactions.length === 0 ? (
-            <div className="p-12 text-center">
-              <p className="text-gray-500">No transactions found</p>
-            </div>
+        <button 
+          onClick={handleExportCSV} 
+          disabled={exporting || transactions.length === 0}
+          className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {exporting ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
-            <div className="divide-y divide-gray-100">
-              {filteredTransactions.map((tx) => (
-                <div 
-                  key={tx.id} 
-                  className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
-                  onClick={() => navigate(`/contact/payment/${tx.id}?reference=${tx.reference}&amount=${tx.amount}&status=${tx.status}&created_at=${tx.created_at}`)}
-                >
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900">
-                      {tx.reference || `Transaction #${tx.id.slice(0, 8)}`}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {new Date(tx.created_at).toLocaleDateString('en-NG', { 
-                        year: 'numeric', 
-                        month: 'short', 
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <p className="font-bold text-gray-900">{formatCurrency(tx.amount)}</p>
-                      <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${getStatusColor(tx.status)}`}>
-                        {tx.status}
-                      </span>
-                    </div>
-                    {tx.status === 'PAID' && (
-                      <button
-                        onClick={(e) => { 
-                          e.stopPropagation(); 
-                          handleDownloadReceipt(tx.id, tx.reference); 
-                        }}
-                        disabled={downloadingReceipt === tx.id}
-                        className="p-2 text-gray-400 hover:text-blue-600 transition-colors disabled:opacity-50"
-                        title="Download Receipt"
-                      >
-                        {downloadingReceipt === tx.id ? (
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                        ) : (
-                          <Download className="w-5 h-5" />
-                        )}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <Download className="w-4 h-4" />
           )}
+          {exporting ? 'Exporting...' : 'Export CSV'}
+        </button>
+      </div>
 
-          {totalPages > 1 && (
-            <div className="p-4 border-t border-gray-100 flex items-center justify-between">
-              <p className="text-sm text-gray-500">
-                Page {page} of {totalPages}
-              </p>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                  className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-          )}
+      <div className="bg-white rounded-xl shadow-sm mb-6">
+        <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by reference..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-12 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Filter className="w-5 h-5 text-gray-400" />
+            <select
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+              className="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
+            >
+              <option value="all">All Status</option>
+              <option value="PAID">Paid</option>
+              <option value="PENDING">Pending</option>
+              <option value="PARTIAL">Partial</option>
+              <option value="FAILED">Failed</option>
+            </select>
+          </div>
         </div>
-      </main>
+
+        {filteredTransactions.length === 0 ? (
+          <div className="p-12 text-center">
+            <p className="text-gray-500">No transactions found</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {filteredTransactions.map((tx) => (
+              <div 
+                key={tx.id} 
+                className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
+                onClick={() => navigate(`/contact/payment/${tx.id}?reference=${tx.reference}&amount=${tx.amount}&status=${tx.status}&created_at=${tx.created_at}`)}
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-900 truncate">
+                    {tx.reference || `Transaction #${tx.id.slice(0, 8)}`}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {new Date(tx.created_at).toLocaleDateString('en-NG', { 
+                      year: 'numeric', 
+                      month: 'short', 
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <p className="font-bold text-gray-900">{formatCurrency(tx.amount)}</p>
+                    <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${getStatusColor(tx.status)}`}>
+                      {tx.status}
+                    </span>
+                  </div>
+                  {tx.status === 'PAID' && (
+                    <button
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        handleDownloadReceipt(tx.id, tx.reference); 
+                      }}
+                      disabled={downloadingReceipt === tx.id}
+                      className="p-2 text-gray-400 hover:text-blue-600 transition-colors disabled:opacity-50"
+                      title="Download Receipt"
+                    >
+                      {downloadingReceipt === tx.id ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <Download className="w-5 h-5" />
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {totalPages > 1 && (
+          <div className="p-4 border-t border-gray-100 flex items-center justify-between">
+            <p className="text-sm text-gray-500">
+              Page {page} of {totalPages}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
