@@ -50,6 +50,7 @@ import { ContactProfilePage } from '@/pages/ContactProfilePage'
 import { ReportsAnalytics } from '@/pages/ReportsAnalytics'
 import { OrganizationSettings } from '@/pages/OrganizationSettings'
 import { FormFieldsManagement, FormDeleteConfirmation } from '@/pages/FormScreens'
+import { FormSubmissionsPage } from '@/pages/FormSubmissionsPage'
 import { GroupTreeView, GroupContactsManagement } from '@/pages/GroupScreens'
 import { ContactExport, ContactDetailsView, AssignGroupsToContact, ImportValidationReview, ContactsList } from '@/pages/ContactScreens'
 import { ContactsManagement } from '@/pages/ContactsManagement'
@@ -186,6 +187,7 @@ function App() {
           <Route path="/forms/builder/publish" element={<FormBuilderPublishStep />} />
           <Route path="/forms/builder/audience" element={<FormBuilderAssignAudienceWrapper />} />
           <Route path="/forms/:id/fields" element={<FormFieldsManagement />} />
+          <Route path="/forms/:id/submissions" element={<FormSubmissionsPage />} />
           <Route path="/forms/:id/settings" element={<FormSettings />} />
           <Route path="/forms/:id/groups" element={<FormAssignGroupsPage />} />
           <Route path="/forms/:id/targets" element={<FormTargetsPage />} />

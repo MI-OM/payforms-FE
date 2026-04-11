@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useState, useEffect, useCallback } from 'react'
-import { Search, Plus, MoreVertical, Eye, Edit, Copy, Trash2, Loader2, X, ExternalLink } from 'lucide-react'
+import { Search, Plus, MoreVertical, Eye, Edit, Copy, Trash2, Loader2, X, ExternalLink, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { formService, publicFormService, type Form, type PublicForm } from '@/services/formService'
@@ -308,6 +308,12 @@ export function AllFormsManagement() {
                 <ExternalLink className="h-4 w-4" />
                 Live
               </a>
+              <Link to={`/forms/${form.id}/submissions`}>
+                <Button variant="ghost" size="sm" className="flex items-center gap-1">
+                  <FileText className="h-4 w-4" />
+                  Submissions
+                </Button>
+              </Link>
             </div>
           </div>
         ))}

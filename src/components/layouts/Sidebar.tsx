@@ -11,6 +11,8 @@ interface SidebarProps {
   onLogout?: () => void
   mobileMenuOpen?: boolean
   onCloseMobileMenu?: () => void
+  collapsed?: boolean
+  onToggleCollapse?: () => void
 }
 
 const navItems = [
@@ -35,6 +37,9 @@ function MaterialIcon({ name, className = '' }: { name: string; className?: stri
     help: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z",
     logout: "M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z",
     close: "M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z",
+    expand_more: "M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z",
+    expand_less: "M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z",
+    add: "M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z",
   }
   
   const d = icons[name]
@@ -51,10 +56,12 @@ export function Sidebar({
   className, 
   organizationName = 'Payforms',
   organizationLogo = null,
-  userRole = 'STAFF',
+  userRole = 'ADMIN',
   onLogout,
   mobileMenuOpen,
-  onCloseMobileMenu
+  onCloseMobileMenu,
+  collapsed = false,
+  onToggleCollapse,
 }: SidebarProps) {
   const location = useLocation()
   const { logout } = useAuth()
@@ -82,7 +89,8 @@ export function Sidebar({
 
       {/* Sidebar */}
       <aside className={cn(
-        "h-screen w-64 fixed left-0 top-0 bg-slate-50 flex flex-col z-50 overflow-hidden",
+        "h-screen fixed left-0 top-0 bg-slate-50 flex flex-col z-50 overflow-hidden transition-all duration-300",
+        collapsed ? "w-20" : "w-64",
         mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
         {/* Close Button for Mobile */}
@@ -106,15 +114,25 @@ export function Sidebar({
           ) : (
             <LogoIcon size="md" asLink={false} />
           )}
-          <div className="min-w-0">
-            <h1 className="text-lg font-bold tracking-tighter text-slate-900 leading-tight font-headline truncate">
-              {organizationName}
-            </h1>
-            <p className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">
-              {isAdmin ? 'Institutional Admin' : 'Staff Portal'}
-            </p>
-          </div>
+          {!collapsed && (
+            <div className="min-w-0">
+              <h1 className="text-lg font-bold tracking-tighter text-slate-900 leading-tight font-headline truncate">
+                {organizationName}
+              </h1>
+              <p className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">
+                {isAdmin ? 'Institutional Admin' : 'Staff Portal'}
+              </p>
+            </div>
+          )}
         </div>
+
+        {/* Collapse Toggle */}
+        <button
+          onClick={onToggleCollapse}
+          className="hidden lg:flex absolute top-6 -right-3 w-6 h-6 bg-white border border-slate-200 rounded-full items-center justify-center text-slate-500 hover:text-slate-900 hover:shadow-sm transition-all z-10"
+        >
+          <MaterialIcon name={collapsed ? "expand_more" : "expand_less"} className="text-lg" />
+        </button>
 
         {/* Scrollable Navigation */}
         <nav className="flex-1 overflow-y-auto p-4 space-y-1">
@@ -132,8 +150,10 @@ export function Sidebar({
                     : "text-slate-500 hover:text-slate-900 hover:bg-slate-200/50"
                 )}
               >
-                <MaterialIcon name={item.iconKey} className="text-lg" />
-                <span className="font-headline text-sm font-medium tracking-tight">{item.label}</span>
+                <MaterialIcon name={item.iconKey} className="text-lg shrink-0" />
+                {!collapsed && (
+                  <span className="font-headline text-sm font-medium tracking-tight">{item.label}</span>
+                )}
               </Link>
             )
           })}
@@ -144,24 +164,25 @@ export function Sidebar({
           <Link
             to="/forms/new"
             onClick={onCloseMobileMenu}
-            className="w-full bg-black text-white py-2.5 rounded-lg text-sm font-bold mb-3 hover:opacity-90 transition-all flex items-center justify-center"
+            className={cn(
+              "bg-black text-white py-2.5 rounded-lg text-sm font-bold hover:opacity-90 transition-all flex items-center justify-center",
+              collapsed ? "px-0" : "w-full mb-3"
+            )}
           >
-            Create Form
-          </Link>
-          <Link
-            to="/support"
-            onClick={onCloseMobileMenu}
-            className="flex items-center gap-3 px-3 py-2 text-slate-500 hover:text-slate-900 hover:bg-slate-200/50 rounded-lg transition-colors"
-          >
-            <MaterialIcon name="help" className="text-lg" />
-            <span className="font-headline text-sm font-medium tracking-tight">Support</span>
+            <MaterialIcon name="add" className="text-lg" />
+            {!collapsed && <span>Create Form</span>}
           </Link>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2 text-slate-500 hover:text-slate-900 hover:bg-slate-200/50 rounded-lg transition-colors"
+            className={cn(
+              "flex items-center gap-3 px-3 py-2 text-slate-500 hover:text-slate-900 hover:bg-slate-200/50 rounded-lg transition-colors",
+              collapsed && "justify-center px-0"
+            )}
           >
-            <MaterialIcon name="logout" className="text-lg" />
-            <span className="font-headline text-sm font-medium tracking-tight">Sign Out</span>
+            <MaterialIcon name="logout" className="text-lg shrink-0" />
+            {!collapsed && (
+              <span className="font-headline text-sm font-medium tracking-tight">Sign Out</span>
+            )}
           </button>
         </div>
       </aside>

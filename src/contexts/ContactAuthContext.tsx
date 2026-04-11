@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { Outlet } from 'react-router-dom'
 import { contactAuthService, type Contact } from '@/services/contactAuthService'
 
 interface ContactAuthContextType {
@@ -16,7 +17,7 @@ const ContactAuthContext = createContext<ContactAuthContextType | undefined>(und
 
 const STORAGE_KEY = 'pf_contact'
 
-export function ContactAuthProvider({ children }: { children: React.ReactNode }) {
+export function ContactAuthProvider({ children }: { children?: React.ReactNode }) {
   const [contact, setContact] = useState<Contact | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -111,7 +112,7 @@ export function ContactAuthProvider({ children }: { children: React.ReactNode })
       error,
       clearError,
     }}>
-      {children}
+      {children ?? <Outlet />}
     </ContactAuthContext.Provider>
   )
 }

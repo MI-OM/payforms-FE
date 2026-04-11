@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import { authService, type User, type TwoFactorChallengeResponse } from '@/services/authService'
+import { authService, type User, type TwoFactorChallengeResponse, type LoginResponse } from '@/services/authService'
 import { organizationService } from '@/services/organizationService'
 import { clearTokens, getAccessToken, isLockedOut, getLockoutRemainingMs, recordFailedAttempt, getRemainingAttempts, setTokens } from '@/lib/auth'
 import { ApiError } from '@/lib/apiClient'
@@ -166,8 +166,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       // Normal login - set tokens and fetch user
+      const loginResponse = response as LoginResponse
       const orgData = await organizationService.getOrganization().catch(() => null)
-      setUser({ ...response.user, organization_name: orgData?.name })
+      setUser({ ...loginResponse.user, organization_name: orgData?.name })
       setRemainingAttempts(5)
     } catch (err) {
       if (err instanceof ApiError) {

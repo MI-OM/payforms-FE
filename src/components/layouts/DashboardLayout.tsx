@@ -11,6 +11,7 @@ export function DashboardLayout() {
   const { user, logout } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [orgLogo, setOrgLogo] = useState<string | null>(null)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   useEffect(() => {
     const fetchOrgLogo = async () => {
@@ -44,10 +45,12 @@ export function DashboardLayout() {
         onLogout={handleLogout}
         mobileMenuOpen={mobileMenuOpen}
         onCloseMobileMenu={closeMobileMenu}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
 
       {/* Main Content */}
-      <main className="lg:ml-64 min-h-screen bg-[#f7f9fb] flex flex-col">
+      <main className={`min-h-screen bg-[#f7f9fb] flex flex-col transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'}`}>
         {/* Top Navigation */}
         <TopNav 
           user={user ?? undefined}

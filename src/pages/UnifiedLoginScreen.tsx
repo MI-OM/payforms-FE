@@ -113,7 +113,7 @@ export function UnifiedLoginScreen() {
     setIsLoading(true)
 
     try {
-      await contactAuthService.login({
+      const loginResponse = await contactAuthService.login({
         email: formData.email,
         password: formData.password,
         organization_subdomain: subdomain || undefined,

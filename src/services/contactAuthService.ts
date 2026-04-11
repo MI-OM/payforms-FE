@@ -1,6 +1,27 @@
 import { apiClient } from '@/lib/apiClient'
 import { contactAuth } from '@/lib/contactAuth'
 
+export interface Transaction {
+  id: string
+  reference: string
+  amount: number
+  status: string
+  created_at: string
+  paid_at?: string
+  form_id?: string
+  form_name?: string
+  contact_id?: string
+  contact_name?: string
+}
+
+export interface PaginatedResponse<T> {
+  data: T[]
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+}
+
 export interface ContactLoginRequest {
   email: string
   password: string
@@ -67,13 +88,28 @@ const createContactApiClient = () => {
       }
       return response.json()
     },
-    get: async <T>(endpoint: string): Promise<T> => {
+    get: async <T>(endpoint: string, options?: { params?: Record<string, string | number | boolean | undefined> }): Promise<T> => {
       const token = contactAuth.getAccessToken()
       const headers: Record<string, string> = {}
       if (token) {
         headers['Authorization'] = `Bearer ${token}`
       }
-      const response = await fetch(`${import.meta.env.VITE_API_URL}${endpoint}`, {
+      
+      let url = `${import.meta.env.VITE_API_URL}${endpoint}`
+      if (options?.params) {
+        const searchParams = new URLSearchParams()
+        Object.entries(options.params).forEach(([key, value]) => {
+          if (value !== undefined) {
+            searchParams.append(key, String(value))
+          }
+        })
+        const queryString = searchParams.toString()
+        if (queryString) {
+          url += `?${queryString}`
+        }
+      }
+      
+      const response = await fetch(url, {
         method: 'GET',
         headers,
         credentials: 'include',
@@ -140,6 +176,14 @@ export const contactAuthService = {
     return contactApi.get<Contact>('/contact-auth/me')
   },
 
+  getTransactions: async (params?: {
+    page?: number
+    limit?: number
+    format?: 'csv'
+  }): Promise<PaginatedResponse<Transaction>> => {
+    return contactApi.get('/contact-auth/transactions', { params })
+  },
+
   getReceipt: async (paymentId: string): Promise<Blob> => {
     const token = contactAuth.getAccessToken()
     const response = await fetch(`${import.meta.env.VITE_API_URL}/contact-auth/payments/${paymentId}/receipt`, {
@@ -169,4 +213,56 @@ export const contactAuthService = {
     }
     return response.blob()
   },
+
+  getForms: async (params?: {
+    page?: number
+    limit?: number
+  }): Promise<PaginatedResponse<Form>> => {
+    // Use public forms endpoint - accessible without auth for OPEN forms
+    // For LOGIN_REQUIRED forms, contact must be logged in
+    // Include Authorization header for authenticated requests
+    const token = contactAuth.getAccessToken()
+    const headers: Record<string, string> = {}
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+    
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/public/forms?limit=${params?.limit || 50}&page=${params?.page || 1}`, {
+      method: 'GET',
+      headers,
+      credentials: 'include', // Include cookies
+    })
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.message || errorData.error || `Request failed: ${response.status}`)
+    }
+    const data = await response.json()
+    // The public forms endpoint returns { forms: Form[], total: number }
+    const formsList = data.forms || data.data || []
+    return {
+      data: formsList,
+      total: data.total || formsList.length,
+      page: data.page || 1,
+      limit: data.limit || params?.limit || 50,
+      totalPages: data.totalPages || Math.ceil((data.total || formsList.length) / (params?.limit || 50)),
+    }
+  },
+}
+
+export interface Form {
+  id: string
+  title: string
+  slug: string
+  category?: string
+  description?: string
+  note?: string
+  payment_type: string
+  amount?: number
+  allow_partial: boolean
+  is_active: boolean
+  access_mode?: string
+  identity_validation_mode?: string
+  identity_field_label?: string
+  created_at: string
+  updated_at: string
 }

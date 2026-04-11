@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { contactAuthService } from '@/services/contactAuthService'
-import { contactService, type Transaction } from '@/services/contactService'
+import { contactAuthService, type Transaction } from '@/services/contactAuthService'
 import { Logo, LogoIcon } from '@/components/Logo'
+import { ContactSidebar } from '@/components/layouts/ContactSidebar'
 import { ApiError } from '@/lib/apiClient'
 
 function getAutoDetectedSubdomain(): string {
@@ -21,7 +21,7 @@ export function ContactLoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [subdomain, setSubdomain] = useState(getAutoDetectedSubdomain)
+  const [subdomain, setSubdomain] = useState(getAutoDetectedSubdomain())
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -35,7 +35,7 @@ export function ContactLoginPage() {
     setIsLoading(true)
 
     try {
-      await contactAuthService.login({
+      const loginResponse = await contactAuthService.login({
         ...formData,
         organization_subdomain: subdomain || undefined,
       })
@@ -46,6 +46,8 @@ export function ContactLoginPage() {
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message || 'Invalid email or password')
+      } else if (err instanceof Error) {
+        setError(err.message || 'An unexpected error occurred')
       } else {
         setError('An unexpected error occurred')
       }
@@ -850,7 +852,7 @@ export function ContactResetPasswordConfirm() {
 
 export function ContactDashboard() {
   const navigate = useNavigate()
-  const [contact, setContact] = useState<{ id: string; first_name: string; last_name: string; email: string; student_id?: string } | null>(null)
+  const [contact, setContact] = useState<{ id: string; first_name: string; last_name: string; email: string; student_id?: string; organization_id?: string; is_active: boolean } | null>(null)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
@@ -862,7 +864,8 @@ export function ContactDashboard() {
         setError(null)
         const contactData = await contactAuthService.getMe()
         setContact(contactData)
-        const txData = await contactService.getContactTransactions(contactData.id, { limit: 10 })
+        
+        const txData = await contactAuthService.getTransactions({ limit: 100 })
         setTransactions(txData.data)
       } catch (err) {
         console.error('Failed to fetch data:', err)
@@ -956,172 +959,174 @@ export function ContactDashboard() {
     )
   }
 
-  const contactName = [contact.first_name, contact.last_name].filter(Boolean).join(' ') || 'Student'
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <LogoIcon size="sm" />
-            <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Contact Portal</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate('/contact/profile')}
-              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              Profile
-            </button>
-            <div className="text-right">
-              <p className="font-medium text-gray-900">{contactName}</p>
-              <p className="text-sm text-gray-500">{contact.email}</p>
-            </div>
-            <button
-              onClick={handleLogout}
-              disabled={isLoggingOut}
-              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
-            >
-              {isLoggingOut ? 'Signing out...' : 'Sign Out'}
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-4xl mx-auto px-6 py-8">
+    <div className="min-h-screen bg-[#f7f9fb]">
+      <ContactSidebar onLogout={handleLogout} />
+      
+      <main className="ml-64 p-8">
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900">Welcome, {contact.first_name || 'Student'}</h2>
-          <div className="flex items-center gap-4 mt-1">
-            <p className="text-gray-500">{contact.email}</p>
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Welcome back, {contact.first_name || 'Student'}</h2>
+          <div className="flex items-center gap-4 mt-2">
+            <p className="text-slate-600">{contact.email}</p>
             {contact.student_id && (
               <>
-                <span className="text-gray-300">|</span>
-                <p className="text-gray-500">ID: {contact.student_id}</p>
+                <span className="text-gray-300">•</span>
+                <p className="text-slate-600">ID: {contact.student_id}</p>
               </>
             )}
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-xl p-6 shadow-sm">
-            <p className="text-sm text-gray-500 mb-1">Total Paid</p>
-            <p className="text-2xl font-bold text-green-600">{formatCurrency(totalPaid)}</p>
+          <div className="bg-white rounded-xl p-6 border border-slate-200">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm font-medium text-slate-600">Total Paid</p>
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+            <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalPaid)}</p>
           </div>
-          <div className="bg-white rounded-xl p-6 shadow-sm">
-            <p className="text-sm text-gray-500 mb-1">Pending</p>
-            <p className="text-2xl font-bold text-amber-600">{formatCurrency(totalPending)}</p>
+          <div className="bg-white rounded-xl p-6 border border-slate-200">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm font-medium text-slate-600">Pending</p>
+              <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+            <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalPending)}</p>
           </div>
-          <div className="bg-white rounded-xl p-6 shadow-sm">
-            <p className="text-sm text-gray-500 mb-1">Status</p>
-            <span className="inline-flex px-2 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full">
-              Active
+          <div className="bg-white rounded-xl p-6 border border-slate-200">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm font-medium text-slate-600">Account Status</p>
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${contact.is_active ? 'bg-green-100' : 'bg-red-100'}`}>
+                <svg className={`w-5 h-5 ${contact.is_active ? 'text-green-600' : 'text-red-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+            <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${contact.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+              {contact.is_active ? 'Active' : 'Inactive'}
             </span>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h3 className="font-bold text-gray-900 mb-4">Quick Actions</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <button 
-                onClick={() => navigate('/contact/forms')}
-                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-blue-50 hover:bg-blue-100 transition-colors"
-              >
-                <svg className="w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                </svg>
-                <span className="text-sm font-medium text-blue-900">My Forms</span>
-              </button>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+          <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-bold text-gray-900">Recent Transactions</h3>
               <button 
                 onClick={() => navigate('/contact/transactions')}
-                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-green-50 hover:bg-green-100 transition-colors"
+                className="text-sm font-medium text-slate-600 hover:text-slate-900"
               >
-                <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                </svg>
-                <span className="text-sm font-medium text-green-900">Statements</span>
+                View All →
               </button>
             </div>
+            {transactions.length === 0 ? (
+              <div className="p-8 text-center text-slate-500">
+                <svg className="w-12 h-12 mx-auto mb-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                <p className="mb-2 font-medium">No transactions yet</p>
+                <p className="text-sm">Your payment history will appear here.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {transactions.slice(0, 5).map((tx) => (
+                  <div 
+                    key={tx.id} 
+                    className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer"
+                    onClick={() => navigate(`/contact/payment/${tx.id}`)}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                        tx.status === 'PAID' ? 'bg-green-100' : 
+                        tx.status === 'PARTIAL' ? 'bg-blue-100' : 
+                        'bg-amber-100'
+                      }`}>
+                        <svg className={`w-5 h-5 ${
+                          tx.status === 'PAID' ? 'text-green-600' : 
+                          tx.status === 'PARTIAL' ? 'text-blue-600' : 
+                          'text-amber-600'
+                        }`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">{tx.reference || `Payment #${tx.id.slice(0, 8)}`}</p>
+                        <p className="text-sm text-slate-500">{new Date(tx.created_at).toLocaleDateString('en-NG', { year: 'numeric', month: 'short', day: 'numeric' })}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <p className="font-bold text-gray-900">{formatCurrency(tx.amount)}</p>
+                        <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${
+                          tx.status === 'PAID' ? 'bg-green-100 text-green-700' : 
+                          tx.status === 'PARTIAL' ? 'bg-blue-100 text-blue-700' : 
+                          'bg-amber-100 text-amber-700'
+                        }`}>
+                          {tx.status}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h3 className="font-bold text-gray-900 mb-4">Need Help?</h3>
-            <div className="space-y-3">
-              <p className="text-sm text-gray-500">Contact your school administrator if you have payment issues.</p>
-              <div className="flex gap-3">
-                <button className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors">
-                  View FAQ
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl border border-slate-200 p-6">
+              <h3 className="font-bold text-gray-900 mb-4">Quick Actions</h3>
+              <div className="space-y-3">
+                <button 
+                  onClick={() => navigate('/contact/forms')}
+                  className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
+                >
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                  </div>
+                  <span className="font-medium text-gray-900">My Forms</span>
                 </button>
-                <button className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors">
-                  Contact Support
+                <button 
+                  onClick={() => navigate('/contact/transactions')}
+                  className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
+                >
+                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                  </div>
+                  <span className="font-medium text-gray-900">Transactions</span>
+                </button>
+                <button 
+                  onClick={() => navigate('/contact/profile')}
+                  className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
+                >
+                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
+                  <span className="font-medium text-gray-900">Profile</span>
                 </button>
               </div>
             </div>
-          </div>
-        </div>
 
-        <div className="bg-white rounded-xl shadow-sm">
-          <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-            <h3 className="font-bold text-gray-900">Recent Transactions</h3>
-            <button 
-              onClick={() => navigate('/contact/transactions')}
-              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-            >
-              View All →
-            </button>
+            <div className="bg-white rounded-xl border border-slate-200 p-6">
+              <h3 className="font-bold text-gray-900 mb-3">Need Help?</h3>
+              <p className="text-sm text-slate-600 mb-4">Contact your administrator if you have payment issues.</p>
+              <button className="w-full px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-sm font-medium transition-colors">
+                Contact Support
+              </button>
+            </div>
           </div>
-          {transactions.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
-              <p className="mb-2 font-medium">No transactions yet</p>
-              <p className="text-sm">Your payment history will appear here once you make a payment.</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {transactions.map((tx) => (
-                <div 
-                  key={tx.id} 
-                  className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
-                  onClick={() => navigate(`/contact/payment/${tx.id}?reference=${tx.reference}&amount=${tx.amount}&status=${tx.status}&created_at=${tx.created_at}`)}
-                >
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900">{tx.reference || `Payment #${tx.id.slice(0, 8)}`}</p>
-                    <p className="text-sm text-gray-500">{new Date(tx.created_at).toLocaleDateString('en-NG', { year: 'numeric', month: 'short', day: 'numeric' })}</p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <p className="font-bold text-gray-900">{formatCurrency(tx.amount)}</p>
-                      <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${
-                        tx.status === 'PAID' ? 'bg-green-100 text-green-700' : 
-                        tx.status === 'PARTIAL' ? 'bg-blue-100 text-blue-700' : 
-                        'bg-amber-100 text-amber-700'
-                      }`}>
-                        {tx.status}
-                      </span>
-                    </div>
-                    {tx.status === 'PAID' && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); window.open(`/contact/payment/${tx.id}/receipt`, '_blank'); }}
-                        className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
-                        title="Download Receipt"
-                      >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </main>
     </div>

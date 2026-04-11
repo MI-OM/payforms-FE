@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { LogoIcon } from '@/components/Logo'
+import { ContactSidebar } from '@/components/layouts/ContactSidebar'
 import { contactAuthService } from '@/services/contactAuthService'
 import { contactService } from '@/services/contactService'
-import { ArrowLeft, User, Mail, Phone, GraduationCap, Save, Loader2, Shield, Check } from 'lucide-react'
+import { User, Mail, Phone, GraduationCap, Save, Loader2, Shield, Check } from 'lucide-react'
 
 interface ContactProfile {
   id: string
@@ -29,6 +30,7 @@ export function ContactProfilePage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [formData, setFormData] = useState({
     first_name: '',
     middle_name: '',
@@ -58,6 +60,7 @@ export function ContactProfilePage() {
   }, [])
 
   const handleLogout = async () => {
+    setIsLoggingOut(true)
     try {
       await contactAuthService.logout()
     } catch (err) {
@@ -67,6 +70,7 @@ export function ContactProfilePage() {
       localStorage.removeItem('payforms_access_token')
       localStorage.removeItem('payforms_refresh_token')
       localStorage.removeItem('pf_contact_token')
+      localStorage.removeItem('pf_contact')
       navigate('/contact/login')
     }
   }
@@ -113,39 +117,10 @@ export function ContactProfilePage() {
   const contactName = contact ? [contact.first_name, contact.last_name].filter(Boolean).join(' ') : 'Student'
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-2xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={() => navigate('/contact/dashboard')}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5 text-gray-600" />
-            </button>
-            <div className="flex items-center gap-3">
-              <LogoIcon size="sm" />
-              <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide">Contact Portal</p>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <p className="font-medium text-gray-900">{contactName}</p>
-              <p className="text-sm text-gray-500">{contact?.email}</p>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              Sign Out
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-2xl mx-auto px-6 py-8">
+    <div className="min-h-screen bg-[#f7f9fb]">
+      <ContactSidebar onLogout={handleLogout} />
+      
+      <main className="ml-64 p-8">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
           <p className="text-gray-500 mt-1">View and manage your profile information</p>

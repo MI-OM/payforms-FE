@@ -142,7 +142,7 @@ export function GroupEditorView() {
       groupService.getGroupContacts(id, { limit: 50 })
     ]).then(([groupData, contactsData]) => {
       setGroup(groupData)
-      setForm({ name: groupData.name, description: groupData.description || '' })
+      setForm({ name: groupData.name, description: groupData.description || '', parent_group_id: groupData.parent_group_id })
       setMembers(contactsData.data)
     }).catch(err => {
       console.error('Failed to load group', err)
@@ -294,7 +294,7 @@ export function GroupEditorView() {
             </div>
             <div className="space-y-3">
               {members.slice(0, 5).map((member) => {
-                const displayName = member.name || `${member.first_name || ''} ${member.last_name || ''}`.trim() || 'Unknown'
+                const displayName = `${member.first_name || ''} ${member.last_name || ''}`.trim() || member.email || 'Unknown'
                 return (
                   <div key={member.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center gap-3">

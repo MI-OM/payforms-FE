@@ -195,8 +195,11 @@ export const contactService = {
   },
 
   getContactTransactions: async (id: string, params?: PaginationParams): Promise<PaginatedResponse<Transaction>> => {
+    // Note: This endpoint requires admin auth, not contact auth
+    // There's no /contact-auth/transactions endpoint in the API contract
+    // This will fail for contacts - backend needs a new endpoint
     const contactToken = contactAuth.getAccessToken()
-    const headers: Record<string, string> = {}
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
     if (contactToken) {
       headers['Authorization'] = `Bearer ${contactToken}`
     }
@@ -206,7 +209,10 @@ export const contactService = {
     if (params?.limit) url.searchParams.set('limit', params.limit.toString())
     if (params?.page) url.searchParams.set('page', params.page.toString())
     
-    const response = await fetch(url.toString(), { headers })
+    const response = await fetch(url.toString(), { 
+      headers,
+      credentials: 'include',
+    })
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
       throw new Error(errorData.message || `Request failed: ${response.status}`)

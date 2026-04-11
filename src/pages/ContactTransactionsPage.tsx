@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { LogoIcon } from '@/components/Logo'
+import { ContactSidebar } from '@/components/layouts/ContactSidebar'
 import { contactAuthService } from '@/services/contactAuthService'
 import { contactService, type Transaction } from '@/services/contactService'
-import { ArrowLeft, Search, Download, Filter, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, Download, Filter, ChevronLeft, ChevronRight } from 'lucide-react'
 
 export function ContactTransactionsPage() {
   const navigate = useNavigate()
@@ -14,6 +15,7 @@ export function ContactTransactionsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
   const limit = 10
 
   useEffect(() => {
@@ -27,7 +29,7 @@ export function ContactTransactionsPage() {
           params.status = statusFilter
         }
         
-        const data = await contactService.getContactTransactions(contactData.id, params)
+        const data = await contactAuthService.getTransactions(params)
         setTransactions(data.data)
         setTotalPages(data.totalPages)
       } catch (err) {
@@ -41,6 +43,7 @@ export function ContactTransactionsPage() {
   }, [navigate, page, statusFilter])
 
   const handleLogout = async () => {
+    setIsLoggingOut(true)
     try {
       await contactAuthService.logout()
     } catch (err) {
@@ -50,6 +53,7 @@ export function ContactTransactionsPage() {
       localStorage.removeItem('payforms_access_token')
       localStorage.removeItem('payforms_refresh_token')
       localStorage.removeItem('pf_contact_token')
+      localStorage.removeItem('pf_contact')
       navigate('/contact/login')
     }
   }
@@ -93,42 +97,11 @@ export function ContactTransactionsPage() {
     )
   }
 
-  const contactName = contact ? [contact.first_name, contact.last_name].filter(Boolean).join(' ') : 'Student'
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={() => navigate('/contact/dashboard')}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5 text-gray-600" />
-            </button>
-            <div className="flex items-center gap-3">
-              <LogoIcon size="sm" />
-              <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide">Contact Portal</p>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <p className="font-medium text-gray-900">{contactName}</p>
-              <p className="text-sm text-gray-500">{contact?.email}</p>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              Sign Out
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-4xl mx-auto px-6 py-8">
+    <div className="min-h-screen bg-[#f7f9fb]">
+      <ContactSidebar onLogout={handleLogout} />
+      
+      <main className="ml-64 p-8">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Transaction History</h1>

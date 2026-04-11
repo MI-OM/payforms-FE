@@ -138,6 +138,18 @@ export const formService = {
     return apiClient.delete(`/forms/${formId}/targets/${targetId}`)
   },
 
+  getFormSubmissions: async (params?: {
+    page?: number
+    limit?: number
+    form_id?: string
+    contact_id?: string
+    status?: string
+    start_date?: string
+    end_date?: string
+  }): Promise<PaginatedResponse<FormSubmission>> => {
+    return apiClient.get('/submissions', { params })
+  },
+
   exportSubmissions: async (params?: {
     format?: 'csv' | 'pdf'
     form_id?: string
@@ -316,4 +328,38 @@ export const publicFormService = {
   }> => {
     return publicApi.get(`/public/payments/verify?reference=${reference}`)
   },
+
+  getFormSubmissions: async (params: {
+    form_id?: string
+    contact_id?: string
+    page?: number
+    limit?: number
+    status?: string
+    from?: string
+    to?: string
+  }): Promise<{
+    data: FormSubmission[]
+    meta: { page: number; limit: number; total: number; total_pages: number }
+  }> => {
+    return apiClient.get('/submissions', { params })
+  },
+
+  getSubmission: async (submissionId: string): Promise<FormSubmission> => {
+    return apiClient.get(`/submissions/${submissionId}`)
+  },
+}
+
+export interface FormSubmission {
+  id: string
+  form_id: string
+  form_title?: string
+  contact_id?: string
+  contact_name?: string
+  contact_email?: string
+  data: Record<string, unknown>
+  payment_status?: 'PENDING' | 'PAID' | 'PARTIAL' | 'FAILED'
+  payment_amount?: number
+  reference?: string
+  submitted_at: string
+  updated_at?: string
 }

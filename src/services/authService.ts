@@ -97,8 +97,9 @@ export const authService = {
       return response as TwoFactorChallengeResponse
     }
     // Normal login - set tokens
-    setTokens(response.access_token, response.refresh_token)
-    return response
+    const loginResponse = response as LoginResponse
+    setTokens(loginResponse.access_token, loginResponse.refresh_token)
+    return loginResponse
   },
 
   register: async (data: RegisterRequest): Promise<{ message: string }> => {
