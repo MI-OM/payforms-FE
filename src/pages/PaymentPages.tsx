@@ -967,14 +967,26 @@ export function PaymentSuccessState() {
             
             <div className="w-full flex flex-col gap-4">
               <button
-                onClick={() => navigate(`/payment/receipt/${reference}`)}
+                onClick={() => {
+                  sessionStorage.setItem('receipt_data', JSON.stringify({
+                    reference,
+                    amount,
+                    customer_name: verifiedData?.customer_name || formData.name || '',
+                    customer_email: verifiedData?.customer_email || formData.email || '',
+                    form_title: verifiedData?.form_title || verifiedData?.title || organization,
+                    paid_at: verifiedData?.paid_at || new Date().toISOString(),
+                    status: verifiedData?.status || 'success',
+                    payment_method: state?.payment_method,
+                  }))
+                  navigate(`/payment/receipt/${reference}`)
+                }}
                 className="w-full py-4 bg-[#000] text-white rounded-md font-bold text-sm tracking-wide shadow-lg hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
               >
                 <MaterialIcon name="download" className="w-8 h-8" />
                 Download Receipt
               </button>
               <a
-                href="/"
+                href={window.location.origin}
                 className="w-full py-2 text-[#45464d] hover:text-[#191c1e] transition-colors text-sm font-bold tracking-tight text-center underline underline-offset-4 decoration-[#c6c6cd]/30"
               >
                 Return to Home
@@ -1150,53 +1162,35 @@ export function PaymentFailureState() {
 export function OfficialPaymentReceipt() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [transaction, setTransaction] = useState<Transaction | null>(null)
-  const [contact, setContact] = useState<{ first_name?: string; last_name?: string; email: string; student_id?: string } | null>(null)
   const [organization, setOrganization] = useState<{ name: string } | null>(null)
   const [formTitle, setFormTitle] = useState<string>('')
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (!id) {
-        setLoading(false)
-        return
-      }
+    const storedData = sessionStorage.getItem('receipt_data')
+    
+    if (storedData) {
       try {
-        const [txnData, orgData] = await Promise.all([
-          paymentService.getTransaction(id).catch(() => null),
-          organizationService.getOrganization().catch(() => null)
-        ])
-        setTransaction(txnData)
-        setOrganization(orgData)
-        
-        if (txnData?.submission?.contact_id) {
-          try {
-            const contactData = await contactService.getContact(txnData.submission.contact_id)
-            setContact(contactData)
-          } catch {
-            setContact(null)
-          }
-        }
-        
-        if (txnData?.submission?.form_id) {
-          try {
-            const { publicFormService } = await import('@/services/formService')
-            const formData = await publicFormService.getForm(txnData.submission.form_id)
-            setFormTitle(formData.title || 'Payment')
-          } catch {
-            setFormTitle(txnData.form_title || 'Payment')
-          }
-        } else {
-          setFormTitle(txnData?.form_title || 'Payment')
-        }
-      } catch (err) {
-        console.error('Failed to load receipt data:', err)
-      } finally {
-        setLoading(false)
+        const data = JSON.parse(storedData)
+        setTransaction({
+          reference: data.reference,
+          amount: data.amount?.toString() || '0',
+          amount_paid: data.amount?.toString() || '0',
+          customer_name: data.customer_name,
+          customer_email: data.customer_email,
+          form_title: data.form_title,
+          paid_at: data.paid_at,
+          created_at: data.paid_at || new Date().toISOString(),
+          status: data.status || 'PAID',
+        } as any)
+        setFormTitle(data.form_title || 'Payment')
+      } catch (e) {
+        console.error('Failed to parse stored receipt data', e)
       }
     }
-    fetchData()
+    
+    setOrganization({ name: 'Payforms' })
   }, [id])
 
   const contactName = contact 
@@ -1213,9 +1207,6 @@ export function OfficialPaymentReceipt() {
 
   const handleDownloadPDF = () => {
     window.print()
-    setTimeout(() => {
-      navigate('/')
-    }, 1000)
   }
 
   const handlePrint = () => window.print()

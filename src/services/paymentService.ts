@@ -40,6 +40,7 @@ export interface Transaction {
   student_id?: string
   form_title?: string
   organization_name?: string
+  payment_method?: string
 }
 
 export interface TransactionHistory {
@@ -115,6 +116,44 @@ export const paymentService = {
 
   getTransaction: async (id: string): Promise<Transaction> => {
     return apiClient.get(`/transactions/${id}`)
+  },
+
+  getTransactionByReference: async (reference: string): Promise<Transaction> => {
+    return apiClient.get(`/transactions/reference/${reference}`)
+  },
+
+  getPaymentReceipt: async (id: string): Promise<Blob> => {
+    const token = getAccessToken()
+    if (!token) {
+      throw new Error('Authentication required')
+    }
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+    const response = await fetch(`${apiUrl}/payments/${id}/receipt`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    })
+    if (!response.ok) {
+      throw new Error('Failed to fetch receipt')
+    }
+    return response.blob()
+  },
+
+  getPaymentReceiptByReference: async (reference: string): Promise<Blob> => {
+    const token = getAccessToken()
+    if (!token) {
+      throw new Error('Authentication required')
+    }
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+    const response = await fetch(`${apiUrl}/payments/reference/${reference}/receipt`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    })
+    if (!response.ok) {
+      throw new Error('Failed to fetch receipt')
+    }
+    return response.blob()
   },
 
   getTransactionHistory: async (id: string, params?: PaginationParams): Promise<PaginatedResponse<TransactionHistory>> => {
