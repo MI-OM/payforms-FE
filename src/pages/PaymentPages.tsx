@@ -977,6 +977,9 @@ export function PaymentSuccessState() {
                     form_title: verifiedData?.form_title || verifiedData?.title || organization,
                     organization_name: organization,
                     organization_logo: verifiedData?.organization_logo || '',
+                    organization_email: verifiedData?.organization_email || '',
+                    organization_phone: verifiedData?.organization_phone || '',
+                    organization_address: verifiedData?.organization_address || '',
                     paid_at: verifiedData?.paid_at || new Date().toISOString(),
                     status: verifiedData?.status || 'success',
                     payment_method: verifiedData?.payment_method || state?.payment_method || 'ONLINE',
@@ -1167,7 +1170,7 @@ export function OfficialPaymentReceipt() {
   const { id } = useParams<{ id: string }>()
   const [loading, setLoading] = useState(false)
   const [transaction, setTransaction] = useState<Transaction | null>(null)
-  const [organization, setOrganization] = useState<{ name: string; logo_url?: string } | null>(null)
+  const [organization, setOrganization] = useState<{ name: string; logo_url?: string; email?: string; phone?: string; address?: string } | null>(null)
   const [formTitle, setFormTitle] = useState<string>('')
 
   useEffect(() => {
@@ -1189,7 +1192,13 @@ export function OfficialPaymentReceipt() {
           payment_method: data.payment_method,
         } as any)
         setFormTitle(data.form_title || 'Payment')
-        setOrganization({ name: data.organization_name || 'Payforms', logo_url: data.organization_logo })
+        setOrganization({ 
+          name: data.organization_name || 'Payforms', 
+          logo_url: data.organization_logo,
+          email: data.organization_email,
+          phone: data.organization_phone,
+          address: data.organization_address,
+        })
       } catch (e) {
         console.error('Failed to parse stored receipt data', e)
         setOrganization({ name: 'Payforms' })
@@ -1236,6 +1245,21 @@ export function OfficialPaymentReceipt() {
     doc.setFontSize(8)
     doc.text('Verified Transaction', pageWidth - margin - 10, y + 25, { align: 'right' })
     y += 50
+
+    if (organization?.email || organization?.phone || organization?.address) {
+      doc.setTextColor(80, 80, 80)
+      doc.setFontSize(8)
+      let orgInfo = ''
+      if (organization?.email) orgInfo += organization.email
+      if (organization?.phone) orgInfo += (orgInfo ? ' | ' : '') + organization.phone
+      if (orgInfo) doc.text(orgInfo, pageWidth / 2, y, { align: 'center' })
+      y += 5
+      if (organization?.address) {
+        doc.text(organization.address, pageWidth / 2, y, { align: 'center' })
+        y += 5
+      }
+      y += 5
+    }
 
     doc.setTextColor(60, 60, 60)
     doc.setFontSize(10)
