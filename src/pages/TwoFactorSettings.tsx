@@ -46,6 +46,7 @@ export function TwoFactorSettings() {
       setSetupData(data)
       setStep('verify-setup')
     } catch (err) {
+      console.error('Failed to start 2FA setup:', err)
       if (err instanceof ApiError) {
         setError(err.message)
       } else {
@@ -68,6 +69,7 @@ export function TwoFactorSettings() {
     try {
       const data = await authService.enable2FA(code)
       setRecoveryCodes(data.recovery_codes)
+      setShowRecoveryCodes(true)
       setStep('status')
       loadStatus()
       toast({
@@ -75,6 +77,7 @@ export function TwoFactorSettings() {
         description: 'Two-factor authentication has been enabled successfully.',
       })
     } catch (err) {
+      console.error('Failed to enable 2FA:', err)
       if (err instanceof ApiError) {
         setError(err.message || 'Invalid verification code')
       } else {

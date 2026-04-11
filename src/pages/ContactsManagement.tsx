@@ -79,6 +79,12 @@ export function ContactsManagement() {
     contactName: '',
     status: 'confirm',
   })
+  const [showFilter, setShowFilter] = useState(false)
+  const [filters, setFilters] = useState({
+    is_active: '' as '' | 'true' | 'false',
+    has_balance: '' as '' | 'yes' | 'no',
+    group_id: '' as string,
+  })
   const limit = 20
   const pageRef = useRef(1)
   const totalPagesRef = useRef(1)
@@ -121,15 +127,23 @@ export function ContactsManagement() {
       const currentPage = pageRef.current
       const validPage = isNaN(currentPage) || currentPage < 1 ? 1 : currentPage
       
-      const params: { page: number; limit: number; group_id?: string; search?: string } = {
+      const params: { page: number; limit: number; group_id?: string; search?: string; is_active?: string; has_balance?: string } = {
         page: validPage,
         limit,
       }
       if (selectedGroupId) {
         params.group_id = selectedGroupId
+      } else if (filters.group_id) {
+        params.group_id = filters.group_id
       }
       if (searchQuery) {
         params.search = searchQuery
+      }
+      if (filters.is_active) {
+        params.is_active = filters.is_active
+      }
+      if (filters.has_balance) {
+        params.has_balance = filters.has_balance
       }
       const response: PaginatedResponse<Contact> = await contactService.getContacts(params)
       
@@ -186,7 +200,7 @@ export function ContactsManagement() {
     } finally {
       setLoading(false)
     }
-  }, [selectedGroupId, searchQuery, limit])
+  }, [selectedGroupId, searchQuery, limit, filters])
 
   useEffect(() => {
     fetchGroups()
@@ -334,7 +348,7 @@ export function ContactsManagement() {
               Import Contacts
             </Button>
           </Link>
-          <Link to="/contacts/reminder">
+          <Link to={selectedContactIds.length > 0 ? `/contacts/reminder?ids=${selectedContactIds.join(',')}` : '/contacts/reminder'}>
             <Button variant="secondary" className="bg-[#002113] text-white font-semibold px-5 py-2.5 rounded-md flex items-center gap-2 hover:bg-[#003d20] transition-colors">
               <Send className="h-4 w-4" />
               Send Reminder
@@ -444,16 +458,18 @@ export function ContactsManagement() {
                 />
                 <span>Selected: {selectedContactIds.length}</span>
               </div>
-              {selectedContactIds.length > 0 && (
+                  {selectedContactIds.length > 0 && (
                 <div className="flex items-center gap-1">
                   <Link to={`/contacts/move?ids=${selectedContactIds.join(',')}`}>
                     <button className="p-2 hover:bg-[#f2f4f6] rounded transition-colors text-[#45464d] disabled:opacity-30" title="Move to Group">
                       <FolderInput className="h-5 w-5" />
                     </button>
                   </Link>
-                  <button className="p-2 hover:bg-[#f2f4f6] rounded transition-colors text-[#45464d] disabled:opacity-30" title="Send Email">
-                    <Mail className="h-5 w-5" />
-                  </button>
+                  <Link to={`/contacts/reminder?ids=${selectedContactIds.join(',')}`}>
+                    <button className="p-2 hover:bg-[#f2f4f6] rounded transition-colors text-[#45464d] disabled:opacity-30" title="Send Email">
+                      <Mail className="h-5 w-5" />
+                    </button>
+                  </Link>
                   <button 
                     className="p-2 hover:bg-[#f2f4f6] rounded transition-colors text-[#ba1a1a] disabled:opacity-30" 
                     title="Delete"
@@ -474,10 +490,83 @@ export function ContactsManagement() {
                   onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
                 />
               </div>
-              <button className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-[#45464d] hover:bg-[#f2f4f6] rounded transition-colors">
-                <Filter className="h-4 w-4" />
-                Filter
-              </button>
+              <div className="relative">
+                <button 
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded transition-colors ${showFilter ? 'bg-[#f2f4f6] text-[#006398]' : 'text-[#45464d] hover:bg-[#f2f4f6]'}`}
+                  onClick={() => setShowFilter(!showFilter)}
+                >
+                  <Filter className="h-4 w-4" />
+                  Filter
+                  {(filters.is_active || filters.has_balance || filters.group_id) && (
+                    <span className="w-2 h-2 bg-[#006398] rounded-full"></span>
+                  )}
+                </button>
+                {showFilter && (
+                  <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 p-4 z-50">
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                        <select
+                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                          value={filters.is_active}
+                          onChange={(e) => setFilters({ ...filters, is_active: e.target.value as '' | 'true' | 'false' })}
+                        >
+                          <option value="">All</option>
+                          <option value="true">Active</option>
+                          <option value="false">Inactive</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Balance</label>
+                        <select
+                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                          value={filters.has_balance}
+                          onChange={(e) => setFilters({ ...filters, has_balance: e.target.value as '' | 'yes' | 'no' })}
+                        >
+                          <option value="">All</option>
+                          <option value="yes">Has Balance</option>
+                          <option value="no">No Balance</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Group</label>
+                        <select
+                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                          value={filters.group_id}
+                          onChange={(e) => setFilters({ ...filters, group_id: e.target.value })}
+                        >
+                          <option value="">All Groups</option>
+                          {allGroups.map(group => (
+                            <option key={group.id} value={group.id}>
+                              {cleanGroupName(group.name)}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex gap-2 pt-2">
+                        <button
+                          className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200"
+                          onClick={() => {
+                            setFilters({ is_active: '', has_balance: '', group_id: '' })
+                            setPage(1)
+                          }}
+                        >
+                          Clear
+                        </button>
+                        <button
+                          className="flex-1 px-3 py-2 text-sm font-medium text-white bg-[#006398] rounded hover:bg-[#005080]"
+                          onClick={() => {
+                            setShowFilter(false)
+                            setPage(1)
+                          }}
+                        >
+                          Apply
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
               <button
                 onClick={handleExportContacts}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-[#45464d] hover:bg-[#f2f4f6] rounded transition-colors"

@@ -773,7 +773,25 @@ function TeamSettings() {
 }
 
 function SecuritySettings() {
-  const [twoFactor, setTwoFactor] = useState(false)
+  const navigate = useNavigate()
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    load2FAStatus()
+  }, [])
+
+  const load2FAStatus = async () => {
+    try {
+      const { authService } = await import('@/services/authService')
+      const status = await authService.get2FAStatus()
+      setTwoFactorEnabled(status.enabled)
+    } catch (err) {
+      console.error('Failed to load 2FA status:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -784,10 +802,14 @@ function SecuritySettings() {
             <p className="font-medium text-gray-900">Enable 2FA</p>
             <p className="text-sm text-gray-500">Add an extra layer of security to your account</p>
           </div>
-          <Toggle 
-            checked={twoFactor}
-            onChange={setTwoFactor}
-          />
+          {loading ? (
+            <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+          ) : (
+            <Toggle 
+              checked={twoFactorEnabled}
+              onChange={() => navigate('/settings/2fa')}
+            />
+          )}
         </div>
       </div>
 

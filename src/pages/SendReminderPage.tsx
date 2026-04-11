@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { notificationService } from '@/services/notificationService'
 import { contactService, type Contact } from '@/services/contactService'
@@ -14,6 +14,7 @@ interface SelectedContact {
 
 export function SendReminderPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [contacts, setContacts] = useState<Contact[]>([])
   const [selectedContacts, setSelectedContacts] = useState<SelectedContact[]>([])
   const [loading, setLoading] = useState(true)
@@ -27,8 +28,38 @@ export function SendReminderPage() {
   useEffect(() => {
     const fetchContacts = async () => {
       try {
-        const response = await contactService.getContacts({ limit: 100 })
+        const params: { limit?: number; group_id?: string } = { limit: 100 }
+        
+        // Check for group query param
+        const groupId = searchParams.get('group')
+        if (groupId) {
+          params.group_id = groupId
+        }
+        
+        const response = await contactService.getContacts(params)
         setContacts(response.data)
+        
+        // Pre-select contacts from URL query param
+        const preselectedIds = searchParams.get('ids')
+        if (preselectedIds) {
+          const idsArray = preselectedIds.split(',')
+          const preselected = response.data
+            .filter(c => idsArray.includes(c.id))
+            .map(c => ({
+              id: c.id,
+              name: `${c.first_name || ''} ${c.last_name || ''}`.trim(),
+              email: c.email
+            }))
+          setSelectedContacts(preselected)
+        } else if (groupId) {
+          // If group param exists, select all contacts from that group
+          const groupContacts = response.data.map(c => ({
+            id: c.id,
+            name: `${c.first_name || ''} ${c.last_name || ''}`.trim(),
+            email: c.email
+          }))
+          setSelectedContacts(groupContacts)
+        }
       } catch (err) {
         console.error('Failed to load contacts:', err)
         toast({ title: 'Error', description: 'Failed to load contacts', variant: 'destructive' })
@@ -37,7 +68,7 @@ export function SendReminderPage() {
       }
     }
     fetchContacts()
-  }, [])
+  }, [searchParams])
 
   const filteredContacts = contacts.filter((c) => {
     const name = `${c.first_name || ''} ${c.last_name || ''}`.trim().toLowerCase()
