@@ -42,32 +42,53 @@ export function FormSubmissionsPage() {
   })
 
   const fetchSubmissions = async (page = 1) => {
+    console.log('📊 fetchSubmissions called with page:', page, 'formId:', formId)
     setLoading(true)
     setError(null)
+    
+    // Add timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        console.log('📊 Request timeout - forcing loading to false')
+        setLoading(false)
+        setError('Request timed out. Please try again.')
+      }
+    }, 10000)
+    
     try {
       const response = await formService.getFormSubmissions({
         page,
         limit: pagination.limit,
         form_id: formId
       })
+      console.log('📊 Submissions response:', response)
+      console.log('📊 Submissions data:', response.data)
+      clearTimeout(timeoutId)
       setSubmissions(response.data)
       setPagination(prev => ({
         ...prev,
-        page: response.page,
-        total: response.total,
-        total_pages: response.totalPages
+        page: response.page || page,
+        total: response.total || 0,
+        total_pages: response.totalPages || 1
       }))
     } catch (err) {
-      setError('Failed to load submissions')
-      console.error(err)
+      clearTimeout(timeoutId)
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+      setError('Failed to load submissions: ' + errorMsg)
+      console.error('Submissions fetch error:', err)
     } finally {
+      console.log('📊 Loading set to false')
       setLoading(false)
     }
   }
 
   useEffect(() => {
+    console.log('📊 useEffect triggered, formId:', formId)
     if (formId) {
       fetchSubmissions()
+    } else {
+      console.log('📊 No formId, setting loading to false')
+      setLoading(false)
     }
   }, [formId])
 

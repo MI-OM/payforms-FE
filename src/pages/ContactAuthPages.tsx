@@ -863,9 +863,14 @@ export function ContactDashboard() {
       try {
         setError(null)
         const contactData = await contactAuthService.getMe()
+        console.log('📊 ContactDashboard - API Response:', JSON.stringify(contactData, null, 2))
         setContact(contactData)
         
         const txData = await contactAuthService.getTransactions({ limit: 100 })
+        console.log('📊 ContactDashboard - Transactions Response:', { 
+          count: txData.data.length, 
+          transactions: txData.data.slice(0, 3)
+        })
         setTransactions(txData.data)
       } catch (err) {
         console.error('Failed to fetch data:', err)
@@ -877,6 +882,27 @@ export function ContactDashboard() {
     }
     fetchData()
   }, [navigate])
+
+  // Temporary: Try to get name from localStorage if API doesn't return it
+  const getContactName = () => {
+    if (contact?.first_name || contact?.last_name) {
+      return [contact.first_name, contact.last_name].filter(Boolean).join(' ')
+    }
+    // Try localStorage as fallback
+    const stored = localStorage.getItem('pf_contact')
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored)
+        if (parsed.first_name || parsed.last_name) {
+          return [parsed.first_name, parsed.last_name].filter(Boolean).join(' ')
+        }
+        return parsed.email // Fall back to email
+      } catch {
+        return contact?.email || 'Student'
+      }
+    }
+    return contact?.email || 'Student'
+  }
 
   const handleLogout = async () => {
     setIsLoggingOut(true)
@@ -894,22 +920,36 @@ export function ContactDashboard() {
     }
   }
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: number | string | undefined | null) => {
+    if (amount === undefined || amount === null) {
+      return '₦0'
+    }
+    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount
+    if (isNaN(numAmount)) {
+      return '₦0'
+    }
     return new Intl.NumberFormat('en-NG', {
       style: 'currency',
       currency: 'NGN',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(amount)
+    }).format(numAmount)
+  }
+
+  const getAmount = (tx: Transaction): number => {
+    if (tx.amount === undefined || tx.amount === null) return 0
+    if (typeof tx.amount === 'number') return tx.amount
+    if (typeof tx.amount === 'string') return parseFloat(tx.amount) || 0
+    return 0
   }
 
   const totalPaid = transactions
     .filter(t => t.status === 'PAID')
-    .reduce((sum, t) => sum + t.amount, 0)
+    .reduce((sum, t) => sum + getAmount(t), 0)
   
   const totalPending = transactions
     .filter(t => t.status === 'PENDING' || t.status === 'PARTIAL')
-    .reduce((sum, t) => sum + t.amount, 0)
+    .reduce((sum, t) => sum + getAmount(t), 0)
 
   if (loading) {
     return (
@@ -965,10 +1005,12 @@ export function ContactDashboard() {
       
       <main className="ml-64 p-8">
         <div className="mb-8">
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Welcome back, {contact.first_name || 'Student'}</h2>
-          <div className="flex items-center gap-4 mt-2">
-            <p className="text-slate-600">{contact.email}</p>
-            {contact.student_id && (
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+            Welcome back, {getContactName()}
+          </h2>
+          <div className="flex items-center gap-4 mt-2 flex-wrap">
+            <p className="text-slate-600">{contact?.email}</p>
+            {contact?.student_id && (
               <>
                 <span className="text-gray-300">•</span>
                 <p className="text-slate-600">ID: {contact.student_id}</p>

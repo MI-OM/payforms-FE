@@ -83,12 +83,15 @@ export function ContactProfilePage() {
     setError(null)
     
     try {
-      await contactService.updateContact(contact.id, {
+      await contactAuthService.updateProfile({
         first_name: formData.first_name,
         middle_name: formData.middle_name || undefined,
         last_name: formData.last_name,
         phone: formData.phone || undefined,
       })
+      // Refresh contact data after update
+      const updatedContact = await contactAuthService.getMe()
+      setContact(updatedContact)
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
     } catch (err) {

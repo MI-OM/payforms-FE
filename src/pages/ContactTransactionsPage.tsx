@@ -4,7 +4,7 @@ import { LogoIcon } from '@/components/Logo'
 import { ContactSidebar } from '@/components/layouts/ContactSidebar'
 import { contactAuthService } from '@/services/contactAuthService'
 import { contactService, type Transaction } from '@/services/contactService'
-import { Search, Download, Filter, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, Download, Filter, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 
 export function ContactTransactionsPage() {
   const navigate = useNavigate()
@@ -16,6 +16,8 @@ export function ContactTransactionsPage() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const [downloadingReceipt, setDownloadingReceipt] = useState<string | null>(null)
   const limit = 10
 
   useEffect(() => {
@@ -55,6 +57,57 @@ export function ContactTransactionsPage() {
       localStorage.removeItem('pf_contact_token')
       localStorage.removeItem('pf_contact')
       navigate('/contact/login')
+    }
+  }
+
+  const handleExportCSV = async () => {
+    setExporting(true)
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/contact-auth/transactions?format=csv`,
+        {
+          method: 'GET',
+          credentials: 'include',
+        }
+      )
+      if (!response.ok) {
+        throw new Error('Failed to export transactions')
+      }
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      const date = new Date().toISOString().split('T')[0]
+      a.download = `transactions_${date}.csv`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (err) {
+      console.error('Export error:', err)
+      alert('Failed to export transactions. Please try again.')
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const handleDownloadReceipt = async (paymentId: string, reference?: string) => {
+    setDownloadingReceipt(paymentId)
+    try {
+      const blob = await contactAuthService.getReceipt(paymentId)
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `receipt_${reference || paymentId}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (err) {
+      console.error('Receipt download error:', err)
+      alert('Failed to download receipt. Please try again.')
+    } finally {
+      setDownloadingReceipt(null)
     }
   }
 
@@ -107,9 +160,17 @@ export function ContactTransactionsPage() {
             <h1 className="text-2xl font-bold text-gray-900">Transaction History</h1>
             <p className="text-gray-500 mt-1">View all your payment transactions</p>
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors">
-            <Download className="w-4 h-4" />
-            Export CSV
+          <button 
+            onClick={handleExportCSV} 
+            disabled={exporting || transactions.length === 0}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {exporting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+            {exporting ? 'Exporting...' : 'Export CSV'}
           </button>
         </div>
 
@@ -176,11 +237,19 @@ export function ContactTransactionsPage() {
                     </div>
                     {tx.status === 'PAID' && (
                       <button
-                        onClick={(e) => { e.stopPropagation(); window.open(`/contact/payment/${tx.id}/receipt`, '_blank'); }}
-                        className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          handleDownloadReceipt(tx.id, tx.reference); 
+                        }}
+                        disabled={downloadingReceipt === tx.id}
+                        className="p-2 text-gray-400 hover:text-blue-600 transition-colors disabled:opacity-50"
                         title="Download Receipt"
                       >
-                        <Download className="w-5 h-5" />
+                        {downloadingReceipt === tx.id ? (
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                          <Download className="w-5 h-5" />
+                        )}
                       </button>
                     )}
                   </div>

@@ -36,17 +36,7 @@ export function ContactFormsPage() {
         setError(null)
         const contactData = await contactAuthService.getMe()
         setContact(contactData)
-        
-        try {
-          const formsData = await contactAuthService.getForms({ limit: 50 })
-          const accessibleForms = formsData.data.filter(form => 
-            form.is_active && (form.access_mode === 'OPEN' || form.access_mode === undefined || form.access_mode === 'LOGIN_REQUIRED')
-          )
-          setForms(accessibleForms)
-        } catch (formsErr) {
-          console.warn('Could not fetch forms:', formsErr)
-          setForms([])
-        }
+        setForms([])
       } catch (err) {
         console.error('Failed to fetch data:', err)
         if (err instanceof ApiError && err.status === 401) {

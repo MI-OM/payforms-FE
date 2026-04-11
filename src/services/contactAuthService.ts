@@ -214,6 +214,31 @@ export const contactAuthService = {
     return response.blob()
   },
 
+  updateProfile: async (data: {
+    first_name?: string
+    middle_name?: string
+    last_name?: string
+    phone?: string
+  }): Promise<Contact> => {
+    const token = contactAuth.getAccessToken()
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+    
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/contact-auth/profile`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify(data),
+      credentials: 'include',
+    })
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.message || errorData.error || 'Failed to update profile')
+    }
+    return response.json()
+  },
+
   getForms: async (params?: {
     page?: number
     limit?: number

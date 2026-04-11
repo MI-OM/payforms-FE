@@ -152,21 +152,29 @@ export function AllFormsManagement() {
   })
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto px-4 md:px-0">
       <div className="flex justify-between items-end mb-8">
         <div>
-          <h1 className="text-4xl font-extrabold tracking-tighter text-gray-900 mb-2">Forms</h1>
-          <p className="text-gray-500">Manage all your payment forms in one place.</p>
+          <h1 className="text-2xl md:text-4xl font-extrabold tracking-tighter text-gray-900 mb-2">Forms</h1>
+          <p className="text-gray-500 text-sm md:text-base">Manage all your payment forms in one place.</p>
         </div>
-        <Link to="/forms/new">
-          <Button className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Create New Form
-          </Button>
-        </Link>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <Link to="/forms/new">
+            <Button className="flex items-center gap-2 w-full sm:w-auto">
+              <Plus className="h-4 w-4" />
+              Create New Form
+            </Button>
+          </Link>
+          <Link to="/submissions">
+            <Button variant="outline" className="flex items-center gap-2 w-full sm:w-auto">
+              <FileText className="h-4 w-4" />
+              All Submissions
+            </Button>
+          </Link>
+        </div>
       </div>
 
-      <div className="flex gap-4 mb-6 border-b border-gray-200">
+      <div className="flex gap-2 md:gap-4 mb-6 overflow-x-auto pb-2">
         {[
           { key: 'all', label: 'All' },
           { key: 'active', label: 'Active' },
@@ -175,7 +183,7 @@ export function AllFormsManagement() {
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`pb-3 px-1 text-sm font-bold transition-colors ${
+            className={`pb-3 px-1 text-sm font-bold whitespace-nowrap transition-colors ${
               activeTab === tab.key
                 ? 'text-blue-600 border-b-2 border-blue-600'
                 : 'text-gray-500 hover:text-gray-700'
@@ -214,17 +222,17 @@ export function AllFormsManagement() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
         {filteredForms.map((form) => (
-          <div key={form.id} className="bg-white rounded-xl p-6 border border-gray-100 hover:border-blue-200 transition-colors shadow-sm">
+          <div key={form.id} className="bg-white rounded-xl p-4 md:p-6 border border-gray-100 hover:border-blue-200 transition-colors shadow-sm flex flex-col">
             <div className="flex justify-between items-start mb-4">
-              <div>
-                <h3 className="font-bold text-lg text-gray-900">{form.title}</h3>
-                <p className="text-sm text-gray-500">{form.category || 'Uncategorized'}</p>
+              <div className="min-w-0 flex-1 pr-2">
+                <h3 className="font-bold text-lg text-gray-900 truncate">{form.title}</h3>
+                <p className="text-sm text-gray-500 truncate">{form.category || 'Uncategorized'}</p>
               </div>
-              <div className="relative menu-container">
+              <div className="relative menu-container shrink-0">
                 <button 
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-gray-400 hover:text-gray-600 p-1"
                   onClick={(e) => {
                     e.stopPropagation()
                     setOpenMenu(openMenu === form.id ? null : form.id)
@@ -275,27 +283,27 @@ export function AllFormsManagement() {
               }`}>
                 {form.is_active ? 'Active' : 'Draft'}
               </span>
-              <span className="text-xs text-gray-400">Updated {formatRelativeTime(form.updated_at)}</span>
+              <span className="text-xs text-gray-400 whitespace-nowrap">Updated {formatRelativeTime(form.updated_at)}</span>
             </div>
-            <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100">
+            <div className="flex flex-wrap gap-1 md:gap-2 mt-4 pt-4 border-t border-gray-100">
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="flex items-center gap-1" 
+                className="flex items-center gap-1 text-xs" 
                 onClick={() => handlePreview(form)}
                 disabled={previewLoading}
               >
-                {previewLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
-                Preview
+                {previewLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Eye className="h-3 w-3" />}
+                <span className="hidden md:inline">Preview</span>
               </Button>
               <Link to={`/forms/${form.id}/fields`}>
-                <Button variant="ghost" size="sm" className="flex items-center gap-1">
-                  <Edit className="h-4 w-4" />
-                  Fields
+                <Button variant="ghost" size="sm" className="flex items-center gap-1 text-xs">
+                  <Edit className="h-3 w-3" />
+                  <span className="hidden md:inline">Fields</span>
                 </Button>
               </Link>
               <Link to={`/forms/${form.id}/settings`}>
-                <Button variant="ghost" size="sm" className="flex items-center gap-1">
+                <Button variant="ghost" size="sm" className="flex items-center gap-1 text-xs">
                   Settings
                 </Button>
               </Link>
@@ -303,15 +311,15 @@ export function AllFormsManagement() {
                 href={`/pay/${form.slug}`} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 px-2 py-1 text-sm text-gray-600 hover:text-blue-600 hover:bg-gray-50 rounded"
+                className="inline-flex items-center gap-1 px-2 py-1 text-xs text-gray-600 hover:text-blue-600 hover:bg-gray-50 rounded"
               >
-                <ExternalLink className="h-4 w-4" />
-                Live
+                <ExternalLink className="h-3 w-3" />
+                <span className="hidden md:inline">Live</span>
               </a>
               <Link to={`/forms/${form.id}/submissions`}>
-                <Button variant="ghost" size="sm" className="flex items-center gap-1">
-                  <FileText className="h-4 w-4" />
-                  Submissions
+                <Button variant="ghost" size="sm" className="flex items-center gap-1 text-xs">
+                  <FileText className="h-3 w-3" />
+                  <span className="hidden md:inline">Submissions</span>
                 </Button>
               </Link>
             </div>
