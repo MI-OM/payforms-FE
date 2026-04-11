@@ -200,6 +200,8 @@ export interface PublicForm {
   organization_name: string
   require_contact_login?: boolean
   access_mode?: AccessMode
+  payment_method?: 'ONLINE' | 'CASH' | 'BANK_TRANSFER' | 'POS' | 'CHEQUE'
+  enabled_payment_methods?: ('ONLINE' | 'CASH' | 'BANK_TRANSFER' | 'POS' | 'CHEQUE')[]
 }
 
 export interface FormSubmissionData {
@@ -228,6 +230,7 @@ export interface FormSubmissionResult {
     id: string
     require_login: boolean
   }
+  offline_payment?: boolean
 }
 
 const createPublicApiClient = () => {
@@ -288,6 +291,7 @@ export const publicFormService = {
       contact_name?: string
       callback_url?: string
       partial_amount?: number
+      payment_method?: 'ONLINE' | 'CASH' | 'BANK_TRANSFER' | 'POS' | 'CHEQUE'
     }
   ): Promise<FormSubmissionResult> => {
     const params = options?.callback_url ? `?callback_url=${encodeURIComponent(options.callback_url)}` : ''
@@ -296,6 +300,7 @@ export const publicFormService = {
       contact_email: options?.contact_email,
       contact_name: options?.contact_name,
       partial_amount: options?.partial_amount,
+      payment_method: options?.payment_method,
     })
   },
 

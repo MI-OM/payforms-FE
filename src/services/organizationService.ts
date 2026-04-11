@@ -13,6 +13,7 @@ export interface Organization {
   notify_payment_confirmation?: boolean
   notify_payment_failure?: boolean
   partial_payment_limit?: number
+  enabled_payment_methods?: ('ONLINE' | 'CASH' | 'BANK_TRANSFER' | 'POS' | 'CHEQUE')[]
 }
 
 export interface OrganizationSettings {
@@ -27,6 +28,7 @@ export interface OrganizationSettings {
   notify_payment_confirmation: boolean
   notify_payment_failure: boolean
   partial_payment_limit?: number
+  enabled_payment_methods?: ('ONLINE' | 'CASH' | 'BANK_TRANSFER' | 'POS' | 'CHEQUE')[]
 }
 
 export interface OrganizationUpdateRequest {
@@ -39,6 +41,7 @@ export interface OrganizationUpdateRequest {
   notify_payment_confirmation?: boolean
   notify_payment_failure?: boolean
   partial_payment_limit?: number
+  enabled_payment_methods?: ('ONLINE' | 'CASH' | 'BANK_TRANSFER' | 'POS' | 'CHEQUE')[]
 }
 
 export interface PaystackKeys {

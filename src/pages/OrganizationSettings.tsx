@@ -559,6 +559,7 @@ function NotificationsSettings() {
     notify_payment_confirmation: true,
     notify_payment_failure: true,
     partial_payment_limit: 100,
+    enabled_payment_methods: ['ONLINE'] as ('ONLINE' | 'CASH' | 'BANK_TRANSFER' | 'POS' | 'CHEQUE')[],
   })
   const [isSaving, setIsSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -573,6 +574,9 @@ function NotificationsSettings() {
         notify_payment_confirmation: org.notify_payment_confirmation ?? true,
         notify_payment_failure: org.notify_payment_failure ?? true,
         partial_payment_limit: org.partial_payment_limit ?? 100,
+        enabled_payment_methods: org.enabled_payment_methods && org.enabled_payment_methods.length > 0 
+          ? org.enabled_payment_methods 
+          : ['ONLINE'],
       })
     } catch (err) {
       console.error('Failed to load settings', err)
@@ -676,6 +680,42 @@ function NotificationsSettings() {
             />
             <p className="text-xs text-gray-500">Maximum percentage of total amount that can be paid as partial payment (0-100)</p>
           </div>
+        </div>
+      </div>
+
+      <div className="space-y-6">
+        <h3 className="font-bold mb-4 text-gray-900">Payment Methods</h3>
+        <div className="space-y-3">
+          <p className="text-sm text-gray-500 mb-4">
+            Select which payment methods your contacts can use on checkout. Offline methods create pending payments that require admin confirmation.
+          </p>
+          {(['ONLINE', 'CASH', 'BANK_TRANSFER', 'POS', 'CHEQUE'] as const).map((method) => (
+            <div key={method} className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id={`payment-method-${method}`}
+                checked={settings.enabled_payment_methods?.includes(method) ?? false}
+                onChange={(e) => {
+                  const current = settings.enabled_payment_methods || ['ONLINE']
+                  const updated = e.target.checked
+                    ? [...current, method]
+                    : current.filter(m => m !== method)
+                  setSettings({
+                    ...settings,
+                    enabled_payment_methods: updated.length > 0 ? updated : ['ONLINE']
+                  })
+                }}
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <Label htmlFor={`payment-method-${method}`} className="text-gray-700 cursor-pointer">
+                {method === 'ONLINE' && 'Pay Online'}
+                {method === 'CASH' && 'Cash'}
+                {method === 'BANK_TRANSFER' && 'Bank Transfer'}
+                {method === 'POS' && 'POS'}
+                {method === 'CHEQUE' && 'Cheque'}
+              </Label>
+            </div>
+          ))}
         </div>
       </div>
 

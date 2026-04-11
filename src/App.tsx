@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { Toaster } from '@/components/ui/toaster'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { PayformsLandingPage } from '@/pages/LandingPages'
@@ -29,6 +29,7 @@ import { MoveContactToGroupView } from '@/pages/MoveContact'
 import { MoveContactSuccessFailureStates } from '@/pages/MoveContact'
 import { AllTransactionsLedger } from '@/pages/AllTransactionsLedger'
 import { PendingTransactions } from '@/pages/PendingTransactions'
+import { OfflinePaymentsPage } from '@/pages/OfflinePaymentsPage'
 import { IndividualTransactionDetail } from '@/pages/TransactionDetail'
 import { ConfirmPaymentCheckout } from '@/pages/PaymentPages'
 import { PaymentSuccessState } from '@/pages/PaymentPages'
@@ -47,6 +48,7 @@ import { ContactFormsPage } from '@/pages/ContactFormsPage'
 import { ContactTransactionsPage } from '@/pages/ContactTransactionsPage'
 import { ContactPaymentDetailPage } from '@/pages/ContactPaymentDetailPage'
 import { ContactProfilePage } from '@/pages/ContactProfilePage'
+import { ContactNotificationsPage } from '@/pages/ContactNotificationsPage'
 import { ReportsAnalytics } from '@/pages/ReportsAnalytics'
 import { OrganizationSettings } from '@/pages/OrganizationSettings'
 import { FormFieldsManagement, FormDeleteConfirmation } from '@/pages/FormScreens'
@@ -73,6 +75,7 @@ import { FullTransactionHistoryContact } from '@/pages/ContactAndFormsPages'
 import { ForgeProtocol } from '@/pages/LandingPages'
 import { ArchitecturalLedgerAdminPaymentFlow } from '@/pages/LandingPages'
 import { DashboardLayout } from '@/components/layouts/DashboardLayout'
+import { ContactLayout } from '@/components/layouts/ContactLayout'
 import { AuthProvider, useAuth, useRequireAuth } from '@/contexts/AuthContext'
 import { ContactAuthProvider } from '@/contexts/ContactAuthContext'
 
@@ -150,18 +153,23 @@ function App() {
         <Route path="/password-reset/confirm/:token" element={<PasswordResetConfirm />} />
         <Route path="/move/success" element={<MoveContactSuccessFailureStates />} />
         
-        {/* Contact Auth Routes */}
+        {/* Contact Auth Routes - Public (no layout) */}
+        <Route path="/contact/login" element={<ContactLoginPage />} />
+        <Route path="/contact/set-password" element={<ContactSetPassword />} />
+        <Route path="/contact-reset" element={<ContactSetPassword />} />
+        <Route path="/contact/reset-password" element={<ContactResetPasswordRequest />} />
+        <Route path="/contact/reset-password/:token" element={<ContactResetPasswordConfirm />} />
+        
+        {/* Contact Auth Routes - Authenticated (with layout) */}
         <Route element={<ContactAuthProvider />}>
-          <Route path="/contact/login" element={<ContactLoginPage />} />
-          <Route path="/contact/set-password" element={<ContactSetPassword />} />
-          <Route path="/contact-reset" element={<ContactSetPassword />} />
-          <Route path="/contact/reset-password" element={<ContactResetPasswordRequest />} />
-          <Route path="/contact/reset-password/:token" element={<ContactResetPasswordConfirm />} />
-          <Route path="/contact/dashboard" element={<ContactDashboard />} />
-          <Route path="/contact/forms" element={<ContactFormsPage />} />
-          <Route path="/contact/transactions" element={<ContactTransactionsPage />} />
-          <Route path="/contact/payment/:id" element={<ContactPaymentDetailPage />} />
-          <Route path="/contact/profile" element={<ContactProfilePage />} />
+          <Route element={<ContactLayout />}>
+            <Route path="/contact/dashboard" element={<ContactDashboard />} />
+            <Route path="/contact/forms" element={<ContactFormsPage />} />
+            <Route path="/contact/transactions" element={<ContactTransactionsPage />} />
+            <Route path="/contact/payment/:id" element={<ContactPaymentDetailPage />} />
+            <Route path="/contact/profile" element={<ContactProfilePage />} />
+            <Route path="/contact/notifications" element={<ContactNotificationsPage />} />
+          </Route>
         </Route>
         
         {/* Payment Flows */}
@@ -232,6 +240,7 @@ function App() {
 
           {/* Payments alias for /transactions */}
           <Route path="/payments" element={<AllTransactionsLedger />} />
+          <Route path="/payments/offline" element={<OfflinePaymentsPage />} />
           <Route path="/payments/export" element={<TransactionExport />} />
           <Route path="/payments/:id" element={<IndividualTransactionDetail />} />
           <Route path="/payments/:id/history" element={<TransactionHistory />} />

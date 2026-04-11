@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Search, RefreshCw, Loader2, TrendingUp, CheckCircle, X, Edit2, Eye, AlertCircle, ArrowLeft } from 'lucide-react'
+import { Search, RefreshCw, Loader2, TrendingUp, CheckCircle, X, Edit2, Eye, AlertCircle, ArrowLeft, CreditCard } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { paymentService } from '@/services/paymentService'
@@ -296,6 +296,16 @@ export function PendingTransactions() {
               <RefreshCw className="h-4 w-4" />
               Refresh
             </Button>
+            <Link to="/payments/offline">
+              <Button 
+                variant="secondary" 
+                size="sm"
+                className="flex items-center gap-2 bg-white border border-[#c6c6cd] text-[#191c1e] font-semibold px-4 py-2 rounded-md hover:bg-[#f2f4f6]"
+              >
+                <CreditCard className="h-4 w-4" />
+                Offline Payments
+              </Button>
+            </Link>
             <Link to="/transactions">
               <Button 
                 variant="outline" 

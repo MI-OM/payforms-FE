@@ -269,6 +269,56 @@ export const contactAuthService = {
       totalPages: data.totalPages || Math.ceil((data.total || formsList.length) / (params?.limit || 50)),
     }
   },
+
+  getNotifications: async (params?: {
+    page?: number
+    limit?: number
+  }): Promise<PaginatedResponse<ContactNotification>> => {
+    const token = contactAuth.getAccessToken()
+    if (!token) {
+      throw new Error('Authentication required')
+    }
+    
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/contact-auth/notifications?limit=${params?.limit || 20}&page=${params?.page || 1}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      credentials: 'include',
+    })
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.message || errorData.error || `Request failed: ${response.status}`)
+    }
+    const data = await response.json()
+    const notificationsList = data.data || []
+    return {
+      data: notificationsList,
+      total: data.total || notificationsList.length,
+      page: data.page || 1,
+      limit: data.limit || params?.limit || 20,
+      totalPages: data.totalPages || Math.ceil((data.total || notificationsList.length) / (params?.limit || 20)),
+    }
+  },
+
+  markNotificationAsRead: async (notificationId: string): Promise<void> => {
+    const token = contactAuth.getAccessToken()
+    if (!token) {
+      throw new Error('Authentication required')
+    }
+    
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/contact-auth/notifications/${notificationId}/read`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      credentials: 'include',
+    })
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.message || errorData.error || `Request failed: ${response.status}`)
+    }
+  },
 }
 
 export interface Form {
@@ -287,4 +337,15 @@ export interface Form {
   identity_field_label?: string
   created_at: string
   updated_at: string
+}
+
+export interface ContactNotification {
+  id: string
+  title: string
+  message: string
+  type: string
+  is_read: boolean
+  created_at: string
+  read_at?: string
+  link?: string
 }

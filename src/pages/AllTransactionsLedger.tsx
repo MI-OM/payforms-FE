@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Search, Download, MoreVertical, CheckCircle, Clock, XCircle, Loader2, TrendingUp, TrendingDown, Filter, Calendar, Eye, RefreshCw, Edit2, X } from 'lucide-react'
+import { Search, Download, MoreVertical, CheckCircle, Clock, XCircle, Loader2, TrendingUp, TrendingDown, Filter, Calendar, Eye, RefreshCw, Edit2, X, CreditCard } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { paymentService } from '@/services/paymentService'
@@ -133,6 +133,7 @@ interface TransactionData {
   paid_at: string | null
   created_at: string
   submission: Submission
+  payment_method?: string
 }
 
 interface SummaryStats {
@@ -385,6 +386,16 @@ export function AllTransactionsLedger() {
               <Download className="h-4 w-4" />
               Export CSV
             </Button>
+            <Link to="/payments/offline">
+              <Button 
+                variant="secondary" 
+                size="sm"
+                className="flex items-center gap-2 bg-white border border-[#c6c6cd] text-[#191c1e] font-semibold px-4 py-2 rounded-md hover:bg-[#f2f4f6]"
+              >
+                <CreditCard className="h-4 w-4" />
+                Offline Payments
+              </Button>
+            </Link>
           </div>
         </div>
 
@@ -543,13 +554,14 @@ export function AllTransactionsLedger() {
         <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-[#c6c6cd]/10">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
-              <thead>
+                <thead>
                 <tr className="bg-[#f2f4f6] border-b border-[#c6c6cd]/10">
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-[#45464d]">Transaction ID</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-[#45464d]">Date</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-[#45464d]">Contact</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-[#45464d]">Form</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-[#45464d] text-right">Amount</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-[#45464d] text-center">Method</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-[#45464d] text-center">Status</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-[#45464d] text-right">Actions</th>
                 </tr>
@@ -591,6 +603,15 @@ export function AllTransactionsLedger() {
                       <p className="text-sm text-[#45464d]">{getFormName(txn.submission?.form_id)}</p>
                     </td>
                     <td className="px-6 py-5 text-sm font-bold text-[#191c1e] text-right">{formatCurrency(parseFloat(txn.amount))}</td>
+                    <td className="px-6 py-5 text-center">
+                      <span className="text-xs text-[#45464d]">
+                        {txn.payment_method === 'ONLINE' ? 'Pay Online' : 
+                         txn.payment_method === 'CASH' ? 'Cash' :
+                         txn.payment_method === 'BANK_TRANSFER' ? 'Bank Transfer' :
+                         txn.payment_method === 'POS' ? 'POS' :
+                         txn.payment_method === 'CHEQUE' ? 'Cheque' : '-'}
+                      </span>
+                    </td>
                     <td className="px-6 py-5 text-center">
                       <span className={getStatusBadge(txn.status)}>
                         {txn.status}

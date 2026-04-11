@@ -44,6 +44,7 @@ export function PublicPaymentPage() {
   const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState<PublicForm | null>(null)
   const [paymentType, setPaymentType] = useState<'full' | 'partial'>('partial')
+  const [paymentMethod, setPaymentMethod] = useState<'ONLINE' | 'CASH' | 'BANK_TRANSFER' | 'POS' | 'CHEQUE'>('ONLINE')
   const [partialAmount, setPartialAmount] = useState('')
   const [formFields, setFormFields] = useState<Record<string, string>>({})
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -71,6 +72,10 @@ export function PublicPaymentPage() {
         
         if (formData.payment_type === 'FIXED' && formData.amount) {
           setPartialAmount(formData.amount.toString())
+        }
+        
+        if (formData.enabled_payment_methods && formData.enabled_payment_methods.length > 0) {
+          setPaymentMethod(formData.enabled_payment_methods[0])
         }
         
         const accessMode = formData.access_mode || 'OPEN'
@@ -176,9 +181,27 @@ export function PublicPaymentPage() {
         contact_name: nameField ? formFields[nameField.id] : undefined,
         partial_amount: form.allow_partial && paymentType === 'partial' ? parseFloat(partialAmount) : undefined,
         callback_url: getCallbackUrl(),
+        payment_method: paymentMethod !== 'ONLINE' ? paymentMethod : undefined,
       })
       
       console.log('[Payment] Submission result:', result)
+      
+      if (result.offline_payment) {
+        sessionStorage.setItem('pending_payment_reference', result.payment?.reference || '')
+        sessionStorage.setItem('pending_payment_amount', (paymentType === 'partial' ? parseFloat(partialAmount) : (form?.amount || 0)).toString())
+        sessionStorage.setItem('pending_payment_organization', form?.organization_name || '')
+        navigate(`/payment/success`, {
+          state: {
+            submission_id: result.submission?.id,
+            reference: result.payment?.reference || '',
+            amount: paymentType === 'partial' ? parseFloat(partialAmount) : (form?.amount || 0),
+            organization: form.organization_name,
+            offline_payment: true,
+            payment_method: paymentMethod,
+          }
+        })
+        return
+      }
       
       const paymentReference = result.authorization?.reference || result.payment?.reference || ''
       const paystackUrl = result.authorization?.authorization_url || ''
@@ -339,10 +362,128 @@ export function PublicPaymentPage() {
               
               <hr className="border-[#c6c6cd]/20" />
               
-                <div className="space-y-6">
+              <div className="space-y-6">
                 <h3 className="font-['Manrope'] text-2xl font-bold">Payment Options</h3>
                 
-                {form.payment_type === 'FIXED' && form.allow_partial && (
+                {form.enabled_payment_methods && form.enabled_payment_methods.length > 0 && !form.enabled_payment_methods.includes('ONLINE') ? (
+                  <div className="space-y-4">
+                    <label className="font-['Inter'] text-xs font-bold uppercase tracking-wider text-[#45464d]">Select Payment Method</label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {form.enabled_payment_methods.includes('CASH') && (
+                        <button
+                          onClick={() => setPaymentMethod('CASH')}
+                          className={`flex flex-col items-center p-4 rounded-xl ring-1 transition-all text-center ${
+                            paymentMethod === 'CASH' 
+                              ? 'bg-white ring-2 ring-[#000] shadow-md' 
+                              : 'bg-white ring-[#c6c6cd]/15 hover:ring-[#188ace]/50'
+                          }`}
+                        >
+                          <MaterialIcon name="payments" className="w-8 h-8 text-[#188ace] mb-2" />
+                          <span className="font-bold text-sm text-[#191c1e]">Cash</span>
+                        </button>
+                      )}
+                      {form.enabled_payment_methods.includes('BANK_TRANSFER') && (
+                        <button
+                          onClick={() => setPaymentMethod('BANK_TRANSFER')}
+                          className={`flex flex-col items-center p-4 rounded-xl ring-1 transition-all text-center ${
+                            paymentMethod === 'BANK_TRANSFER' 
+                              ? 'bg-white ring-2 ring-[#000] shadow-md' 
+                              : 'bg-white ring-[#c6c6cd]/15 hover:ring-[#188ace]/50'
+                          }`}
+                        >
+                          <MaterialIcon name="account_balance" className="w-8 h-8 text-[#188ace] mb-2" />
+                          <span className="font-bold text-sm text-[#191c1e]">Bank Transfer</span>
+                        </button>
+                      )}
+                      {form.enabled_payment_methods.includes('POS') && (
+                        <button
+                          onClick={() => setPaymentMethod('POS')}
+                          className={`flex flex-col items-center p-4 rounded-xl ring-1 transition-all text-center ${
+                            paymentMethod === 'POS' 
+                              ? 'bg-white ring-2 ring-[#000] shadow-md' 
+                              : 'bg-white ring-[#c6c6cd]/15 hover:ring-[#188ace]/50'
+                          }`}
+                        >
+                          <MaterialIcon name="point_of_sale" className="w-8 h-8 text-[#188ace] mb-2" />
+                          <span className="font-bold text-sm text-[#191c1e]">POS</span>
+                        </button>
+                      )}
+                      {form.enabled_payment_methods.includes('CHEQUE') && (
+                        <button
+                          onClick={() => setPaymentMethod('CHEQUE')}
+                          className={`flex flex-col items-center p-4 rounded-xl ring-1 transition-all text-center ${
+                            paymentMethod === 'CHEQUE' 
+                              ? 'bg-white ring-2 ring-[#000] shadow-md' 
+                              : 'bg-white ring-[#c6c6cd]/15 hover:ring-[#188ace]/50'
+                          }`}
+                        >
+                          <MaterialIcon name="description" className="w-8 h-8 text-[#188ace] mb-2" />
+                          <span className="font-bold text-sm text-[#191c1e]">Cheque</span>
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-sm text-[#45464d] bg-[#f2f4f6] p-3 rounded-lg">
+                      You will receive instructions after submission on how to complete your payment.
+                    </p>
+                  </div>
+                ) : form.enabled_payment_methods && form.enabled_payment_methods.length > 0 && form.enabled_payment_methods.includes('ONLINE') ? (
+                  <div className="space-y-4">
+                    <label className="font-['Inter'] text-xs font-bold uppercase tracking-wider text-[#45464d]">Select Payment Type</label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <button
+                        onClick={() => {
+                          setPaymentType('full')
+                          setPartialAmount((form.amount || 0).toString())
+                        }}
+                        className={`flex flex-col items-start p-6 rounded-xl ring-1 transition-all text-left ${
+                          paymentType === 'full' 
+                            ? 'bg-white ring-2 ring-[#000] shadow-md' 
+                            : 'bg-white ring-[#c6c6cd]/15 hover:ring-[#188ace]/50'
+                        }`}
+                      >
+                        <MaterialIcon name="account_balance_wallet" className="w-8 h-8 text-[#188ace]" />
+                        <span className="font-bold text-[#191c1e]">Full Settlement</span>
+                        <span className="text-sm text-[#45464d]">Pay the total balance of ₦{(form.amount || 0).toLocaleString()}</span>
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          setPaymentType('partial')
+                          setPartialAmount('')
+                        }}
+                        className={`flex flex-col items-start p-6 rounded-xl transition-all text-left ${
+                          paymentType === 'partial' 
+                            ? 'bg-white ring-2 ring-[#000] shadow-md' 
+                            : 'bg-white ring-1 ring-[#c6c6cd]/15 hover:ring-[#188ace]/50'
+                        }`}
+                      >
+                        <MaterialIcon name="payments" className={`w-8 h-8 ${paymentType === 'partial' ? 'text-[#000]' : 'text-[#188ace]'}`} />
+                        <span className="font-bold text-[#191c1e]">Partial Payment</span>
+                        <span className="text-sm text-[#45464d]">Specify an amount to pay today</span>
+                      </button>
+                    </div>
+                    
+                    {paymentType === 'partial' && (
+                      <div className="space-y-2">
+                        <label className="font-['Inter'] text-xs font-bold uppercase tracking-wider text-[#45464d]">Enter Amount to Pay</label>
+                        <div className="relative">
+                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-bold text-[#76777d]">₦</span>
+                          <input
+                            type="number"
+                            placeholder="0.00"
+                            value={partialAmount}
+                            onChange={(e) => setPartialAmount(e.target.value)}
+                            min="1"
+                            max={form.amount || undefined}
+                            className="w-full bg-white border border-[#c6c6cd]/30 rounded-xl py-3 pl-10 pr-4 text-lg font-semibold focus:ring-2 focus:ring-[#188ace] focus:border-[#188ace] outline-none transition-all"
+                          />
+                        </div>
+                        <p className="text-xs text-[#45464d]">Maximum: ₦{(form.amount || 0).toLocaleString()}</p>
+                        {errors.amount && <p className="text-red-500 text-xs">{errors.amount}</p>}
+                      </div>
+                    )}
+                  </div>
+                ) : (
                   <div className="space-y-4">
                     <label className="font-['Inter'] text-xs font-bold uppercase tracking-wider text-[#45464d]">Select Payment Type</label>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -424,9 +565,9 @@ export function PublicPaymentPage() {
                     <p className="text-sm">This form does not allow partial payments. Please pay the full amount.</p>
                   </div>
                 )}
-              </div>
-            </section>
-          </div>
+                </div>
+              </section>
+            </div>
           
           <aside className="lg:col-span-5">
             <div className="sticky top-12 bg-white/70 backdrop-blur-[20px] rounded-2xl p-8 shadow-2xl shadow-[#191c1e]/5 border border-white/40">
@@ -665,7 +806,7 @@ export function PaymentSuccessState() {
   const pendingAmount = sessionStorage.getItem('pending_payment_amount')
   const pendingOrganization = sessionStorage.getItem('pending_payment_organization')
   
-  const state = location.state as { formData?: { name?: string; email?: string }; amount?: number; organization?: string; studentRef?: string; reference?: string; submission_id?: string } | null
+  const state = location.state as { formData?: { name?: string; email?: string }; amount?: number; organization?: string; studentRef?: string; reference?: string; submission_id?: string; offline_payment?: boolean; payment_method?: string } | null
   
   const [verifying, setVerifying] = useState(true)
   const [verifiedData, setVerifiedData] = useState<Record<string, any> | null>(null)
@@ -779,6 +920,12 @@ export function PaymentSuccessState() {
               <MaterialIcon name="verified" className="w-5 h-5 text-[#009668]" />
               <span className="text-[10px] font-bold uppercase tracking-widest text-[#009668] font-['Inter']">Payment Verified</span>
             </div>
+            {(state?.offline_payment || verifiedData?.offline_payment) && (
+              <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm">
+                <p className="font-semibold mb-1">Awaiting Confirmation</p>
+                <p>Your {state?.payment_method?.toLowerCase().replace('_', ' ') || 'offline'} payment is pending admin review. You will be notified once confirmed.</p>
+              </div>
+            )}
             <p className="text-[#45464d] leading-relaxed px-4 mb-10 font-medium">
               Your payment for <span className="text-[#191c1e] font-bold">{verifiedData?.form_title || verifiedData?.title || organization}</span> has been confirmed. A receipt has been sent to <span className="text-[#188ace] font-semibold">{verifiedData?.customer_email || verifiedData?.email || formData.email}</span>.
             </p>

@@ -113,7 +113,7 @@ export function ContactAuthProvider({ children }: { children?: React.ReactNode }
       error,
       clearError,
     }}>
-      {children ?? <ContactLayout />}
+      {children ?? <Outlet />}
     </ContactAuthContext.Provider>
   )
 }

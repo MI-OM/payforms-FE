@@ -9,6 +9,11 @@ export interface AuditLog {
   entity_id?: string
   user_id?: string
   user_email?: string
+  contact_id?: string
+  contact_name?: string
+  contact_email?: string
+  actor_type?: 'admin' | 'staff' | 'contact' | 'system'
+  actor_name?: string
   ip_address?: string
   user_agent?: string
   details?: Record<string, unknown>
@@ -28,6 +33,7 @@ export interface AuditLogFilters {
   entity_type?: string
   entity_id?: string
   user_id?: string
+  contact_id?: string
   ip_address?: string
   user_agent?: string
   keyword?: string

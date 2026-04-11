@@ -415,6 +415,7 @@ export function AuditLogs() {
   const [filters, setFilters] = useState({
     action: '',
     entity_type: '',
+    contact_id: '',
     from: '',
     to: '',
   })
@@ -542,7 +543,7 @@ export function AuditLogs() {
         </Button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm">
+        <div className="bg-white rounded-xl shadow-sm">
         <div className="p-4 border-b border-gray-100">
           <div className="flex flex-wrap gap-4">
             <div className="relative flex-1 min-w-[200px]">
@@ -565,6 +566,12 @@ export function AuditLogs() {
               className="w-32"
               value={filters.entity_type}
               onChange={(e) => setFilters({ ...filters, entity_type: e.target.value })}
+            />
+            <Input 
+              placeholder="Contact ID"
+              className="w-32"
+              value={filters.contact_id}
+              onChange={(e) => setFilters({ ...filters, contact_id: e.target.value })}
             />
             <Input 
               type="date"
@@ -593,7 +600,7 @@ export function AuditLogs() {
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Timestamp</th>
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Action</th>
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Entity</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">User</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Actor</th>
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">IP Address</th>
                 </tr>
               </thead>
@@ -612,7 +619,16 @@ export function AuditLogs() {
                       {log.entity_type}
                       <span className="text-gray-400 ml-1 text-xs">{log.entity_id}</span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{log.user_email || 'System'}</td>
+                    <td className="px-4 py-3 text-sm text-gray-900">
+                      {log.actor_type === 'contact' && log.contact_name ? (
+                        <div className="flex flex-col">
+                          <span>{log.contact_name}</span>
+                          <span className="text-xs text-gray-500">{log.contact_email}</span>
+                        </div>
+                      ) : (
+                        log.user_email || 'System'
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-sm text-gray-500 font-mono">{log.ip_address || '-'}</td>
                   </tr>
                 ))}

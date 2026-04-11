@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { UserPlus, Check, X } from 'lucide-react'
+import { UserPlus, Check, X, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -43,6 +43,14 @@ export function InviteStaff() {
   return (
     <div className="flex items-center justify-center">
       <div className="bg-white rounded-xl p-8 max-w-md w-full shadow-sm">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-4 transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span className="text-sm">Back</span>
+        </button>
+
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <UserPlus className="h-8 w-8 text-blue-600" />

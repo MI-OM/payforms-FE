@@ -9,6 +9,12 @@ export interface Payment {
   status: 'PENDING' | 'PAID' | 'PARTIAL' | 'FAILED'
   paid_at?: string
   created_at: string
+  payment_method?: 'ONLINE' | 'CASH' | 'BANK_TRANSFER' | 'POS' | 'CHEQUE'
+  confirmation_note?: string
+  external_reference?: string
+  contact_name?: string
+  contact_email?: string
+  form_title?: string
 }
 
 export interface Transaction {
@@ -49,6 +55,7 @@ export interface CreatePaymentRequest {
   amount: number
   total_amount?: number
   reference?: string
+  payment_method?: 'ONLINE' | 'CASH' | 'BANK_TRANSFER' | 'POS' | 'CHEQUE'
 }
 
 export interface UpdatePaymentStatusRequest {
@@ -141,5 +148,34 @@ export const paymentService = {
     }
     
     return response.blob()
+  },
+
+  getOfflinePendingPayments: async (params?: {
+    page?: number
+    limit?: number
+    form_id?: string
+    contact_id?: string
+    payment_method?: string
+    start_date?: string
+    end_date?: string
+  }): Promise<PaginatedResponse<Payment>> => {
+    return apiClient.get('/payments/offline/pending', { params })
+  },
+
+  submitOfflinePaymentForReview: async (paymentId: string, data: {
+    notes?: string
+  }): Promise<Payment> => {
+    return apiClient.post(`/payments/${paymentId}/offline-review`, data)
+  },
+
+  updateOfflinePaymentReview: async (paymentId: string, data: {
+    status: 'PAID' | 'PARTIAL' | 'FAILED'
+    paid_at?: string
+    amount_paid?: number
+    payment_method?: 'ONLINE' | 'CASH' | 'BANK_TRANSFER' | 'POS' | 'CHEQUE'
+    confirmation_note?: string
+    external_reference?: string
+  }): Promise<Payment> => {
+    return apiClient.patch(`/payments/${paymentId}/offline-review`, data)
   },
 }
