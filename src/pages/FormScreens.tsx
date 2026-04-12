@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { ArrowLeft, Plus, Trash2, Edit2, Settings, AlertTriangle, X, Check, Grip, Loader, Save } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, Edit2, Settings, AlertTriangle, X, Check, Grip, Loader, Save, Box } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { formService, type FormField, type Form } from '@/services/formService'
 import { toast } from '@/components/ui/use-toast'
@@ -169,6 +169,12 @@ export function FormFieldsManagement() {
               <Button variant="secondary">
                 <Settings className="h-4 w-4 mr-2" />
                 Settings
+              </Button>
+            </Link>
+            <Link to={`/forms/${id}/widget`}>
+              <Button variant="secondary">
+                <Box className="h-4 w-4 mr-2" />
+                Widget
               </Button>
             </Link>
             <Button variant="secondary" onClick={() => navigate(`/forms/${id}/delete`)} className="text-red-600 hover:bg-red-50">
