@@ -105,18 +105,6 @@ export function Sidebar({
           <MaterialIcon name="close" />
         </button>
 
-        {/* Collapse Toggle */}
-        <button
-          onClick={onToggleCollapse}
-          className="absolute top-1/2 -translate-y-1/2 -right-3.5 flex items-center justify-center w-6 h-10 bg-slate-200 hover:bg-slate-300 rounded-l-md transition-colors z-50 group"
-          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          <MaterialIcon 
-            name={collapsed ? "chevron_right" : "chevron_left"} 
-            className="text-slate-500 group-hover:text-slate-700" 
-          />
-        </button>
-
         {/* Logo */}
         <div className="flex items-center gap-3 px-4 pt-4 pb-6 border-b border-slate-100 shrink-0">
           {organizationLogo ? (
@@ -140,6 +128,17 @@ export function Sidebar({
               </p>
             </div>
           )}
+          {/* Collapse Button */}
+          <button
+            onClick={onToggleCollapse}
+            className="ml-auto p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            <MaterialIcon 
+              name={collapsed ? "chevron_right" : "chevron_left"} 
+              className="text-xl" 
+            />
+          </button>
         </div>
 
         {/* Collapse Toggle */}
