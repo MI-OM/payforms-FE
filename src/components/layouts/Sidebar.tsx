@@ -93,7 +93,7 @@ export function Sidebar({
 
       {/* Sidebar */}
       <aside className={cn(
-        "h-screen fixed left-0 top-0 bg-slate-50 flex flex-col z-50 overflow-hidden transition-all duration-300",
+        "h-screen fixed left-0 top-0 bg-slate-50 flex flex-col z-50 transition-all duration-300",
         collapsed ? "w-20" : "w-64",
         mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
@@ -103,6 +103,15 @@ export function Sidebar({
           className="lg:hidden absolute top-4 right-4 p-1 text-slate-500 hover:text-slate-900 z-10"
         >
           <MaterialIcon name="close" />
+        </button>
+
+        {/* Collapse Toggle - outside overflow */}
+        <button
+          onClick={onToggleCollapse}
+          className="absolute top-1/2 -translate-y-1/2 -right-4 w-8 h-8 bg-blue-600 border-4 border-white rounded-full flex items-center justify-center text-white hover:bg-blue-700 hover:shadow-lg transition-all z-50 shadow-md"
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          <MaterialIcon name={collapsed ? "chevron_right" : "chevron_left"} className="text-base" />
         </button>
 
         {/* Logo */}
@@ -133,10 +142,11 @@ export function Sidebar({
         {/* Collapse Toggle */}
         <button
           onClick={onToggleCollapse}
-          className="hidden lg:flex absolute top-1/2 -translate-y-1/2 -right-3 w-7 h-7 bg-blue-600 border-2 border-white rounded-full items-center justify-center text-white hover:bg-blue-700 hover:shadow-md transition-all z-10 shadow-sm"
+          className="absolute top-1/2 -translate-y-1/2 -right-3 w-8 h-8 bg-blue-600 border-4 border-white rounded-full items-center justify-center text-white hover:bg-blue-700 hover:shadow-lg transition-all z-50 shadow-md"
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          style={{ display: 'flex' }}
         >
-          <MaterialIcon name={collapsed ? "chevron_right" : "chevron_left"} className="text-sm" />
+          <MaterialIcon name={collapsed ? "chevron_right" : "chevron_left"} className="text-base" />
         </button>
 
         {/* Scrollable Navigation */}
