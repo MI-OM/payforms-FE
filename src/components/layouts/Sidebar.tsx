@@ -41,6 +41,8 @@ function MaterialIcon({ name, className = '' }: { name: string; className?: stri
     close: "M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z",
     expand_more: "M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z",
     expand_less: "M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z",
+    chevron_right: "M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z",
+    chevron_left: "M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z",
     add: "M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z",
   }
   
@@ -131,9 +133,10 @@ export function Sidebar({
         {/* Collapse Toggle */}
         <button
           onClick={onToggleCollapse}
-          className="hidden lg:flex absolute top-6 -right-3 w-6 h-6 bg-white border border-slate-200 rounded-full items-center justify-center text-slate-500 hover:text-slate-900 hover:shadow-sm transition-all z-10"
+          className="hidden lg:flex absolute top-1/2 -translate-y-1/2 -right-3 w-7 h-7 bg-blue-600 border-2 border-white rounded-full items-center justify-center text-white hover:bg-blue-700 hover:shadow-md transition-all z-10 shadow-sm"
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          <MaterialIcon name={collapsed ? "expand_more" : "expand_less"} className="text-lg" />
+          <MaterialIcon name={collapsed ? "chevron_right" : "chevron_left"} className="text-sm" />
         </button>
 
         {/* Scrollable Navigation */}

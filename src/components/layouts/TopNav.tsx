@@ -66,11 +66,26 @@ export function TopNav({ user, onLogout, onToggleMobileMenu, notificationCount =
     setShowResults(true)
 
     try {
+      console.log('Searching for:', query)
+      
       const [contactsRes, formsRes, transactionsRes] = await Promise.all([
-        contactService.getContacts({ search: query, limit: 5 }),
-        formService.getForms({ limit: 5 }),
-        paymentService.getTransactions({ limit: 5 }).catch(() => ({ data: [] }))
+        contactService.getContacts({ search: query, limit: 5 }).catch(e => {
+          console.error('Contacts error:', e)
+          return { data: [] }
+        }),
+        formService.getForms({ limit: 5 }).catch(e => {
+          console.error('Forms error:', e)
+          return { data: [] }
+        }),
+        paymentService.getTransactions({ limit: 5 }).catch(e => {
+          console.error('Transactions error:', e)
+          return { data: [] }
+        })
       ])
+
+      console.log('Contacts:', contactsRes)
+      console.log('Forms:', formsRes)
+      console.log('Transactions:', transactionsRes)
 
       // Filter forms locally since API might not support search
       const forms = formsRes.data.filter(f => 
@@ -97,6 +112,7 @@ export function TopNav({ user, onLogout, onToggleMobileMenu, notificationCount =
           customer_name: t.customer_name || 'Unknown'
         }))
       })
+      console.log('Search results:', { contacts: contactsRes.data.length, forms: forms.length, transactions: transactions.length })
     } catch (err) {
       console.error('Search failed:', err)
     } finally {
