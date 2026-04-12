@@ -105,13 +105,16 @@ export function Sidebar({
           <MaterialIcon name="close" />
         </button>
 
-        {/* Collapse Toggle - outside overflow */}
+        {/* Collapse Toggle */}
         <button
           onClick={onToggleCollapse}
-          className="absolute top-1/2 -translate-y-1/2 -right-4 w-8 h-8 bg-blue-600 border-4 border-white rounded-full flex items-center justify-center text-white hover:bg-blue-700 hover:shadow-lg transition-all z-50 shadow-md"
+          className="absolute top-1/2 -translate-y-1/2 -right-3.5 flex items-center justify-center w-6 h-10 bg-slate-200 hover:bg-slate-300 rounded-l-md transition-colors z-50 group"
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          <MaterialIcon name={collapsed ? "chevron_right" : "chevron_left"} className="text-base" />
+          <MaterialIcon 
+            name={collapsed ? "chevron_right" : "chevron_left"} 
+            className="text-slate-500 group-hover:text-slate-700" 
+          />
         </button>
 
         {/* Logo */}
