@@ -164,6 +164,10 @@ export const contactAuthService = {
     return contactApi.post<{ message: string }>('/contact-auth/password-reset/confirm', data)
   },
 
+  changePassword: async (data: { current_password: string; new_password: string }): Promise<{ message: string }> => {
+    return contactApi.post<{ message: string }>('/contact-auth/change-password', data)
+  },
+
   logout: async (): Promise<void> => {
     try {
       await contactApi.post('/contact-auth/logout', {})

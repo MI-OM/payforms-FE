@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Building, Users, Shield, Bell, Palette, CreditCard, Key, Upload, Eye, EyeOff, Check, AlertCircle, Image, Loader2, Copy, CheckCheck } from 'lucide-react'
+import { Building, Users, Shield, Bell, Palette, CreditCard, Key, Upload, Eye, EyeOff, Check, AlertCircle, Image, Loader2, Copy, CheckCheck, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { organizationService } from '@/services/organizationService'
+import { authService } from '@/services/authService'
 import { toast } from '@/components/ui/use-toast'
 
 const tabs = [
@@ -776,6 +777,12 @@ function SecuritySettings() {
   const navigate = useNavigate()
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [changingPassword, setChangingPassword] = useState(false)
+  const [passwordError, setPasswordError] = useState('')
 
   useEffect(() => {
     load2FAStatus()
@@ -791,6 +798,39 @@ function SecuritySettings() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setPasswordError('')
+    
+    if (newPassword !== confirmPassword) {
+      setPasswordError('New passwords do not match')
+      return
+    }
+    
+    if (newPassword.length < 8) {
+      setPasswordError('Password must be at least 8 characters')
+      return
+    }
+    
+    setChangingPassword(true)
+    try {
+      await authService.changePassword({
+        current_password: currentPassword,
+        new_password: newPassword,
+      })
+      toast({ title: 'Success', description: 'Password changed successfully' })
+      setShowPasswordModal(false)
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+    } catch (err: any) {
+      setPasswordError(err.message || 'Failed to change password')
+    } finally {
+      setChangingPassword(false)
+    }
+  }
   }
 
   return (
@@ -820,9 +860,71 @@ function SecuritySettings() {
             <p className="font-medium text-gray-900">Change Password</p>
             <p className="text-sm text-gray-500">Update your account password</p>
           </div>
-          <Button variant="secondary">Change</Button>
+          <Button variant="secondary" onClick={() => setShowPasswordModal(true)}>Change</Button>
         </div>
       </div>
+
+      {/* Password Change Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-lg">Change Password</h3>
+              <button onClick={() => setShowPasswordModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              {passwordError && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg">
+                  {passwordError}
+                </div>
+              )}
+              <div>
+                <Label htmlFor="currentPassword">Current Password</Label>
+                <Input
+                  id="currentPassword"
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  required
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="newPassword">New Password</Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  className="mt-1"
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <Button type="button" variant="secondary" className="flex-1" onClick={() => setShowPasswordModal(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" className="flex-1" disabled={changingPassword}>
+                  {changingPassword ? 'Changing...' : 'Change Password'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white rounded-xl p-6 shadow-sm">
         <h3 className="font-bold mb-4 text-gray-900">Sessions</h3>

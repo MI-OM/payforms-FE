@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { LogoIcon } from '@/components/Logo'
 import { contactAuthService } from '@/services/contactAuthService'
 import { contactService } from '@/services/contactService'
-import { User, Mail, Phone, GraduationCap, Save, Loader2, Shield, Check } from 'lucide-react'
+import { User, Mail, Phone, GraduationCap, Save, Loader2, Shield, Check, Key, X } from 'lucide-react'
 
 interface ContactProfile {
   id: string
@@ -36,6 +36,12 @@ export function ContactProfilePage() {
     last_name: '',
     phone: '',
   })
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [changingPassword, setChangingPassword] = useState(false)
+  const [passwordError, setPasswordError] = useState('')
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -103,6 +109,38 @@ export function ContactProfilePage() {
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setPasswordError('')
+    
+    if (newPassword !== confirmPassword) {
+      setPasswordError('New passwords do not match')
+      return
+    }
+    
+    if (newPassword.length < 8) {
+      setPasswordError('Password must be at least 8 characters')
+      return
+    }
+    
+    setChangingPassword(true)
+    try {
+      await contactAuthService.changePassword({
+        current_password: currentPassword,
+        new_password: newPassword,
+      })
+      alert('Password changed successfully!')
+      setShowPasswordModal(false)
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+    } catch (err: any) {
+      setPasswordError(err.message || 'Failed to change password')
+    } finally {
+      setChangingPassword(false)
+    }
   }
 
   if (loading) {
@@ -248,7 +286,7 @@ export function ContactProfilePage() {
             )}
           </div>
 
-          <div className="mt-6 pt-6 border-t border-gray-100">
+          <div className="mt-6 pt-6 border-t border-gray-100 flex gap-3">
             <button
               onClick={handleSave}
               disabled={saving}
@@ -271,8 +309,74 @@ export function ContactProfilePage() {
                 </>
               )}
             </button>
+            <button
+              onClick={() => setShowPasswordModal(true)}
+              className="flex items-center gap-2 px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+            >
+              <Key className="w-5 h-5" />
+              Change Password
+            </button>
           </div>
         </div>
+
+        {/* Password Change Modal */}
+        {showPasswordModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl p-6 w-full max-w-md">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-bold text-lg">Change Password</h3>
+                <button onClick={() => setShowPasswordModal(false)} className="text-gray-400 hover:text-gray-600">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <form onSubmit={handleChangePassword} className="space-y-4">
+                {passwordError && (
+                  <div className="p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg">
+                    {passwordError}
+                  </div>
+                )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+                  <input
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    required
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  />
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button type="button" className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors" onClick={() => setShowPasswordModal(false)}>
+                    Cancel
+                  </button>
+                  <button type="submit" disabled={changingPassword} className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50">
+                    {changingPassword ? 'Changing...' : 'Change Password'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         {(contact?.guardian_name || contact?.guardian_email) && (
           <div className="p-6 bg-gray-50 border-t border-gray-100">

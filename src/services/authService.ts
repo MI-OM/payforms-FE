@@ -132,6 +132,10 @@ export const authService = {
     return apiClient.post('/auth/password-reset/confirm', data)
   },
 
+  changePassword: async (data: { current_password: string; new_password: string }): Promise<{ message: string }> => {
+    return apiClient.post('/auth/change-password', data)
+  },
+
   verifyOrganizationEmail: async (token: string): Promise<{ message: string }> => {
     return apiClient.post('/auth/organization-email/verify', { token })
   },
