@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { Download, Search, Filter, Plus, Loader2, Upload, Edit, FolderInput, Mail, Trash2, X, AlertTriangle, Send } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -60,6 +60,7 @@ interface FinancialSummary {
 
 export function ContactsManagement() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [contacts, setContacts] = useState<ContactWithFinancials[]>([])
   const [groups, setGroups] = useState<GroupTreeNode[]>([])
   const [loading, setLoading] = useState(true)
@@ -69,7 +70,7 @@ export function ContactsManagement() {
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '')
   const [financialSummary, setFinancialSummary] = useState<FinancialSummary | null>(null)
   const [loadingSummary, setLoadingSummary] = useState(false)
   const [groupContactCounts, setGroupContactCounts] = useState<Record<string, number>>({})

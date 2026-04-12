@@ -41,6 +41,16 @@ export function TopNav({ user, onLogout, onToggleMobileMenu, notificationCount =
   const [showUserMenu, setShowUserMenu] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const [badgeCount, setBadgeCount] = useState(notificationCount)
+  const [searchQuery, setSearchQuery] = useState('')
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      // Navigate to contacts page with search query
+      navigate(`/contacts?search=${encodeURIComponent(searchQuery.trim())}`)
+      setSearchQuery('')
+    }
+  }
 
   useEffect(() => {
     const fetchNotificationCount = async () => {
@@ -79,14 +89,16 @@ export function TopNav({ user, onLogout, onToggleMobileMenu, notificationCount =
 
       {/* Search - Hidden on mobile */}
       <div className="hidden lg:flex justify-center items-center flex-1 max-w-2xl">
-        <div className="relative gap-2 w-full flex items-center">
+        <form onSubmit={handleSearch} className="relative gap-2 w-full flex items-center">
           <MaterialIcon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             className="w-full bg-slate-100/50 border-none rounded-full py-2 pl-10 pr-4 text-sm focus:ring-1 focus:ring-slate-200 transition-all font-headline"
-            placeholder="Search transactions, forms, or users..."
+            placeholder="Search contacts, transactions, or forms..."
             type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
-        </div>
+        </form>
       </div>
 
       {/* Spacer for mobile */}
