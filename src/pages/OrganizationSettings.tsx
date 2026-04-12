@@ -831,7 +831,6 @@ function SecuritySettings() {
       setChangingPassword(false)
     }
   }
-  }
 
   return (
     <div className="space-y-6">
