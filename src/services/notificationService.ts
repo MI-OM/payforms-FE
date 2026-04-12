@@ -56,12 +56,21 @@ const createMultipartApiClient = () => {
         method: 'POST',
         headers,
         body: data,
+        credentials: 'include',
       })
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         throw new Error(errorData.message || errorData.error || `Request failed: ${response.status}`)
       }
-      return response.json()
+      const text = await response.text()
+      if (!text || text.trim() === '') {
+        return { message: 'Reminder sent successfully' } as T
+      }
+      try {
+        return JSON.parse(text)
+      } catch {
+        return { message: 'Reminder sent successfully' } as T
+      }
     },
   }
 }

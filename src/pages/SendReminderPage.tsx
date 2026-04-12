@@ -108,6 +108,7 @@ export function SendReminderPage() {
         attachment: attachment || undefined,
       })
       setSent(true)
+      toast({ title: 'Success', description: `Reminders sent to ${selectedContacts.length} contact(s)` })
     } catch (err) {
       console.error('Failed to send reminders:', err)
       toast({ title: 'Error', description: 'Failed to send reminders', variant: 'destructive' })
