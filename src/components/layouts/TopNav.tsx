@@ -1,6 +1,9 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { notificationService } from '@/services/notificationService'
+import { contactService } from '@/services/contactService'
+import { formService } from '@/services/formService'
+import { paymentService } from '@/services/paymentService'
 
 interface TopNavProps {
   user?: {
@@ -40,37 +43,108 @@ export function TopNav({ user, onLogout, onToggleMobileMenu, notificationCount =
   const navigate = useNavigate()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const searchRef = useRef<HTMLDivElement>(null)
   const [badgeCount, setBadgeCount] = useState(notificationCount)
   const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<{
+    contacts: { id: string; name: string; email: string }[]
+    forms: { id: string; title: string }[]
+    transactions: { id: string; reference: string; customer_name: string }[]
+  }>({ contacts: [], forms: [], transactions: [] })
+  const [isSearching, setIsSearching] = useState(false)
+  const [showResults, setShowResults] = useState(false)
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (searchQuery.trim()) {
-      // Navigate to contacts page with search query
-      navigate(`/contacts?search=${encodeURIComponent(searchQuery.trim())}`)
-      setSearchQuery('')
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query)
+    if (query.trim().length < 2) {
+      setSearchResults({ contacts: [], forms: [], transactions: [] })
+      setShowResults(false)
+      return
+    }
+
+    setIsSearching(true)
+    setShowResults(true)
+
+    try {
+      const [contactsRes, formsRes, transactionsRes] = await Promise.all([
+        contactService.getContacts({ search: query, limit: 5 }),
+        formService.getForms({ limit: 5 }),
+        paymentService.getTransactions({ limit: 5 }).catch(() => ({ data: [] }))
+      ])
+
+      // Filter forms locally since API might not support search
+      const forms = formsRes.data.filter(f => 
+        f.title.toLowerCase().includes(query.toLowerCase())
+      )
+
+      // Filter transactions locally
+      const transactions = transactionsRes.data.filter(t =>
+        t.reference?.toLowerCase().includes(query.toLowerCase()) ||
+        t.customer_name?.toLowerCase().includes(query.toLowerCase()) ||
+        t.customer_email?.toLowerCase().includes(query.toLowerCase())
+      )
+
+      setSearchResults({
+        contacts: contactsRes.data.map(c => ({
+          id: c.id,
+          name: `${c.first_name || ''} ${c.last_name || ''}`.trim(),
+          email: c.email
+        })),
+        forms: forms.map(f => ({ id: f.id, title: f.title })),
+        transactions: transactions.map(t => ({
+          id: t.id,
+          reference: t.reference || t.id,
+          customer_name: t.customer_name || 'Unknown'
+        }))
+      })
+    } catch (err) {
+      console.error('Search failed:', err)
+    } finally {
+      setIsSearching(false)
     }
   }
 
-  useEffect(() => {
-    const fetchNotificationCount = async () => {
-      try {
-        const response = await notificationService.getScheduledNotifications({ limit: 1 })
-        setBadgeCount(response.total || 0)
-      } catch (err) {
-        console.warn('Failed to fetch notification count:', err)
+  const handleResultClick = (type: string, id: string) => {
+    setSearchQuery('')
+    setShowResults(false)
+    switch (type) {
+      case 'contact':
+        navigate(`/contacts/${id}`)
+        break
+      case 'form':
+        navigate(`/forms/${id}/fields`)
+        break
+      case 'transaction':
+        navigate(`/transactions/${id}`)
+        break
+    }
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      // If there are results, click the first one, otherwise go to contacts
+      if (searchResults.contacts.length > 0) {
+        handleResultClick('contact', searchResults.contacts[0].id)
+      } else if (searchResults.forms.length > 0) {
+        handleResultClick('form', searchResults.forms[0].id)
+      } else if (searchResults.transactions.length > 0) {
+        handleResultClick('transaction', searchResults.transactions[0].id)
+      } else {
+        navigate(`/contacts?search=${encodeURIComponent(searchQuery.trim())}`)
+        setSearchQuery('')
+        setShowResults(false)
       }
     }
-    
-    fetchNotificationCount()
-    const interval = setInterval(fetchNotificationCount, 60000)
-    return () => clearInterval(interval)
-  }, [])
+  }
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setShowUserMenu(false)
+      }
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowResults(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -88,17 +162,93 @@ export function TopNav({ user, onLogout, onToggleMobileMenu, notificationCount =
       </button>
 
       {/* Search - Hidden on mobile */}
-      <div className="hidden lg:flex justify-center items-center flex-1 max-w-2xl">
-        <form onSubmit={handleSearch} className="relative gap-2 w-full flex items-center">
+      <div className="hidden lg:flex justify-center items-center flex-1 max-w-2xl relative" ref={searchRef}>
+        <form onSubmit={handleSubmit} className="relative gap-2 w-full flex items-center">
           <MaterialIcon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             className="w-full bg-slate-100/50 border-none rounded-full py-2 pl-10 pr-4 text-sm focus:ring-1 focus:ring-slate-200 transition-all font-headline"
             placeholder="Search contacts, transactions, or forms..."
             type="text"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => handleSearch(e.target.value)}
+            onFocus={() => searchQuery.length >= 2 && setShowResults(true)}
           />
         </form>
+        
+        {/* Search Results Dropdown */}
+        {showResults && (
+          <div className="absolute top-full mt-2 w-full bg-white rounded-xl shadow-lg border border-slate-100 max-h-96 overflow-y-auto z-50">
+            {isSearching ? (
+              <div className="p-4 text-center text-slate-500">Searching...</div>
+            ) : (
+              <>
+                {searchResults.contacts.length > 0 && (
+                  <div className="p-2">
+                    <div className="text-xs font-semibold text-slate-400 uppercase px-3 py-1">Contacts</div>
+                    {searchResults.contacts.map(contact => (
+                      <button
+                        key={contact.id}
+                        className="w-full flex items-center gap-3 px-3 py-2 hover:bg-slate-50 rounded-lg text-left"
+                        onClick={() => handleResultClick('contact', contact.id)}
+                      >
+                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                          <span className="text-xs font-bold text-blue-600">{contact.name.charAt(0)}</span>
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-slate-900">{contact.name}</div>
+                          <div className="text-xs text-slate-500">{contact.email}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                
+                {searchResults.forms.length > 0 && (
+                  <div className="p-2 border-t border-slate-100">
+                    <div className="text-xs font-semibold text-slate-400 uppercase px-3 py-1">Forms</div>
+                    {searchResults.forms.map(form => (
+                      <button
+                        key={form.id}
+                        className="w-full flex items-center gap-3 px-3 py-2 hover:bg-slate-50 rounded-lg text-left"
+                        onClick={() => handleResultClick('form', form.id)}
+                      >
+                        <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                          <span className="text-xs font-bold text-green-600">F</span>
+                        </div>
+                        <div className="text-sm font-medium text-slate-900">{form.title}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                
+                {searchResults.transactions.length > 0 && (
+                  <div className="p-2 border-t border-slate-100">
+                    <div className="text-xs font-semibold text-slate-400 uppercase px-3 py-1">Transactions</div>
+                    {searchResults.transactions.map(tx => (
+                      <button
+                        key={tx.id}
+                        className="w-full flex items-center gap-3 px-3 py-2 hover:bg-slate-50 rounded-lg text-left"
+                        onClick={() => handleResultClick('transaction', tx.id)}
+                      >
+                        <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+                          <span className="text-xs font-bold text-purple-600">T</span>
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-slate-900">{tx.reference}</div>
+                          <div className="text-xs text-slate-500">{tx.customer_name}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                
+                {searchResults.contacts.length === 0 && searchResults.forms.length === 0 && searchResults.transactions.length === 0 && (
+                  <div className="p-4 text-center text-slate-500">No results found</div>
+                )}
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Spacer for mobile */}
