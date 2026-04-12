@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Building, Users, Shield, Bell, Palette, CreditCard, Key, Upload, Eye, EyeOff, Check, AlertCircle, Image, Loader2, Copy, CheckCheck, X } from 'lucide-react'
+import { Building, Users, Shield, Bell, Palette, CreditCard, Key, Upload, Eye, EyeOff, Check, AlertCircle, Image, Loader2, Copy, CheckCheck, X, Wallet } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -15,6 +15,7 @@ const tabs = [
   { id: 'team', label: 'Team', icon: Users },
   { id: 'security', label: 'Security', icon: Shield },
   { id: 'notifications', label: 'Notifications', icon: Bell },
+  { id: 'payments', label: 'Payments', icon: Wallet },
   { id: 'billing', label: 'Billing', icon: CreditCard },
 ]
 
@@ -559,8 +560,6 @@ function NotificationsSettings() {
     notify_submission_confirmation: true,
     notify_payment_confirmation: true,
     notify_payment_failure: true,
-    partial_payment_limit: 100,
-    enabled_payment_methods: ['ONLINE'] as ('ONLINE' | 'CASH' | 'BANK_TRANSFER' | 'POS' | 'CHEQUE')[],
   })
   const [isSaving, setIsSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -574,10 +573,6 @@ function NotificationsSettings() {
         notify_submission_confirmation: org.notify_submission_confirmation ?? true,
         notify_payment_confirmation: org.notify_payment_confirmation ?? true,
         notify_payment_failure: org.notify_payment_failure ?? true,
-        partial_payment_limit: org.partial_payment_limit ?? 100,
-        enabled_payment_methods: org.enabled_payment_methods && org.enabled_payment_methods.length > 0 
-          ? org.enabled_payment_methods 
-          : ['ONLINE'],
       })
     } catch (err) {
       console.error('Failed to load settings', err)
@@ -663,60 +658,6 @@ function NotificationsSettings() {
               onChange={(checked) => setSettings({...settings, require_contact_login: checked})}
             />
           </div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl p-6 shadow-sm">
-        <h3 className="font-bold mb-4 text-gray-900">Partial Payments</h3>
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label className="text-gray-700">Partial Payment Limit (%)</Label>
-            <Input 
-              type="number"
-              min="0"
-              max="100"
-              value={settings.partial_payment_limit}
-              onChange={(e) => setSettings({...settings, partial_payment_limit: parseInt(e.target.value) || 0})}
-              placeholder="100"
-            />
-            <p className="text-xs text-gray-500">Maximum percentage of total amount that can be paid as partial payment (0-100)</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-6">
-        <h3 className="font-bold mb-4 text-gray-900">Payment Methods</h3>
-        <div className="space-y-3">
-          <p className="text-sm text-gray-500 mb-4">
-            Select which payment methods your contacts can use on checkout. Offline methods create pending payments that require admin confirmation.
-          </p>
-          {(['ONLINE', 'CASH', 'BANK_TRANSFER', 'POS', 'CHEQUE'] as const).map((method) => (
-            <div key={method} className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                id={`payment-method-${method}`}
-                checked={settings.enabled_payment_methods?.includes(method) ?? false}
-                onChange={(e) => {
-                  const current = settings.enabled_payment_methods || ['ONLINE']
-                  const updated = e.target.checked
-                    ? [...current, method]
-                    : current.filter(m => m !== method)
-                  setSettings({
-                    ...settings,
-                    enabled_payment_methods: updated.length > 0 ? updated : ['ONLINE']
-                  })
-                }}
-                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <Label htmlFor={`payment-method-${method}`} className="text-gray-700 cursor-pointer">
-                {method === 'ONLINE' && 'Pay Online'}
-                {method === 'CASH' && 'Cash'}
-                {method === 'BANK_TRANSFER' && 'Bank Transfer'}
-                {method === 'POS' && 'POS'}
-                {method === 'CHEQUE' && 'Cheque'}
-              </Label>
-            </div>
-          ))}
         </div>
       </div>
 
@@ -946,6 +887,129 @@ function SecuritySettings() {
   )
 }
 
+function PaymentsSettings() {
+  const [loading, setLoading] = useState(true)
+  const [settings, setSettings] = useState({
+    partial_payment_limit: 100,
+    enabled_payment_methods: ['ONLINE'] as ('ONLINE' | 'CASH' | 'BANK_TRANSFER' | 'POS' | 'CHEQUE')[],
+  })
+  const [isSaving, setIsSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  const fetchSettings = useCallback(async () => {
+    setLoading(true)
+    try {
+      const org = await organizationService.getSettings()
+      setSettings({
+        partial_payment_limit: org.partial_payment_limit ?? 100,
+        enabled_payment_methods: org.enabled_payment_methods && org.enabled_payment_methods.length > 0 
+          ? org.enabled_payment_methods 
+          : ['ONLINE'],
+      })
+    } catch (err) {
+      console.error('Failed to load settings', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchSettings()
+  }, [fetchSettings])
+
+  const handleSave = async () => {
+    setIsSaving(true)
+    try {
+      await organizationService.updateSettings(settings)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } catch (err) {
+      toast({ title: 'Error', description: 'Failed to save settings', variant: 'destructive' })
+      console.error(err)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-xl p-6 shadow-sm">
+        <h3 className="font-bold mb-4 text-gray-900">Partial Payments</h3>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label className="text-gray-700">Partial Payment Limit (%)</Label>
+            <Input 
+              type="number"
+              min="0"
+              max="100"
+              value={settings.partial_payment_limit}
+              onChange={(e) => setSettings({...settings, partial_payment_limit: parseInt(e.target.value) || 0})}
+              placeholder="100"
+            />
+            <p className="text-xs text-gray-500">Maximum percentage of total amount that can be paid as partial payment (0-100)</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl p-6 shadow-sm">
+        <h3 className="font-bold mb-4 text-gray-900">Payment Methods</h3>
+        <div className="space-y-3">
+          <p className="text-sm text-gray-500 mb-4">
+            Select which payment methods your contacts can use on checkout. Offline methods create pending payments that require admin confirmation.
+          </p>
+          {(['ONLINE', 'CASH', 'BANK_TRANSFER', 'POS', 'CHEQUE'] as const).map((method) => (
+            <div key={method} className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id={`payment-method-${method}`}
+                checked={settings.enabled_payment_methods?.includes(method) ?? false}
+                onChange={(e) => {
+                  const current = settings.enabled_payment_methods || ['ONLINE']
+                  const updated = e.target.checked
+                    ? [...current, method]
+                    : current.filter(m => m !== method)
+                  setSettings({
+                    ...settings,
+                    enabled_payment_methods: updated.length > 0 ? updated : ['ONLINE']
+                  })
+                }}
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <Label htmlFor={`payment-method-${method}`} className="text-gray-700 cursor-pointer">
+                {method === 'ONLINE' && 'Pay Online'}
+                {method === 'CASH' && 'Cash'}
+                {method === 'BANK_TRANSFER' && 'Bank Transfer'}
+                {method === 'POS' && 'POS'}
+                {method === 'CHEQUE' && 'Cheque'}
+              </Label>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex justify-end items-center gap-3">
+        {saved && (
+          <span className="flex items-center gap-1 text-green-600 text-sm">
+            <Check className="h-4 w-4" />
+            Preferences saved
+          </span>
+        )}
+        <Button onClick={handleSave} disabled={isSaving}>
+          {isSaving ? 'Saving...' : 'Save Preferences'}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 function BillingSettings() {
   return (
     <div className="space-y-6">
@@ -1012,6 +1076,7 @@ export function OrganizationSettings() {
       case 'team': return <TeamSettings />
       case 'security': return <SecuritySettings />
       case 'notifications': return <NotificationsSettings />
+      case 'payments': return <PaymentsSettings />
       case 'billing': return <BillingSettings />
       default: return <GeneralSettings />
     }
