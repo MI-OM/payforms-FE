@@ -283,6 +283,32 @@ export const publicFormService = {
     return publicApi.get(`/public/forms/${slug}/widget${query}`)
   },
 
+  // New v1 Widget Endpoints
+  getEmbedScriptV1: async (slug: string): Promise<{ script: string }> => {
+    return publicApi.get(`/public/forms/${slug}/embed/v1.js`)
+  },
+
+  getWidgetV1: async (slug: string, options?: {
+    callback_url?: string
+    contact_token?: string
+    contact_email?: string
+    contact_name?: string
+    auto_redirect?: boolean
+    parent_origin?: string
+    instance_id?: string
+  }): Promise<string> => {
+    const params = new URLSearchParams()
+    if (options?.callback_url) params.append('callback_url', options.callback_url)
+    if (options?.contact_token) params.append('contact_token', options.contact_token)
+    if (options?.contact_email) params.append('contact_email', options.contact_email)
+    if (options?.contact_name) params.append('contact_name', options.contact_name)
+    if (options?.auto_redirect) params.append('auto_redirect', 'true')
+    if (options?.parent_origin) params.append('parent_origin', options.parent_origin)
+    if (options?.instance_id) params.append('instance_id', options.instance_id)
+    const query = params.toString() ? `?${params.toString()}` : ''
+    return publicApi.get(`/public/forms/${slug}/widget/v1${query}`)
+  },
+
   submitForm: async (
     slug: string, 
     data: FormSubmissionData,

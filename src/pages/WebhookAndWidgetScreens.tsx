@@ -299,6 +299,7 @@ export function WidgetConfiguration() {
   const [embedScript, setEmbedScript] = useState('')
   const [widgetHtml, setWidgetHtml] = useState('')
   const [showPreview, setShowPreview] = useState(false)
+  const [widgetVersion, setWidgetVersion] = useState<'legacy' | 'v1'>('v1')
   const [widgetSettings, setWidgetSettings] = useState({
     theme: 'light',
     primaryColor: '#188ace',
@@ -307,6 +308,10 @@ export function WidgetConfiguration() {
     minHeight: '400',
     callbackUrl: '',
     autoRedirect: true,
+    container: '#payforms-widget-root',
+    instanceId: '',
+    apiBase: '',
+    parentOrigin: '',
   })
 
   useEffect(() => {
@@ -330,42 +335,91 @@ export function WidgetConfiguration() {
       if (!formSlug) return
       setLoading(true)
       try {
-        const scriptResponse = await publicFormService.getEmbedScript(formSlug)
-        setEmbedScript(scriptResponse.script || `<script src="/api/public/forms/${formSlug}/embed.js"></script>`)
+        let scriptResponse
+        let widgetResponse
         
-        const widgetResponse = await publicFormService.getWidget(formSlug, {
-          auto_redirect: widgetSettings.autoRedirect,
-          callback_url: widgetSettings.callbackUrl,
-        })
+        if (widgetVersion === 'v1') {
+          scriptResponse = await publicFormService.getEmbedScriptV1(formSlug)
+          widgetResponse = await publicFormService.getWidgetV1(formSlug, {
+            auto_redirect: widgetSettings.autoRedirect,
+            callback_url: widgetSettings.callbackUrl,
+            parent_origin: widgetSettings.parentOrigin,
+            instance_id: widgetSettings.instanceId || undefined,
+          })
+        } else {
+          scriptResponse = await publicFormService.getEmbedScript(formSlug)
+          widgetResponse = await publicFormService.getWidget(formSlug, {
+            auto_redirect: widgetSettings.autoRedirect,
+            callback_url: widgetSettings.callbackUrl,
+          })
+        }
+        
+        setEmbedScript(scriptResponse.script || (widgetVersion === 'v1' 
+          ? `<script src="/api/public/forms/${formSlug}/embed/v1.js"></script>`
+          : `<script src="/api/public/forms/${formSlug}/embed.js"></script>`))
+        
         setWidgetHtml(typeof widgetResponse === 'string' ? widgetResponse : '')
       } catch (err) {
         console.error('Failed to fetch widget assets:', err)
-        setEmbedScript(`<script src="/api/public/forms/${formSlug}/embed.js" data-width="${widgetSettings.width}" data-height="${widgetSettings.minHeight}" data-primary-color="${widgetSettings.primaryColor}" ${widgetSettings.autoRedirect ? 'data-auto-redirect="true"' : ''}></script>`)
+        if (widgetVersion === 'v1') {
+          setEmbedScript(`<script src="/api/public/forms/${formSlug}/embed/v1.js" data-width="${widgetSettings.width}" data-height="${widgetSettings.minHeight}" data-primary-color="${widgetSettings.primaryColor}" ${widgetSettings.autoRedirect ? 'data-auto-redirect="true"' : ''} data-container="${widgetSettings.container}" ${widgetSettings.instanceId ? `data-instance-id="${widgetSettings.instanceId}"` : ''}></script>`)
+        } else {
+          setEmbedScript(`<script src="/api/public/forms/${formSlug}/embed.js" data-width="${widgetSettings.width}" data-height="${widgetSettings.minHeight}" data-primary-color="${widgetSettings.primaryColor}" ${widgetSettings.autoRedirect ? 'data-auto-redirect="true"' : ''}></script>`)
+        }
       } finally {
         setLoading(false)
       }
     }
     fetchWidgetAssets()
-  }, [formSlug, widgetSettings.autoRedirect, widgetSettings.callbackUrl])
+  }, [formSlug, widgetVersion, widgetSettings.autoRedirect, widgetSettings.callbackUrl, widgetSettings.parentOrigin, widgetSettings.instanceId])
 
   const generateEmbedCode = () => {
-    return `<script src="/api/public/forms/${formSlug}/embed.js" data-width="${widgetSettings.width}" data-height="${widgetSettings.minHeight}" data-primary-color="${widgetSettings.primaryColor}" ${widgetSettings.autoRedirect ? 'data-auto-redirect="true"' : ''}></script>`
+    if (widgetVersion === 'v1') {
+      const baseUrl = widgetSettings.apiBase || '/api'
+      let script = `<script src="${baseUrl}/public/forms/${formSlug}/embed/v1.js" data-payforms-widget`
+      
+      if (widgetSettings.width) script += ` data-width="${widgetSettings.width}"`
+      if (widgetSettings.minHeight) script += ` data-height="${widgetSettings.minHeight}" data-min-height="${widgetSettings.minHeight}"`
+      if (widgetSettings.primaryColor) script += ` data-primary-color="${widgetSettings.primaryColor}"`
+      if (widgetSettings.buttonText) script += ` data-button-text="${widgetSettings.buttonText}"`
+      if (widgetSettings.callbackUrl) script += ` data-callback-url="${widgetSettings.callbackUrl}"`
+      if (widgetSettings.autoRedirect) script += ` data-auto-redirect="true"`
+      if (widgetSettings.container) script += ` data-container="${widgetSettings.container}"`
+      if (widgetSettings.instanceId) script += ` data-instance-id="${widgetSettings.instanceId}"`
+      if (widgetSettings.apiBase) script += ` data-api-base="${widgetSettings.apiBase}"`
+      
+      script += `></script>`
+      
+      if (widgetSettings.container) {
+        script += `\n<div id="${widgetSettings.container.replace('#', '')}"></div>`
+      }
+      
+      return script
+    } else {
+      return `<script src="/api/public/forms/${formSlug}/embed.js" data-width="${widgetSettings.width}" data-height="${widgetSettings.minHeight}" data-primary-color="${widgetSettings.primaryColor}" ${widgetSettings.autoRedirect ? 'data-auto-redirect="true"' : ''}></script>`
+    }
   }
 
   const generateIframeCode = () => {
     const params = new URLSearchParams()
     if (widgetSettings.autoRedirect) params.append('auto_redirect', 'true')
     if (widgetSettings.callbackUrl) params.append('callback_url', widgetSettings.callbackUrl)
+    if (widgetVersion === 'v1' && widgetSettings.parentOrigin) params.append('parent_origin', widgetSettings.parentOrigin)
+    if (widgetVersion === 'v1' && widgetSettings.instanceId) params.append('instance_id', widgetSettings.instanceId)
     const query = params.toString() ? `?${params.toString()}` : ''
-    return `<iframe src="/api/public/forms/${formSlug}/widget${query}" width="${widgetSettings.width}" height="${widgetSettings.minHeight}" frameborder="0"></iframe>`
+    const widgetPath = widgetVersion === 'v1' ? 'widget/v1' : 'widget'
+    return `<iframe src="/api/public/forms/${formSlug}/${widgetPath}${query}" width="${widgetSettings.width}" height="${widgetSettings.minHeight}" frameborder="0"></iframe>`
   }
 
   const previewUrl = () => {
     const params = new URLSearchParams()
     if (widgetSettings.autoRedirect) params.append('auto_redirect', 'true')
     if (widgetSettings.callbackUrl) params.append('callback_url', widgetSettings.callbackUrl)
+    if (widgetVersion === 'v1' && widgetSettings.parentOrigin) params.append('parent_origin', widgetSettings.parentOrigin)
+    if (widgetVersion === 'v1' && widgetSettings.instanceId) params.append('instance_id', widgetSettings.instanceId)
     const query = params.toString() ? `?${params.toString()}` : ''
-    return `/api/public/forms/${formSlug}/widget${query}`
+    const widgetPath = widgetVersion === 'v1' ? 'widget/v1' : 'widget'
+    return `/api/public/forms/${formSlug}/${widgetPath}${query}`
   }
 
   return (
@@ -407,6 +461,38 @@ export function WidgetConfiguration() {
                 <code className="block bg-gray-100 p-2 rounded text-sm">
                   /pay/{formSlug || 'your-slug'}
                 </code>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <h3 className="font-bold text-gray-900 mb-4">Widget Version</h3>
+              <div className="space-y-2">
+                <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                  <input
+                    type="radio"
+                    name="version"
+                    checked={widgetVersion === 'v1'}
+                    onChange={() => setWidgetVersion('v1')}
+                    className="text-blue-600"
+                  />
+                  <div>
+                    <p className="font-medium text-gray-900">v1 (Recommended)</p>
+                    <p className="text-xs text-gray-500">New secure embed with postMessage, supports multiple instances</p>
+                  </div>
+                </label>
+                <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                  <input
+                    type="radio"
+                    name="version"
+                    checked={widgetVersion === 'legacy'}
+                    onChange={() => setWidgetVersion('legacy')}
+                    className="text-blue-600"
+                  />
+                  <div>
+                    <p className="font-medium text-gray-900">Legacy</p>
+                    <p className="text-xs text-gray-500">Older embed method, kept for backward compatibility</p>
+                  </div>
+                </label>
               </div>
             </div>
 
@@ -500,6 +586,50 @@ export function WidgetConfiguration() {
                 </label>
               </div>
             </div>
+
+            {widgetVersion === 'v1' && (
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <h3 className="font-bold text-gray-900 mb-4">Advanced (v1)</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Container ID</label>
+                    <Input 
+                      value={widgetSettings.container}
+                      onChange={(e) => setWidgetSettings({...widgetSettings, container: e.target.value})}
+                      placeholder="#payforms-widget-root"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">CSS selector for the widget container</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Instance ID</label>
+                    <Input 
+                      value={widgetSettings.instanceId}
+                      onChange={(e) => setWidgetSettings({...widgetSettings, instanceId: e.target.value})}
+                      placeholder="my-widget-1"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Unique ID for multiple widgets on same page</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Parent Origin</label>
+                    <Input 
+                      value={widgetSettings.parentOrigin}
+                      onChange={(e) => setWidgetSettings({...widgetSettings, parentOrigin: e.target.value})}
+                      placeholder="https://yoursite.com"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Required if EMBED_ALLOWED_ORIGINS is configured</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">API Base URL</label>
+                    <Input 
+                      value={widgetSettings.apiBase}
+                      onChange={(e) => setWidgetSettings({...widgetSettings, apiBase: e.target.value})}
+                      placeholder="https://api.payforms.com.ng"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Custom API base URL (optional)</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="space-y-6">
@@ -583,6 +713,48 @@ export function WidgetConfiguration() {
                   URL: <code className="bg-gray-100 px-2 py-1 rounded">/pay/{formSlug}</code>
                 </span>
               </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <h3 className="font-bold text-gray-900 mb-4">Embed Code</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Script Embed</label>
+                  <textarea
+                    readOnly
+                    value={generateEmbedCode()}
+                    className="w-full h-32 p-3 bg-gray-900 text-green-400 text-sm font-mono rounded-lg"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Copy this into your website's HTML</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Iframe Embed</label>
+                  <textarea
+                    readOnly
+                    value={generateIframeCode()}
+                    className="w-full h-20 p-3 bg-gray-900 text-green-400 text-sm font-mono rounded-lg"
+                  />
+                </div>
+              </div>
+              
+              {widgetVersion === 'v1' && (
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <h4 className="font-medium text-gray-900 mb-3">Widget Events (v1)</h4>
+                  <p className="text-sm text-gray-600 mb-3">Add this to your page to handle widget events:</p>
+                  <pre className="bg-gray-900 text-green-400 text-xs p-4 rounded-lg overflow-x-auto">{`window.addEventListener('payforms-widget-event', event => {
+  const data = event.detail;
+  if (data.instance_id !== '${widgetSettings.instanceId || 'your-instance-id'}') return;
+  
+  switch (data.event) {
+    case 'ready': console.log('Widget ready!'); break;
+    case 'submitted': console.log('Form submitted:', data); break;
+    case 'payment_initialized': console.log('Payment started:', data); break;
+    case 'error': console.error('Error:', data.message); break;
+    case 'resize': console.log('Height:', data.height); break;
+  }
+});`}</pre>
+                </div>
+              )}
             </div>
           </div>
         </div>
