@@ -87,6 +87,13 @@ export function ContactProfileManagement() {
   return (
     <div className="min-h-screen bg-surface p-8">
       <div className="max-w-4xl mx-auto">
+        <Button 
+          variant="ghost" 
+          onClick={() => navigate('/contacts')}
+          className="mb-4 text-[#45464d] hover:text-[#191c1e]"
+        >
+          ← Back to Contacts
+        </Button>
         <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
           <div className="bg-primary-container p-8">
             <div className="flex items-start justify-between">

@@ -57,13 +57,26 @@ export function ScheduledNotifications() {
       return
     }
 
+    if (!newNotification.subject || !newNotification.body) {
+      toast({ title: 'Error', description: 'Subject and message are required', variant: 'destructive' })
+      return
+    }
+
     setIsSending(true)
     try {
-      const scheduledFor = `${newNotification.scheduledDate}T${newNotification.scheduledTime}:00Z`
+      const allContacts = await contactService.getContacts({ limit: 1000 })
+      const recipientEmails = allContacts.data.map(c => c.email).filter(Boolean)
+      
+      if (recipientEmails.length === 0) {
+        toast({ title: 'Error', description: 'No active contacts found to send notification to', variant: 'destructive' })
+        setIsSending(false)
+        return
+      }
+      
       await notificationService.sendScheduledNotification({
         subject: newNotification.subject,
         body: newNotification.body,
-        recipients: newNotification.recipients.length > 0 ? newNotification.recipients : [],
+        recipients: recipientEmails,
       })
       setIsCreating(false)
       setNewNotification({ subject: '', body: '', scheduledDate: '', scheduledTime: '', recipients: [] })

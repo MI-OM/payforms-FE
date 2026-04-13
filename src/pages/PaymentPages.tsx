@@ -8,6 +8,7 @@ import { contactService } from '@/services/contactService'
 import { organizationService } from '@/services/organizationService'
 import { reportService } from '@/services/reportService'
 import { contactAuthService } from '@/services/contactAuthService'
+import { contactAuth } from '@/lib/contactAuth'
 import { Loader2 } from 'lucide-react'
 import { getCallbackUrl } from '@/utils/config'
 import { jsPDF } from 'jspdf'
@@ -853,11 +854,31 @@ export function PaymentSuccessState() {
   }, [referenceFromUrl, trxrefFromUrl, pendingReference])
   
   const getAmount = () => {
-    if (verifiedData?.amount) return verifiedData.amount
-    if (verifiedData?.amount_paid) return verifiedData.amount_paid
-    if (verifiedData?.total) return verifiedData.total
-    if (pendingAmount) return parseFloat(pendingAmount)
-    return state?.amount || 0
+    if (verifiedData?.amount) {
+      const amt = Number(verifiedData.amount)
+      if (!isNaN(amt) && amt > 0) return amt
+    }
+    if (verifiedData?.amount_paid) {
+      const amt = Number(verifiedData.amount_paid)
+      if (!isNaN(amt) && amt > 0) return amt
+    }
+    if (verifiedData?.total) {
+      const amt = Number(verifiedData.total)
+      if (!isNaN(amt) && amt > 0) return amt
+    }
+    if (verifiedData?.total_amount) {
+      const amt = Number(verifiedData.total_amount)
+      if (!isNaN(amt) && amt > 0) return amt
+    }
+    if (pendingAmount) {
+      const amt = parseFloat(pendingAmount)
+      if (!isNaN(amt) && amt > 0) return amt
+    }
+    if (state?.amount) {
+      const amt = Number(state.amount)
+      if (!isNaN(amt) && amt > 0) return amt
+    }
+    return 0
   }
   
   const reference = verifiedData?.reference || finalReference || `PAY-${Math.random().toString(36).substring(2, 10).toUpperCase()}`
@@ -992,7 +1013,7 @@ export function PaymentSuccessState() {
                 Download Receipt
               </button>
               <a
-                href={window.location.origin}
+                href={contactAuth.isLoggedIn() ? '/contact/dashboard' : window.location.origin}
                 className="w-full py-2 text-[#45464d] hover:text-[#191c1e] transition-colors text-sm font-bold tracking-tight text-center underline underline-offset-4 decoration-[#c6c6cd]/30"
               >
                 Return to Home

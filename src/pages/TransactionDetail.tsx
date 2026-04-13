@@ -4,6 +4,7 @@ import { Search, Plus, Filter, Download, Eye, Edit, Trash2, MoreVertical, Chevro
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { paymentService, type Transaction } from '@/services/paymentService'
+import { formService, type Form } from '@/services/formService'
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(amount)
@@ -17,6 +18,7 @@ export function IndividualTransactionDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [transaction, setTransaction] = useState<Transaction | null>(null)
+  const [form, setForm] = useState<Form | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -28,6 +30,15 @@ export function IndividualTransactionDetail() {
       try {
         const data = await paymentService.getTransaction(id)
         setTransaction(data)
+        
+        if (data.submission?.form_id) {
+          try {
+            const formData = await formService.getForm(data.submission.form_id)
+            setForm(formData)
+          } catch (err) {
+            console.error('Failed to fetch form:', err)
+          }
+        }
       } catch (err) {
         setError('Failed to load transaction')
         console.error(err)
@@ -131,7 +142,7 @@ export function IndividualTransactionDetail() {
                 </Link>
               )}
               {transaction.submission?.form_id && (
-                <Link to={`/forms/${transaction.submission.form_id}`} className="flex-1">
+                <Link to={form?.slug ? `/pay/${form.slug}` : `/forms/${transaction.submission.form_id}`} className="flex-1">
                   <Button variant="secondary" className="w-full flex items-center justify-center gap-2">
                     View Form
                   </Button>

@@ -18,7 +18,9 @@ interface GroupNode {
 
 interface LocalContact {
   id: string
-  name: string
+  name?: string
+  first_name?: string
+  last_name?: string
   email: string
   phone?: string
   selected: boolean
@@ -444,16 +446,20 @@ export function GroupContactsManagement() {
     }
   }
 
-  const filteredGroupContacts = contacts.filter(c => 
-    c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.email.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredGroupContacts = contacts.filter(c => {
+    const name = c.name || c.first_name || ''
+    const email = c.email || ''
+    return name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      email.toLowerCase().includes(searchQuery.toLowerCase())
+  })
 
-  const filteredAllContacts = allContacts.filter(c => 
-    !contacts.some(gc => gc.id === c.id) &&
-    (c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.email.toLowerCase().includes(searchQuery.toLowerCase()))
-  )
+  const filteredAllContacts = allContacts.filter(c => {
+    const name = c.name || c.first_name || ''
+    const email = c.email || ''
+    return !contacts.some(gc => gc.id === c.id) &&
+      (name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      email.toLowerCase().includes(searchQuery.toLowerCase()))
+  })
 
   const selectedGroupCount = contacts.filter(c => c.selected).length
   const selectedAddCount = allContacts.filter(c => c.selected).length
@@ -536,11 +542,11 @@ export function GroupContactsManagement() {
                   </div>
                   <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                     <span className="text-blue-600 font-bold text-sm">
-                      {contact.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                      {(contact.name || contact.first_name || '').split(' ').map(n => n[0]).join('').slice(0, 2)}
                     </span>
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-gray-900">{contact.name}</p>
+                    <p className="font-medium text-gray-900">{contact.name || contact.first_name || 'Unknown'}</p>
                     <p className="text-sm text-gray-500">{contact.email}</p>
                   </div>
                 </div>
@@ -568,19 +574,22 @@ export function GroupContactsManagement() {
           </div>
 
           <div className="divide-y divide-gray-100 max-h-[500px] overflow-y-auto">
-            {filteredGroupContacts.map(contact => (
+            {filteredGroupContacts.map(contact => {
+              const displayName = contact.name || contact.first_name || 'Unknown'
+              const displayEmail = contact.email || ''
+              return (
               <div 
                 key={contact.id}
                 className="flex items-center gap-4 p-4 hover:bg-gray-50"
               >
                 <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                   <span className="text-blue-600 font-bold text-sm">
-                    {contact.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                    {displayName.split(' ').map(n => n[0]).join('').slice(0, 2)}
                   </span>
                 </div>
                 <div className="flex-1">
-                  <p className="font-medium text-gray-900">{contact.name}</p>
-                  <p className="text-sm text-gray-500">{contact.email}</p>
+                  <p className="font-medium text-gray-900">{displayName}</p>
+                  <p className="text-sm text-gray-500">{displayEmail}</p>
                 </div>
                 <Button 
                   variant="ghost" 
@@ -596,7 +605,8 @@ export function GroupContactsManagement() {
                   View
                 </Button>
               </div>
-            ))}
+              )
+            })}
           </div>
 
           {filteredGroupContacts.length === 0 && (

@@ -93,13 +93,35 @@ function GeneralSettings() {
 
   const handleSave = async () => {
     setIsSaving(true)
+    setSaved(false)
     try {
-      await organizationService.updateOrganization(formData)
+      await organizationService.updateOrganization({
+        name: formData.name,
+        email: formData.email,
+        subdomain: formData.subdomain,
+        custom_domain: formData.custom_domain,
+      })
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
-    } catch (err) {
-      toast({ title: 'Error', description: 'Failed to save settings', variant: 'destructive' })
-      console.error(err)
+    } catch (err: any) {
+      console.error('Failed to save settings:', err)
+      let errorMessage = 'Failed to save settings'
+      
+      if (err?.message) {
+        if (err.message.includes('enabled_payment_methods')) {
+          errorMessage = 'Payment methods feature is not yet available. Please contact support.'
+        } else if (err.message.includes('partial_payment_limit')) {
+          errorMessage = 'Partial payment feature is not yet available. Please contact support.'
+        } else {
+          errorMessage = err.message
+        }
+      }
+      
+      toast({ 
+        title: 'Error', 
+        description: errorMessage, 
+        variant: 'destructive' 
+      })
     } finally {
       setIsSaving(false)
     }

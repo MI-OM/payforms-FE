@@ -4,6 +4,8 @@ import { CreditCard, RefreshCw, Loader2, CheckCircle, X, Eye, FileText, Search, 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { paymentService, type Payment } from '@/services/paymentService'
+import { contactService, type Contact } from '@/services/contactService'
+import { formService, type Form } from '@/services/formService'
 import { toast } from '@/components/ui/use-toast'
 
 function formatCurrency(amount: number): string {
@@ -27,26 +29,50 @@ function getPaymentMethodLabel(method?: string): string {
 
 interface AddPaymentModalProps {
   onClose: () => void
-  onSubmit: (data: { submission_id: string; amount: number; payment_method: 'CASH' | 'BANK_TRANSFER' | 'POS' | 'CHEQUE'; external_reference?: string; confirmation_note?: string }) => Promise<void>
+  onSubmit: (data: { form_id: string; contact_id: string; amount: number; payment_method: 'CASH' | 'BANK_TRANSFER' | 'POS' | 'CHEQUE'; external_reference?: string; confirmation_note?: string }) => Promise<void>
 }
 
 function AddPaymentModal({ onClose, onSubmit }: AddPaymentModalProps) {
-  const [submissionId, setSubmissionId] = useState('')
+  const [forms, setForms] = useState<Form[]>([])
+  const [contacts, setContacts] = useState<Contact[]>([])
+  const [selectedForm, setSelectedForm] = useState('')
+  const [selectedContact, setSelectedContact] = useState('')
   const [amount, setAmount] = useState('')
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'BANK_TRANSFER' | 'POS' | 'CHEQUE'>('CASH')
   const [externalReference, setExternalReference] = useState('')
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
+  const [loadingData, setLoadingData] = useState(true)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [formsRes, contactsRes] = await Promise.all([
+          formService.getForms({ limit: 100 }),
+          contactService.getContacts({ limit: 100 })
+        ])
+        setForms(formsRes.data)
+        setContacts(contactsRes.data)
+      } catch (err) {
+        console.error('Failed to fetch forms/contacts:', err)
+        toast({ title: 'Error', description: 'Failed to load forms and contacts', variant: 'destructive' })
+      } finally {
+        setLoadingData(false)
+      }
+    }
+    fetchData()
+  }, [])
 
   const handleSubmit = async () => {
-    if (!submissionId || !amount) {
+    if (!selectedForm || !selectedContact || !amount) {
       toast({ title: 'Error', description: 'Please fill in required fields', variant: 'destructive' })
       return
     }
     setLoading(true)
     try {
       await onSubmit({
-        submission_id: submissionId,
+        form_id: selectedForm,
+        contact_id: selectedContact,
         amount: parseFloat(amount),
         payment_method: paymentMethod,
         external_reference: externalReference || undefined,
@@ -60,6 +86,18 @@ function AddPaymentModal({ onClose, onSubmit }: AddPaymentModalProps) {
     }
   }
 
+  if (loadingData) {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
@@ -67,12 +105,32 @@ function AddPaymentModal({ onClose, onSubmit }: AddPaymentModalProps) {
         
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-[#45464d] mb-1 block">Submission ID *</label>
-            <Input
-              value={submissionId}
-              onChange={(e) => setSubmissionId(e.target.value)}
-              placeholder="Enter submission ID"
-            />
+            <label className="text-sm font-medium text-[#45464d] mb-1 block">Form *</label>
+            <select
+              value={selectedForm}
+              onChange={(e) => setSelectedForm(e.target.value)}
+              className="w-full p-2 border border-[#c6c6cd] rounded-lg"
+            >
+              <option value="">Select form</option>
+              {forms.map((form) => (
+                <option key={form.id} value={form.id}>{form.title}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-[#45464d] mb-1 block">Contact *</label>
+            <select
+              value={selectedContact}
+              onChange={(e) => setSelectedContact(e.target.value)}
+              className="w-full p-2 border border-[#c6c6cd] rounded-lg"
+            >
+              <option value="">Select contact</option>
+              {contacts.map((contact) => (
+                <option key={contact.id} value={contact.id}>
+                  {contact.first_name} {contact.last_name} {contact.email ? `(${contact.email})` : ''}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="text-sm font-medium text-[#45464d] mb-1 block">Amount *</label>
@@ -320,13 +378,15 @@ export function OfflinePaymentsPage() {
     }
   }, [searchTerm, fetchPayments])
 
-  const handleAddPayment = async (data: { submission_id: string; amount: number; payment_method: 'CASH' | 'BANK_TRANSFER' | 'POS' | 'CHEQUE'; external_reference?: string; confirmation_note?: string }) => {
+  const handleAddPayment = async (data: { form_id: string; contact_id: string; amount: number; payment_method: 'CASH' | 'BANK_TRANSFER' | 'POS' | 'CHEQUE'; external_reference?: string; confirmation_note?: string }) => {
     try {
-      await paymentService.createPayment({
-        submission_id: data.submission_id,
+      await paymentService.createOfflinePayment({
+        form_id: data.form_id,
+        contact_id: data.contact_id,
         amount: data.amount,
         payment_method: data.payment_method,
-        reference: data.external_reference,
+        external_reference: data.external_reference,
+        confirmation_note: data.confirmation_note,
       })
       toast({ title: 'Success', description: 'Offline payment added successfully' })
       fetchPayments(1, false)

@@ -217,4 +217,15 @@ export const paymentService = {
   }): Promise<Payment> => {
     return apiClient.patch(`/payments/${paymentId}/offline-review`, data)
   },
+
+  createOfflinePayment: async (data: {
+    form_id: string
+    contact_id: string
+    amount: number
+    payment_method: 'CASH' | 'BANK_TRANSFER' | 'POS' | 'CHEQUE'
+    external_reference?: string
+    confirmation_note?: string
+  }): Promise<Payment> => {
+    return apiClient.post('/payments/offline', data)
+  },
 }

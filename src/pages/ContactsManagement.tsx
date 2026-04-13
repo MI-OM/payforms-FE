@@ -555,7 +555,7 @@ export function ContactsManagement() {
                           Clear
                         </button>
                         <button
-                          className="flex-1 px-3 py-2 text-sm font-medium text-white bg-[#006398] rounded hover:bg-[#005080]"
+                          className="flex-1 px-3 py-2 text-sm font-medium text-white bg-[#006398] rounded hover:bg-[#005078]"
                           onClick={() => {
                             setShowFilter(false)
                             setPage(1)

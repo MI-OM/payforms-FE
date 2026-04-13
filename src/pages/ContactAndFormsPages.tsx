@@ -182,7 +182,7 @@ export function FullStatementTemplateContact() {
                     <p className="text-sm text-on-surface-variant">{new Date(txn.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold">${txn.amount.toFixed(2)}</p>
+                    <p className="font-bold">${Number(txn.amount).toFixed(2)}</p>
                     <span className="text-xs px-2 py-0.5 rounded-full bg-tertiary-fixed/30 text-on-tertiary-container font-bold">Completed</span>
                   </div>
                 </div>
@@ -292,7 +292,7 @@ export function FullTransactionHistoryContact() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold">${txn.amount.toFixed(2)}</p>
+                    <p className="font-bold">${Number(txn.amount).toFixed(2)}</p>
                     <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
                       txn.status === 'PAID' ? 'bg-tertiary-fixed/30 text-on-tertiary-container' :
                       txn.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
@@ -400,6 +400,13 @@ export function EditContactView() {
   return (
     <div className="min-h-screen bg-surface p-8">
       <div className="max-w-3xl mx-auto">
+        <Button 
+          variant="ghost" 
+          onClick={() => navigate(`/contacts/${id}`)}
+          className="mb-4 text-[#45464d] hover:text-[#191c1e]"
+        >
+          ← Back to Contact
+        </Button>
         <div className="bg-surface-container-lowest rounded-xl p-8">
           <h1 className="text-2xl font-extrabold tracking-tight mb-6">Edit Contact</h1>
 

@@ -1,6 +1,5 @@
 import { apiClient } from '@/lib/apiClient'
 import { getAccessToken } from '@/lib/auth'
-import { contactAuth } from '@/lib/contactAuth'
 
 export interface Contact {
   id: string
@@ -195,29 +194,7 @@ export const contactService = {
   },
 
   getContactTransactions: async (id: string, params?: PaginationParams): Promise<PaginatedResponse<Transaction>> => {
-    // Note: This endpoint requires admin auth, not contact auth
-    // There's no /contact-auth/transactions endpoint in the API contract
-    // This will fail for contacts - backend needs a new endpoint
-    const contactToken = contactAuth.getAccessToken()
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-    if (contactToken) {
-      headers['Authorization'] = `Bearer ${contactToken}`
-    }
-    
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
-    const url = new URL(`${apiUrl}/contacts/${id}/transactions`)
-    if (params?.limit) url.searchParams.set('limit', params.limit.toString())
-    if (params?.page) url.searchParams.set('page', params.page.toString())
-    
-    const response = await fetch(url.toString(), { 
-      headers,
-      credentials: 'include',
-    })
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.message || `Request failed: ${response.status}`)
-    }
-    return response.json()
+    return apiClient.get(`/contacts/${id}/transactions`, { params })
   },
 
   exportContactTransactions: async (contactId: string): Promise<Blob> => {
