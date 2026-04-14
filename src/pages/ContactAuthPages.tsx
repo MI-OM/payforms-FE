@@ -4,6 +4,10 @@ import { contactAuthService, type Transaction } from '@/services/contactAuthServ
 import { Logo, LogoIcon } from '@/components/Logo'
 import { ApiError } from '@/lib/apiClient'
 
+function getStoredOrgLogo(): string | null {
+  return localStorage.getItem('pf_org_logo') || null
+}
+
 function getAutoDetectedSubdomain(): string {
   const hostname = window.location.hostname
   if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
@@ -41,6 +45,12 @@ export function ContactLoginPage() {
       
       const contact = await contactAuthService.getMe()
       localStorage.setItem('pf_contact', JSON.stringify(contact))
+      
+      if (loginResponse.contact?.organization) {
+        localStorage.setItem('pf_org_logo', loginResponse.contact.organization.logo_url || '')
+        localStorage.setItem('pf_org_name', loginResponse.contact.organization.name || '')
+      }
+      
       navigate(redirectUrl, { replace: true })
     } catch (err) {
       if (err instanceof ApiError) {
@@ -71,7 +81,7 @@ export function ContactLoginPage() {
       <div className="relative z-10 w-full max-w-md px-6">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <Logo size="lg" />
+            <Logo size="lg" logoUrl={getStoredOrgLogo()} />
           </div>
           <p className="text-sm text-slate-500">Sign in to your account</p>
         </div>
@@ -215,7 +225,7 @@ export function ContactLoginPage() {
         </div>
 
         <div className="flex justify-center mb-2">
-          <LogoIcon size="sm" asLink={false} />
+          <LogoIcon size="sm" asLink={false} logoUrl={getStoredOrgLogo()} />
         </div>
         <p className="text-center text-xs text-slate-400">
           © {new Date().getFullYear()} Payforms Inc. All rights reserved.
@@ -333,7 +343,7 @@ export function ContactSetPassword() {
 
       <main className="relative z-10 w-full max-w-md px-6 py-12">
         <div className="flex justify-center mb-10">
-          <Logo size="lg" />
+          <Logo size="lg" logoUrl={getStoredOrgLogo()} />
         </div>
 
         <div className="bg-white/70 backdrop-blur-xl rounded-xl p-8 md:p-10 shadow-[0_40px_80px_-20px_rgba(25,28,30,0.08)] border border-white/20">
@@ -544,7 +554,7 @@ export function ContactResetPasswordRequest() {
 
       <main className="relative z-10 w-full max-w-md px-6 py-12">
         <div className="flex justify-center mb-10">
-          <Logo size="lg" />
+          <Logo size="lg" logoUrl={getStoredOrgLogo()} />
         </div>
 
         <div className="bg-white/70 backdrop-blur-xl rounded-xl p-8 md:p-10 shadow-[0_40px_80px_-20px_rgba(25,28,30,0.08)] border border-white/20">
@@ -704,7 +714,7 @@ export function ContactResetPasswordConfirm() {
 
       <main className="relative z-10 w-full max-w-md px-6 py-12">
         <div className="flex justify-center mb-10">
-          <Logo size="lg" />
+          <Logo size="lg" logoUrl={getStoredOrgLogo()} />
         </div>
 
         <div className="bg-white/70 backdrop-blur-xl rounded-xl p-8 md:p-10 shadow-[0_40px_80px_-20px_rgba(25,28,30,0.08)] border border-white/20">
@@ -851,7 +861,7 @@ export function ContactResetPasswordConfirm() {
 
 export function ContactDashboard() {
   const navigate = useNavigate()
-  const [contact, setContact] = useState<{ id: string; first_name: string; last_name: string; email: string; student_id?: string; organization_id?: string; is_active: boolean } | null>(null)
+  const [contact, setContact] = useState<{ id: string; first_name: string; last_name: string; email: string; student_id?: string; organization_id?: string; is_active: boolean; organization?: { id: string; name: string; logo_url?: string; subdomain?: string; custom_domain?: string } } | null>(null)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
@@ -863,7 +873,7 @@ export function ContactDashboard() {
         setError(null)
         const contactData = await contactAuthService.getMe()
         console.log('📊 ContactDashboard - API Response:', JSON.stringify(contactData, null, 2))
-        setContact(contactData)
+        setContact(contactData as any)
         
         const txData = await contactAuthService.getTransactions({ limit: 100 })
         console.log('📊 ContactDashboard - Transactions Response:', { 

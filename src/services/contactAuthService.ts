@@ -33,7 +33,15 @@ export interface ContactLoginRequest {
 export interface ContactLoginResponse {
   access_token: string
   refresh_token: string
-  contact: Contact
+  contact: Contact & { organization?: { id: string; name: string; logo_url?: string; subdomain?: string; custom_domain?: string } }
+}
+
+export function getStoredOrgLogo(): string | null {
+  return localStorage.getItem('pf_org_logo') || null
+}
+
+export function getStoredOrgName(): string | null {
+  return localStorage.getItem('pf_org_name') || null
 }
 
 export interface ContactSetPasswordRequest {

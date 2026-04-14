@@ -82,8 +82,8 @@ export function ContactsManagement() {
   })
   const [showFilter, setShowFilter] = useState(false)
   const [filters, setFilters] = useState({
-    is_active: '' as '' | 'true' | 'false',
-    has_balance: '' as '' | 'yes' | 'no',
+    status: '' as '' | 'active' | 'inactive' | 'all',
+    balance: '' as '' | 'has_balance' | 'no_balance' | 'all',
     group_id: '' as string,
   })
   const limit = 20
@@ -128,7 +128,7 @@ export function ContactsManagement() {
       const currentPage = pageRef.current
       const validPage = isNaN(currentPage) || currentPage < 1 ? 1 : currentPage
       
-      const params: { page: number; limit: number; group_id?: string; search?: string; is_active?: string; has_balance?: string } = {
+      const params: { page: number; limit: number; group_id?: string; search?: string; status?: string; balance?: string } = {
         page: validPage,
         limit,
       }
@@ -140,11 +140,11 @@ export function ContactsManagement() {
       if (searchQuery) {
         params.search = searchQuery
       }
-      if (filters.is_active) {
-        params.is_active = filters.is_active
+      if (filters.status && filters.status !== 'all') {
+        params.status = filters.status
       }
-      if (filters.has_balance) {
-        params.has_balance = filters.has_balance
+      if (filters.balance && filters.balance !== 'all') {
+        params.balance = filters.balance
       }
       const response: PaginatedResponse<Contact> = await contactService.getContacts(params)
       
@@ -498,7 +498,7 @@ export function ContactsManagement() {
                 >
                   <Filter className="h-4 w-4" />
                   Filter
-                  {(filters.is_active || filters.has_balance || filters.group_id) && (
+                  {(filters.status || filters.balance || filters.group_id) && (
                     <span className="w-2 h-2 bg-[#006398] rounded-full"></span>
                   )}
                 </button>
@@ -509,24 +509,24 @@ export function ContactsManagement() {
                         <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
                         <select
                           className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                          value={filters.is_active}
-                          onChange={(e) => setFilters({ ...filters, is_active: e.target.value as '' | 'true' | 'false' })}
+                          value={filters.status}
+                          onChange={(e) => setFilters({ ...filters, status: e.target.value as '' | 'active' | 'inactive' | 'all' })}
                         >
                           <option value="">All</option>
-                          <option value="true">Active</option>
-                          <option value="false">Inactive</option>
+                          <option value="active">Active</option>
+                          <option value="inactive">Inactive</option>
                         </select>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Balance</label>
                         <select
                           className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                          value={filters.has_balance}
-                          onChange={(e) => setFilters({ ...filters, has_balance: e.target.value as '' | 'yes' | 'no' })}
+                          value={filters.balance}
+                          onChange={(e) => setFilters({ ...filters, balance: e.target.value as '' | 'has_balance' | 'no_balance' | 'all' })}
                         >
                           <option value="">All</option>
-                          <option value="yes">Has Balance</option>
-                          <option value="no">No Balance</option>
+                          <option value="has_balance">Has Balance</option>
+                          <option value="no_balance">No Balance</option>
                         </select>
                       </div>
                       <div>
@@ -548,7 +548,7 @@ export function ContactsManagement() {
                         <button
                           className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200"
                           onClick={() => {
-                            setFilters({ is_active: '', has_balance: '', group_id: '' })
+                            setFilters({ status: '', balance: '', group_id: '' })
                             setPage(1)
                           }}
                         >

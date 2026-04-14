@@ -445,8 +445,20 @@ function AppearanceSettings() {
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
       toast({ title: 'Success', description: 'Logo saved successfully' })
-    } catch (err) {
-      toast({ title: 'Error', description: 'Failed to save logo', variant: 'destructive' })
+    } catch (err: any) {
+      let description = 'Failed to save logo'
+      if (err?.status === 0) {
+        description = 'Cannot connect to server. Please check your internet connection or try again.'
+      } else if (err?.status === 413) {
+        description = 'File too large. Please use a smaller image (max 2MB).'
+      } else if (err?.status === 500) {
+        description = 'Server error. Please try again later.'
+      } else if (err?.message?.includes('CORS')) {
+        description = 'Network error. Please try again or contact support.'
+      } else if (err?.message) {
+        description = err.message
+      }
+      toast({ title: 'Error', description, variant: 'destructive' })
       console.error(err)
     } finally {
       setIsSaving(false)

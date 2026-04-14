@@ -1,8 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { cn } from "@/lib/utils"
 import { Link, useLocation, useNavigate } from "react-router-dom"
+import { getStoredOrgLogo, getStoredOrgName } from '@/services/contactAuthService'
 
 interface ContactSidebarProps {
+  collapsed?: boolean
+  onToggleCollapse?: () => void
   onLogout?: () => void
 }
 
@@ -35,10 +38,20 @@ function MaterialIcon({ name, className = '' }: { name: string; className?: stri
   )
 }
 
-export function ContactSidebar({ onLogout }: ContactSidebarProps) {
+export function ContactSidebar({ collapsed: externalCollapsed, onToggleCollapse, onLogout }: ContactSidebarProps) {
   const location = useLocation()
   const navigate = useNavigate()
-  const [collapsed, setCollapsed] = useState(false)
+  const [internalCollapsed, setInternalCollapsed] = useState(false)
+  const [orgLogo, setOrgLogo] = useState<string | null>(null)
+  const [orgName, setOrgName] = useState<string | null>(null)
+  
+  const collapsed = externalCollapsed ?? internalCollapsed
+  const handleToggle = externalCollapsed !== undefined ? onToggleCollapse : () => setInternalCollapsed(!internalCollapsed)
+  
+  useEffect(() => {
+    setOrgLogo(getStoredOrgLogo())
+    setOrgName(getStoredOrgName())
+  }, [])
   
   const handleLogout = async () => {
     if (onLogout) {
@@ -57,7 +70,7 @@ export function ContactSidebar({ onLogout }: ContactSidebarProps) {
       )}>
         {/* Toggle Button */}
         <button
-          onClick={() => setCollapsed(!collapsed)}
+          onClick={handleToggle}
           className="absolute top-4 -right-3 z-10 w-6 h-6 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500 hover:text-slate-900 hover:shadow-sm transition-all"
         >
           <MaterialIcon name={collapsed ? "menu" : "chevron_left"} className="text-sm" />
@@ -68,17 +81,34 @@ export function ContactSidebar({ onLogout }: ContactSidebarProps) {
           "flex items-center gap-3 px-4 pt-6 pb-4 border-b border-slate-100 shrink-0",
           collapsed && "justify-center px-2"
         )}>
-          <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center shrink-0">
-            <span className="text-white font-bold text-sm">P</span>
-          </div>
+          {orgLogo ? (
+            <img src={orgLogo} alt="Organization" className="w-8 h-8 rounded-lg object-contain bg-white shrink-0" />
+          ) : (
+            <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center shrink-0">
+              <span className="text-white font-bold text-sm">P</span>
+            </div>
+          )}
           {!collapsed && (
-            <div className="min-w-0">
-              <h1 className="text-lg font-bold tracking-tighter text-slate-900 leading-tight font-headline truncate">
-                Payforms
-              </h1>
-              <p className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">
-                Contact Portal
-              </p>
+            <div className="min-w-0 flex flex-col">
+              {orgName ? (
+                <>
+                  <h1 className="text-lg font-bold tracking-tighter text-slate-900 leading-tight font-headline truncate">
+                    {orgName}
+                  </h1>
+                  <p className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">
+                    Contact Portal
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h1 className="text-lg font-bold tracking-tighter text-slate-900 leading-tight font-headline truncate">
+                    Payforms
+                  </h1>
+                  <p className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">
+                    Contact Portal
+                  </p>
+                </>
+              )}
             </div>
           )}
         </div>

@@ -5,6 +5,7 @@ interface LogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl'
   className?: string
   showText?: boolean
+  logoUrl?: string | null
 }
 
 const sizeClasses = {
@@ -14,28 +15,42 @@ const sizeClasses = {
   xl: { icon: 'h-20 w-auto', container: 'h-20' },
 }
 
-export function Logo({ size = 'md', className = '' }: LogoProps) {
+const DEFAULT_LOGO = '/Payforms.png'
+
+export function Logo({ size = 'md', className = '', logoUrl }: LogoProps) {
   const sizes = sizeClasses[size]
+  const logoSrc = logoUrl || DEFAULT_LOGO
   
   return (
     <Link to="/" className="inline-flex">
       <img 
-        src="/Payforms.png" 
+        src={logoSrc} 
         alt="Payforms" 
         className={`${sizes.icon} object-contain ${className}`}
+        onError={(e) => {
+          if (logoUrl !== DEFAULT_LOGO) {
+            (e.target as HTMLImageElement).src = DEFAULT_LOGO
+          }
+        }}
       />
     </Link>
   )
 }
 
-export function LogoIcon({ size = 'md', className = '', asLink = true }: { size?: 'sm' | 'md' | 'lg' | 'xl', className?: string, asLink?: boolean }) {
+export function LogoIcon({ size = 'md', className = '', asLink = true, logoUrl }: { size?: 'sm' | 'md' | 'lg' | 'xl', className?: string, asLink?: boolean, logoUrl?: string | null }) {
   const sizes = sizeClasses[size]
+  const logoSrc = logoUrl || DEFAULT_LOGO
   
   const img = (
     <img 
-      src="/Payforms.png" 
+      src={logoSrc} 
       alt="Payforms" 
       className={`${sizes.icon} object-contain ${className}`}
+      onError={(e) => {
+        if (logoUrl !== DEFAULT_LOGO) {
+          (e.target as HTMLImageElement).src = DEFAULT_LOGO
+        }
+      }}
     />
   )
   
@@ -50,6 +65,6 @@ export function LogoIcon({ size = 'md', className = '', asLink = true }: { size?
   return <>{img}</>
 }
 
-export function LogoWithText({ size = 'md', className = '' }: { size?: 'sm' | 'md' | 'lg' | 'xl', className?: string }) {
-  return <Logo size={size} className={className} />
+export function LogoWithText({ size = 'md', className = '', logoUrl }: { size?: 'sm' | 'md' | 'lg' | 'xl', className?: string, logoUrl?: string | null }) {
+  return <Logo size={size} className={className} logoUrl={logoUrl} />
 }
