@@ -76,7 +76,7 @@ import { ForgeProtocol } from '@/pages/LandingPages'
 import { ArchitecturalLedgerAdminPaymentFlow } from '@/pages/LandingPages'
 import { DashboardLayout } from '@/components/layouts/DashboardLayout'
 import { ContactLayout } from '@/components/layouts/ContactLayout'
-import { AuthProvider, useAuth, useRequireAuth } from '@/contexts/AuthContext'
+import { AuthProvider, useAuth, useRequireAuth, useIsAdmin } from '@/contexts/AuthContext'
 import { ContactAuthProvider } from '@/contexts/ContactAuthContext'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -110,6 +110,14 @@ function AdminLayout() {
 function FormBuilderAssignAudienceWrapper() {
   const navigate = useNavigate()
   return <FormBuilderAssignAudience onBack={() => navigate('/forms/builder')} onNext={() => navigate('/forms/builder/publish')} />
+}
+
+function AdminOnlyRoute({ children }: { children: React.ReactNode }) {
+  const isAdmin = useIsAdmin()
+  if (!isAdmin) {
+    return <Navigate to="/dashboard" replace />
+  }
+  return children as React.ReactElement
 }
 
 function App() {
@@ -245,10 +253,10 @@ function App() {
           <Route path="/payments/:id" element={<IndividualTransactionDetail />} />
           <Route path="/payments/:id/history" element={<TransactionHistory />} />
           
-          {/* Activity */}
-          <Route path="/activity" element={<AuditLogs />} />
-          <Route path="/activity/:id" element={<ActivityDetailsActions />} />
-          <Route path="/activity/payment/:paymentId" element={<PaymentAuditTrail />} />
+          {/* Activity - Admin only */}
+          <Route path="/activity" element={<AdminOnlyRoute><AuditLogs /></AdminOnlyRoute>} />
+          <Route path="/activity/:id" element={<AdminOnlyRoute><ActivityDetailsActions /></AdminOnlyRoute>} />
+          <Route path="/activity/payment/:paymentId" element={<AdminOnlyRoute><PaymentAuditTrail /></AdminOnlyRoute>} />
           
           {/* Reports */}
           <Route path="/reports" element={<ReportsAnalytics />} />
@@ -259,17 +267,17 @@ function App() {
           <Route path="/import/validate" element={<ImportValidationReview />} />
           <Route path="/import/activities" element={<AllImportActivities />} />
           
-          {/* Settings */}
-          <Route path="/settings" element={<OrganizationSettings />} />
-          <Route path="/settings/2fa" element={<TwoFactorSettings />} />
-          <Route path="/settings/webhooks" element={<WebhookManagement />} />
-          <Route path="/settings/webhooks/:id/logs" element={<WebhookLogs />} />
-          <Route path="/settings/notifications/scheduled" element={<ScheduledNotifications />} />
-          <Route path="/settings/notifications/history" element={<NotificationHistory />} />
-          <Route path="/profile" element={<AdminProfileManagement />} />
+          {/* Settings - Admin only */}
+          <Route path="/settings" element={<AdminOnlyRoute><OrganizationSettings /></AdminOnlyRoute>} />
+          <Route path="/settings/2fa" element={<AdminOnlyRoute><TwoFactorSettings /></AdminOnlyRoute>} />
+          <Route path="/settings/webhooks" element={<AdminOnlyRoute><WebhookManagement /></AdminOnlyRoute>} />
+          <Route path="/settings/webhooks/:id/logs" element={<AdminOnlyRoute><WebhookLogs /></AdminOnlyRoute>} />
+          <Route path="/settings/notifications/scheduled" element={<AdminOnlyRoute><ScheduledNotifications /></AdminOnlyRoute>} />
+          <Route path="/settings/notifications/history" element={<AdminOnlyRoute><NotificationHistory /></AdminOnlyRoute>} />
+          <Route path="/profile" element={<AdminOnlyRoute><AdminProfileManagement /></AdminOnlyRoute>} />
           
-          {/* Team */}
-          <Route path="/team/invite" element={<InviteStaff />} />
+          {/* Team - Admin only */}
+          <Route path="/team/invite" element={<AdminOnlyRoute><InviteStaff /></AdminOnlyRoute>} />
         </Route>
 
         {/* Catch all - redirect to home */}

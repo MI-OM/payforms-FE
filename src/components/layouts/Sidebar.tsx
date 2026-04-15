@@ -21,7 +21,7 @@ const navItems = [
   { label: "Payments", path: "/payments", iconKey: "payments" },
   // { label: "Offline Payments", path: "/payments/offline", iconKey: "offline" },
   { label: "Contacts", path: "/contacts", iconKey: "group" },
-  { label: "Audit Logs", path: "/activity", iconKey: "history" },
+  { label: "Audit Logs", path: "/activity", iconKey: "history", adminOnly: true },
   { label: "Reports", path: "/reports", iconKey: "analytics" },
   { label: "Settings", path: "/settings", iconKey: "settings", adminOnly: true },
 ]

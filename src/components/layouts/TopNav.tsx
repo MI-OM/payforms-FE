@@ -4,6 +4,7 @@ import { notificationService } from '@/services/notificationService'
 import { contactService } from '@/services/contactService'
 import { formService } from '@/services/formService'
 import { paymentService } from '@/services/paymentService'
+import { toast } from '@/components/ui/use-toast'
 
 interface TopNavProps {
   user?: {
@@ -274,7 +275,13 @@ export function TopNav({ user, onLogout, onToggleMobileMenu, notificationCount =
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-3 text-slate-500">
           <button 
-            onClick={() => navigate('/settings/notifications/scheduled')}
+            onClick={() => {
+              if (user?.role !== 'ADMIN') {
+                toast({ title: 'Access Denied', description: 'Only accessible by admins', variant: 'destructive' })
+              } else {
+                navigate('/settings/notifications/scheduled')
+              }
+            }}
             className="hover:text-slate-900 transition-opacity flex items-center relative"
           >
             <MaterialIcon name="notifications" />
@@ -317,7 +324,12 @@ export function TopNav({ user, onLogout, onToggleMobileMenu, notificationCount =
               <Link 
                 to="/profile" 
                 className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 text-slate-700 text-sm"
-                onClick={() => setShowUserMenu(false)}
+                onClick={() => {
+                  setShowUserMenu(false)
+                  if (user?.role !== 'ADMIN') {
+                    toast({ title: 'Access Denied', description: 'Only accessible by admins', variant: 'destructive' })
+                  }
+                }}
               >
                 <MaterialIcon name="person" />
                 <span>My Profile</span>
@@ -325,7 +337,12 @@ export function TopNav({ user, onLogout, onToggleMobileMenu, notificationCount =
               <Link 
                 to="/settings" 
                 className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 text-slate-700 text-sm"
-                onClick={() => setShowUserMenu(false)}
+                onClick={() => {
+                  setShowUserMenu(false)
+                  if (user?.role !== 'ADMIN') {
+                    toast({ title: 'Access Denied', description: 'Only accessible by admins', variant: 'destructive' })
+                  }
+                }}
               >
                 <MaterialIcon name="settings" />
                 <span>Settings</span>
