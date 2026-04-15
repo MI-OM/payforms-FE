@@ -508,13 +508,13 @@ export function AuditLogs() {
       
       response.data.forEach((log, index) => {
         const row = [
-          log.timestamp || '',
+          log.timestamp || log.created_at || '',
           log.action || '',
-          log.entity_type || '',
+          log.entity_details?.type || log.entity_type || '',
           entityNames[index] || log.entity_id || '',
-          log.user_email || 'System',
-          log.ip_address || '',
-          log.details ? JSON.stringify(log.details).replace(/"/g, '""') : ''
+          log.actor?.email || log.user?.email || 'System',
+          log.ip_address || log.metadata?.ip_address || '',
+          log.metadata ? JSON.stringify(log.metadata).replace(/"/g, '""') : ''
         ]
         csvRows.push(row.map(cell => `"${cell}"`).join(','))
       })
@@ -541,7 +541,9 @@ export function AuditLogs() {
   const filteredLogs = logs.filter(log => 
     log.action?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     log.entity_type?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    log.user_email?.toLowerCase().includes(searchQuery.toLowerCase())
+    log.entity_label?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    log.actor?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    log.actor?.email?.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   return (
@@ -629,17 +631,17 @@ export function AuditLogs() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-900">
-                      {log.entity_type}
-                      <span className="text-gray-400 ml-1 text-xs">{log.entity_id}</span>
+                      {log.entity_details?.type || log.entity_details?.label || log.entity_label || log.entity_type}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-900">
-                      {log.actor_type === 'contact' && log.contact_name ? (
+                      {log.actor ? (
                         <div className="flex flex-col">
-                          <span>{log.contact_name}</span>
-                          <span className="text-xs text-gray-500">{log.contact_email}</span>
+                          <span>{log.actor.name}</span>
+                          <span className="text-xs text-gray-500">{log.actor.email}</span>
+                          <span className="text-xs text-gray-400">{log.actor.role}</span>
                         </div>
                       ) : (
-                        log.user_email || 'System'
+                        'System'
                       )}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-500 font-mono">{log.ip_address || '-'}</td>

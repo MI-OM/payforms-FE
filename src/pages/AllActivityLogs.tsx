@@ -369,13 +369,13 @@ export function AllActivityLogs() {
       
       logsToExport.forEach((log, index) => {
         const row = [
-          log.timestamp || '',
+          log.timestamp || log.created_at || '',
           log.action || '',
-          log.entity_type || '',
+          log.entity_details?.type || log.entity_type || '',
           entityNames[index] || log.entity_id || '',
-          log.user_email || 'System',
-          log.ip_address || '',
-          log.details ? JSON.stringify(log.details).replace(/"/g, '""') : ''
+          log.actor?.email || log.user?.email || 'System',
+          log.ip_address || log.metadata?.ip_address || '',
+          log.metadata ? JSON.stringify(log.metadata).replace(/"/g, '""') : ''
         ]
         csvRows.push(row.map(cell => `"${cell}"`).join(','))
       })
@@ -562,10 +562,10 @@ export function AllActivityLogs() {
                                 )
                               })()
                             ) : null}
-                            {(log.user_email && log.user_email.toLowerCase() !== 'system') && (
-                              <span className="text-[10px] text-gray-400">by {log.user_email}</span>
+                            {(log.actor?.email && log.actor.email.toLowerCase() !== 'system') && (
+                              <span className="text-[10px] text-gray-400">by {log.actor.email}</span>
                             )}
-                            {log.user_email?.toLowerCase() === 'system' && (
+                            {log.actor?.email?.toLowerCase() === 'system' && (
                               <span className="text-[10px] text-gray-400 italic">(System action)</span>
                             )}
                           </div>

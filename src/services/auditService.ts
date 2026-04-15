@@ -1,21 +1,57 @@
 import { apiClient } from '@/lib/apiClient'
 import { getAccessToken } from '@/lib/auth'
 
+export interface AuditLogActor {
+  id: string
+  name: string
+  role: string
+  email: string
+  label: string
+}
+
+export interface AuditLogEntityDetails {
+  type: string
+  id: string | null
+  label: string
+  reference: string | null
+  email: string | null
+  subject: string | null
+}
+
+export interface AuditLogMetadata {
+  raw_path?: string
+  params?: Record<string, unknown>
+  query?: Record<string, string>
+  ip_address?: string
+  user_agent?: string
+  actor?: AuditLogActor
+}
+
 export interface AuditLog {
-  id?: string
-  timestamp?: string
+  id: string
+  organization_id?: string
+  user_id?: string
+  contact_id?: string | null
   action?: string
   entity_type?: string
   entity_id?: string
-  user_id?: string
+  metadata?: AuditLogMetadata
+  ip_address?: string
+  user_agent?: string
+  created_at?: string
+  user?: AuditLogActor
+  contact?: unknown
+  timestamp?: string
+  actor?: AuditLogActor
+  entity?: string
+  entity_details?: AuditLogEntityDetails
+  entity_label?: string
+  // Legacy properties for backward compatibility
   user_email?: string
-  contact_id?: string
   contact_name?: string
   contact_email?: string
   actor_type?: 'admin' | 'staff' | 'contact' | 'system'
   actor_name?: string
-  ip_address?: string
-  user_agent?: string
   details?: Record<string, unknown>
 }
 

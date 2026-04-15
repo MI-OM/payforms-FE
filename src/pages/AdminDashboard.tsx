@@ -481,7 +481,7 @@ function LiveDashboard({ summary, analytics, transactions, topForms, forms, audi
                   </div>
                   <p className="text-xs font-bold capitalize">{log.action?.replace(/_/g, ' ') || 'Activity'}</p>
                   <p className="text-[10px] text-[#45464d] uppercase mt-0.5">
-                    {log.user_email || 'System'} • {log.timestamp ? new Date(log.timestamp).toLocaleDateString() : 'Recent'}
+                    {log.actor?.email || log.user?.email || 'System'} • {log.timestamp ? new Date(log.timestamp).toLocaleDateString() : 'Recent'}
                   </p>
                 </div>
               ))
